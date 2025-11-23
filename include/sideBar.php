@@ -1,0 +1,218 @@
+    <aside id="sidebar"
+        class="sidebar-expanded sidebar-transition bg-white dark:bg-gray-800 shadow-lg flex flex-col border-r border-gray-200 dark:border-gray-700">
+        <!-- Sidebar Header with Logo and Toggle -->
+        <div class="px-4 py-3 flex items-center justify-between flex-row">
+            <a href="index.php">
+                <div id="logo" class="flex items-center space-x-1 overflow-hidden">
+                    <div>
+                        <svg
+                            class="w-8 h-8"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 246.43 217">
+                            <g id="Layer_2" data-name="Layer 2">
+                                <polygon
+                                    points="75.83 92.24 75.83 217 49.69 217 49.69 117 0 117 0 92.24 75.83 92.24"
+                                    fill="#3B82F6" />
+                                <path
+                                    d="M509.55,301.42A107.07,107.07,0,0,1,402.48,408.5H343.37V283.74h75.38V308.5H369.51v70.29h27.9a80.81,80.81,0,1,0,0-161.61H318.58V251.5H418.75v27.77H263.12V251.5h31v-60H399.63A109.92,109.92,0,0,1,509.55,301.42Z"
+                                    transform="translate(-263.12 -191.5)"
+                                    fill="#3B82F6" />
+                            </g>
+                        </svg>
+                    </div>
+                    <span id="logo-text"
+                        class="text-2xl font-bold text-blue-500">TaskDesk</span>
+                </div>
+            </a>
+            <button id="toggle-sidebar"
+                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none transition-colors">
+
+                <svg class="sidebar-open hidden" xmlns="http://www.w3.org/2000/svg" width="24px" height="24px"
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    </path>
+                    <path d="M7.96997 2V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round"></path>
+                    <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        transform="scale(-1, 1) translate(-27.38, 0)"></path>
+                </svg>
+                <svg class="sidebar-close" xmlns="http://www.w3.org/2000/svg" width="24px" height="24px"
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M21.97 15V9C21.97 4 19.97 2 14.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15Z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    </path>
+                    <path d="M7.96997 2V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round"></path>
+                    <path d="M14.97 9.43994L12.41 11.9999L14.97 14.5599" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Sidebar Content with Modern Navigation -->
+        <div class="flex-1 overflow-y-auto py-4 custom-scrollbar">
+            <nav>
+                <div class="px-4 mb-6">
+                    <p class="text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-2 px-1"
+                        id="menu-title">Menu</p>
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="index.php" onclick="window.location=this.href"
+                                class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'index.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                    <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                        <g id="SVGRepo_iconCarrier">
+                                            <path d="M22 12.2039V13.725C22 17.6258 22 19.5763 20.8284 20.7881C19.6569 22 17.7712 22 14 22H10C6.22876 22 4.34315 22 3.17157 20.7881C2 19.5763 2 17.6258 2 13.725V12.2039C2 9.91549 2 8.77128 2.5192 7.82274C3.0384 6.87421 3.98695 6.28551 5.88403 5.10813L7.88403 3.86687C9.88939 2.62229 10.8921 2 12 2C13.1079 2 14.1106 2.62229 16.116 3.86687L18.116 5.10812C20.0131 6.28551 20.9616 6.87421 21.4808 7.82274" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            <path d="M15 18H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span
+                                    class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
+                            </a>
+                        </li>
+                        <?php if ($_SESSION['user_role'] == 1) { ?>
+                            <li>
+                                <a href="tech.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'tech.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <path d="M6 4C6 5.10457 5.10457 6 4 6C2.89543 6 2 5.10457 2 4C2 2.89543 2.89543 2 4 2C5.10457 2 6 2.89543 6 4Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M6 20C6 21.1046 5.10457 22 4 22C2.89543 22 2 21.1046 2 20C2 18.8954 2.89543 18 4 18C5.10457 18 6 18.8954 6 20Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M14 20C14 21.1046 13.1046 22 12 22C10.8954 22 10 21.1046 10 20C10 18.8954 10.8954 18 12 18C13.1046 18 14 18.8954 14 20Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M14 4C14 5.10457 13.1046 6 12 6C10.8954 6 10 5.10457 10 4C10 2.89543 10.8954 2 12 2C13.1046 2 14 2.89543 14 4Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M22 4C22 5.10457 21.1046 6 20 6C18.8954 6 18 5.10457 18 4C18 2.89543 18.8954 2 20 2C21.1046 2 22 2.89543 22 4Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M12 6V13M12 18V16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M4 18V11M4 6V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M20 6V8C20 9.88562 20 10.8284 19.4142 11.4142C18.8284 12 17.8856 12 16 12H10M4 12H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M18 15V14.25C17.5858 14.25 17.25 14.5858 17.25 15H18ZM17.25 22C17.25 22.4142 17.5858 22.75 18 22.75C18.4142 22.75 18.75 22.4142 18.75 22H17.25ZM21.3604 22.3916C21.5766 22.7449 22.0384 22.8559 22.3916 22.6396C22.7449 22.4234 22.8559 21.9616 22.6396 21.6084L21.3604 22.3916ZM18 15.75H20.2857V14.25H18V15.75ZM18.75 18.5V15H17.25V18.5H18.75ZM21.25 16.75C21.25 17.3169 20.8038 17.75 20.2857 17.75V19.25C21.6612 19.25 22.75 18.1161 22.75 16.75H21.25ZM20.2857 15.75C20.8038 15.75 21.25 16.1831 21.25 16.75H22.75C22.75 15.3839 21.6612 14.25 20.2857 14.25V15.75ZM20.2857 17.75H19.8571V19.25H20.2857V17.75ZM19.8571 17.75H18V19.25H19.8571V17.75ZM19.2175 18.8916L21.3604 22.3916L22.6396 21.6084L20.4968 18.1084L19.2175 18.8916ZM17.25 18.5V22H18.75V18.5H17.25Z" fill="currentColor"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Tech</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="supervisors.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'supervisors.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <circle cx="9" cy="6" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                                <path d="M15 9C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M5.88915 20.5843C6.82627 20.8504 7.88256 21 9 21C12.866 21 16 19.2091 16 17C16 14.7909 12.866 13 9 13C5.13401 13 2 14.7909 2 17C2 17.3453 2.07657 17.6804 2.22053 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M18 14C19.7542 14.3847 21 15.3589 21 16.5C21 17.5293 19.9863 18.4229 18.5 18.8704" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Surpervisors</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+                        <?php if ($_SESSION['user_role'] == 3) { ?>
+                            <li>
+                                <a href="internees.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'internees.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <circle cx="9" cy="6" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                                <path d="M15 9C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M5.88915 20.5843C6.82627 20.8504 7.88256 21 9 21C12.866 21 16 19.2091 16 17C16 14.7909 12.866 13 9 13C5.13401 13 2 14.7909 2 17C2 17.3453 2.07657 17.6804 2.22053 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M18 14C19.7542 14.3847 21 15.3589 21 16.5C21 17.5293 19.9863 18.4229 18.5 18.8704" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Internees</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+                        <?php if ($_SESSION['user_role'] == 2) { ?>
+                            <li id="update-new-tasks">
+                                <a href="assignedTasks.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'assignedTasks.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div id="new-tasks" class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <path d="M21 16.0002C21 18.8286 21 20.2429 20.1213 21.1215C19.2426 22.0002 17.8284 22.0002 15 22.0002H9C6.17157 22.0002 4.75736 22.0002 3.87868 21.1215C3 20.2429 3 18.8286 3 16.0002V13.0002M16 4.00195C18.175 4.01406 19.3529 4.11051 20.1213 4.87889C21 5.75757 21 7.17179 21 10.0002V12.0002M8 4.00195C5.82497 4.01406 4.64706 4.11051 3.87868 4.87889C3.11032 5.64725 3.01385 6.82511 3.00174 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M9 17.5H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M8 3.5C8 2.67157 8.67157 2 9.5 2H14.5C15.3284 2 16 2.67157 16 3.5V4.5C16 5.32843 15.3284 6 14.5 6H9.5C8.67157 6 8 5.32843 8 4.5V3.5Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M8 14H9M16 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M17 10.5H15M12 10.5H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Assigned Tasks</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer with User Profile and Theme Toggle -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-3 flex-row">
+                <div id="footer-profile" class="flex items-center space-x-3">
+                    <img src="./assets/images/user.png" alt="User"
+                        class="rounded-full w-10 h-10 object-cover border-2 border-indigo-500">
+                    <div class="sidebar-item">
+                        <p class="font-medium text-gray-800 dark:text-white"><?= $_SESSION['user_name']; ?></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400"><?= ($_SESSION['user_role'] == 3) ? 'Supervisor' : (($_SESSION['user_role'] == 2) ? ' Internee' : 'Admin'); ?></p>
+                    </div>
+                </div>
+                <button id="sidebar-theme-toggle"
+                    class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none transition-colors">
+                    <svg class="size-6 moon dark:hidden" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                            d="M20.2496 14.1987C19.5326 14.3951 18.7782 14.5 18 14.5C13.3056 14.5 9.5 10.6944 9.5 5.99999C9.5 5.22185 9.60487 4.4674 9.80124 3.75043C6.15452 4.72095 3.46777 8.04578 3.46777 11.9981C3.46777 16.7114 7.28864 20.5323 12.0019 20.5323C15.9543 20.5323 19.2791 17.8455 20.2496 14.1987ZM20.5196 12.5328C19.7378 12.8346 18.8882 13 18 13C14.134 13 11 9.86598 11 5.99999C11 5.11181 11.1654 4.26226 11.4671 3.48047C11.6142 3.09951 11.7935 2.73464 12.0019 2.38923C12.0888 2.24526 12.1807 2.10466 12.2774 1.9677C12.1858 1.96523 12.094 1.96399 12.0019 1.96399C11.4758 1.96399 10.9592 2.00448 10.455 2.0825C5.64774 2.8264 1.96777 6.98251 1.96777 11.9981C1.96777 17.5398 6.46021 22.0323 12.0019 22.0323C17.0176 22.0323 21.1737 18.3523 21.9176 13.545C21.9956 13.0408 22.0361 12.5242 22.0361 11.9981C22.0361 11.906 22.0348 11.8141 22.0323 11.7226C21.8953 11.8193 21.7547 11.9112 21.6107 11.9981C21.2653 12.2065 20.9005 12.3858 20.5196 12.5328Z"
+                            fill="currentColor"></path>
+                        <path
+                            d="M16.3333 5.33333L17.5 3L18.6667 5.33333L21 6.5L18.6667 7.66667L17.5 10L16.3333 7.66667L14 6.5L16.3333 5.33333Z"
+                            fill="currentColor"></path>
+                    </svg>
+                    <svg class="size-6 sun dark:block" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12.0002 3.29071V1.76746M5.8418 18.1585L4.7647 19.2356M12.0002 22.2326V20.7093M19.2357 4.76456L18.1586 5.84166M20.7095 12H22.2327M18.1586 18.1584L19.2357 19.2355M1.76758 12H3.29083M4.76462 4.7645L5.84173 5.8416M15.7123 8.2877C17.7626 10.338 17.7626 13.6621 15.7123 15.7123C13.6621 17.7626 10.338 17.7626 8.2877 15.7123C6.23745 13.6621 6.23745 10.338 8.2877 8.2877C10.338 6.23745 13.6621 6.23745 15.7123 8.2877Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="square"
+                            stroke-linejoin="round"></path>
+                    </svg>
+                </button>
+            </div>
+            <a href="logout.php"
+                class="w-full flex items-center justify-center space-x-2 p-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors focus:ring-red-400">
+                <svg class="me-2 text-white" width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="matrix(-1, 0, 0, 1, 0, 0)">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                        <path d="M15 12L2 12M2 12L5.5 9M2 12L5.5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M9.00195 7C9.01406 4.82497 9.11051 3.64706 9.87889 2.87868C10.7576 2 12.1718 2 15.0002 2L16.0002 2C18.8286 2 20.2429 2 21.1215 2.87868C22.0002 3.75736 22.0002 5.17157 22.0002 8L22.0002 16C22.0002 18.8284 22.0002 20.2426 21.1215 21.1213C20.3531 21.8897 19.1752 21.9862 17 21.9983M9.00195 17C9.01406 19.175 9.11051 20.3529 9.87889 21.1213C10.5202 21.7626 11.4467 21.9359 13 21.9827" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                    </g>
+                </svg>
+                <span class="sidebar-item text-white font-medium">Logout</span>
+            </a>
+        </div>
+    </aside>

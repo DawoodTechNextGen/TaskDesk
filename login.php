@@ -130,7 +130,7 @@ unset($_SESSION['error']);
             <span class="text-blue-500 font-bold text-3xl ms-2">TaskDesk</span>
           </div>
 
-          <form method="POST" action="controller/auth.php" autocomplete="on">
+          <form method="POST" action="<?= BASE_URL ?>controller/auth.php" autocomplete="on">
             <div class="mb-2">
               <label class="block text-gray-700 text-sm font-medium mb-2" for="login-email">Email</label>
               <input

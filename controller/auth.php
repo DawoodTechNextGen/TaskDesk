@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_password'] = $user['plain_password'];
             $_SESSION['user_role'] = $user['user_role'];
-            $_SESSION['tech'] = $tech['name'];
-            $_SESSION['approval_status'] = $tech['approve_status'];
+            $_SESSION['tech'] = isset($tech) && isset($tech['name']) ? $tech['name'] : null;
+$_SESSION['approval_status'] = isset($tech) && isset($tech['approve_status']) ? $tech['approve_status'] : null;
             header('Location:' . BASE_URL . '/index.php');
             exit;
         } else {

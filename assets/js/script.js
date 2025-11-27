@@ -2,6 +2,7 @@ tailwind.config = {
     darkMode: 'class'
 }
 
+
 const toggleSidebar = document.getElementById('toggle-sidebar');
 const sidebar = document.getElementById('sidebar');
 const openIcon = toggleSidebar.querySelector('.sidebar-open');
@@ -80,10 +81,64 @@ if (localStorage.getItem('sidebarCollapsed') === 'true') {
 
 const userMenuButton = document.getElementById('user-menu-button');
 const userMenu = document.getElementById('user-menu');
-
+const arrow = document.getElementById("userArrow");
 userMenuButton.addEventListener('click', () => {
-    userMenu.classList.toggle('hidden');
+    const isHidden = userMenu.classList.contains('hidden');
+
+    arrow.classList.toggle("rotate-180");
+
+    if (isHidden) {
+        // Prepare to animate
+        userMenu.classList.remove("hidden");
+
+        // Slide down + fade in
+        requestAnimationFrame(() => {
+            userMenu.classList.remove("opacity-0", "-translate-y-2");
+            userMenu.classList.add("opacity-100", "translate-y-0");
+        });
+
+    } else {
+        // Slide up + fade out
+        userMenu.classList.remove("opacity-100", "translate-y-0");
+        userMenu.classList.add("opacity-0", "-translate-y-2");
+
+        // After animation ends → hide
+        setTimeout(() => {
+            userMenu.classList.add("hidden");
+        }, 300); // same as duration-300
+    }
 });
+
+const tabs = document.querySelectorAll(".tab-btn");
+const sections = {
+    "personal-info": document.getElementById("personal-info"),
+    "password-settings": document.getElementById("password-settings")
+};
+
+tabs.forEach(tab => {
+    tab.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        const target = tab.dataset.target;
+
+        // Hide all sections
+        Object.values(sections).forEach(s => s.classList.add("hidden"));
+
+        // Show only target section
+        sections[target].classList.remove("hidden");
+
+        // Remove active styling from all tabs
+        tabs.forEach(t => {
+            t.classList.remove("border-indigo-500", "text-indigo-600");
+            t.classList.add("border-transparent", "text-gray-500");
+        });
+
+        // Add active styles to clicked tab
+        tab.classList.add("border-indigo-500", "text-indigo-600");
+        tab.classList.remove("border-transparent", "text-gray-500");
+    });
+});
+
 
 document.addEventListener('click', (e) => {
     if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
@@ -384,6 +439,7 @@ function getThemeColors() {
         backgroundColor: (isDarkMode === 'disabled') ? '#fff' : '#1F2937'
     };
 }
+
 function getStatusBadge(status) {
     let classes = "";
 
@@ -397,10 +453,7 @@ function getStatusBadge(status) {
         case "working":
             classes = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
             break;
-        case "Approved":
-            classes = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-            break;
-        case "Declined":
+        case "Expired":
             classes = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
             break;
         default:

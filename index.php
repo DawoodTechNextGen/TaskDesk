@@ -242,7 +242,7 @@ include_once "./include/headerLinks.php"; ?>
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-red-500">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Overdue</p>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire</p>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $overdue_tasks ?></h3>
                                     </div>
                                     <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg">
@@ -321,7 +321,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Recent Users</h3>
                                     <a href="users.php" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">View All</a>
                                 </div>
-                                <div class="overflow-x-auto">
+                                <div class="overflow-x-auto custom-scrollbar">
                                     <table class="min-w-full">
                                         <thead>
                                             <tr class="border-b border-gray-200 dark:border-gray-700">
@@ -378,7 +378,7 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
                                     <div class="space-y-3">
-                                        <a href="users.php" class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 transition-all duration-200">
+                                        <a href="supervisors.php" class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 transition-all duration-200">
                                             <div class="flex items-center">
                                                 <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3 text-white">
                                                     <svg width="22px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -394,13 +394,13 @@ include_once "./include/headerLinks.php"; ?>
                                                         </g>
                                                     </svg>
                                                 </div>
-                                                <span class="font-medium">Manage Users</span>
+                                                <span class="font-medium">Manage Supervisors</span>
                                             </div>
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                             </svg>
                                         </a>
-                                        <a href="technologies.php" class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 text-green-700 dark:text-green-300 rounded-xl hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/50 dark:hover:to-green-700/50 transition-all duration-200">
+                                        <a href="tech.php" class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 text-green-700 dark:text-green-300 rounded-xl hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/50 dark:hover:to-green-700/50 transition-all duration-200">
                                             <div class="flex items-center">
                                                 <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
                                                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -581,19 +581,35 @@ include_once "./include/headerLinks.php"; ?>
 
                                     while ($task = $tasks_result->fetch_assoc()):
                                     ?>
-                                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <div class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-all duration-300 dark:bg-gray-700 rounded-lg">
                                             <div>
                                                 <h4 class="font-medium text-gray-800 dark:text-white"><?= htmlspecialchars($task['title']) ?></h4>
                                                 <p class="text-sm text-gray-500 dark:text-gray-400">Assigned by: <?= htmlspecialchars($task['assigned_by']) ?></p>
                                             </div>
+                                            <?php
+                                            $currentDate = date('Y-m-d');
+                                            $dueDate = $task['due_date'];
+
+                                            if (strtotime($dueDate) < strtotime($currentDate)) {
+                                                $statusText = 'Expired';
+                                                $statusClass = 'bg-red-100 text-red-800';
+                                            } elseif ($task['status'] === 'pending') {
+                                                $statusText = 'Pending';
+                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                            } else {
+                                                // For complete, working, or any other status
+                                                $statusText = ucfirst($task['status']);
+                                                $statusClass = $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : ($task['status'] == 'working' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
+                                            }
+                                            ?>
+
                                             <div class="text-right">
-                                                <span class="inline-block px-2 py-1 text-xs rounded-full <?=
-                                                                                                            $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : ($task['status'] == 'working' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')
-                                                                                                            ?>">
-                                                    <?= ucfirst($task['status']) ?>
+                                                <span class="inline-block px-2 py-1 text-xs rounded-full <?= $statusClass ?>">
+                                                    <?= $statusText ?>
                                                 </span>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Due: <?= date('M d', strtotime($task['due_date'])) ?></p>
+                                                <p class="text-xs text-red-500 dark:text-gray-400 mt-1">Due: <?= date('M d', strtotime($dueDate)) ?></p>
                                             </div>
+
                                         </div>
                                     <?php endwhile; ?>
                                 </div>
@@ -678,7 +694,7 @@ include_once "./include/headerLinks.php"; ?>
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Overdue Tasks</p>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire Tasks</p>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
                                             <?= $overdue_tasks ?>
                                         </h3>
@@ -719,35 +735,44 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="space-y-3">
                                     <?php
                                     $top_performers = $conn->prepare("SELECT 
-                                            u.name, 
-                                            COALESCE(COUNT(t.id), 0) as completed_tasks,
-                                            tech.name as tech
-                                        FROM users u 
-                                        LEFT JOIN tasks t ON u.id = t.assign_to AND t.status = 'complete'
-                                        LEFT JOIN technologies tech on tech.id = u.tech_id
-                                        WHERE u.user_role = 2 
-                                        GROUP BY u.id 
-                                        ORDER BY completed_tasks DESC 
-                                        LIMIT 5");
+                                                                        u.name,
+                                                                        COUNT(t.id) AS completed_tasks,
+                                                                        tech.name AS tech
+                                                                    FROM users u
+                                                                    LEFT JOIN tasks t 
+                                                                        ON u.id = t.assign_to 
+                                                                        AND t.status = 'complete'
+                                                                    LEFT JOIN technologies tech 
+                                                                        ON tech.id = u.tech_id
+                                                                    WHERE u.user_role = 2
+                                                                    GROUP BY u.id
+                                                                    HAVING COUNT(t.id) > 0
+                                                                    ORDER BY completed_tasks DESC
+                                                                    LIMIT 5
+                                                                    ");
                                     $top_performers->execute();
                                     $performers_result = $top_performers->get_result();
 
                                     $rank = 1;
-                                    while ($intern = $performers_result->fetch_assoc()):
+                                    if ($performers_result->num_rows > 0) {
+                                        while ($intern = $performers_result->fetch_assoc()):
                                     ?>
-                                        <div>
-                                            <div class="tooltip flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" data-tooltip="<?= $intern['completed_tasks'] ?> completed tasks">
-                                                <div class="flex items-center">
-                                                    <span class="w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center mr-3">
-                                                        <?= $rank++ ?>
-                                                    </span>
-                                                    <span class="text-sm font-medium dark:text-gray-50 text-gray-800"><?= $intern['name'] ?></span>
+                                            <div>
+                                                <div class="tooltip flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" data-tooltip="<?= $intern['completed_tasks'] ?> completed tasks">
+                                                    <div class="flex items-center">
+                                                        <span class="w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center mr-3">
+                                                            <?= $rank++ ?>
+                                                        </span>
+                                                        <span class="text-sm font-medium dark:text-gray-50 text-gray-800"><?= $intern['name'] ?></span>
+                                                    </div>
+                                                    <span class="text-xs text-gray-400"><?= $intern['tech'] ?></span>
                                                 </div>
-                                                <span class="text-xs text-gray-400"><?= $intern['tech'] ?></span>
                                             </div>
-                                        </div>
 
-                                    <?php endwhile; ?>
+                                    <?php endwhile;
+                                    } else {
+                                        echo "<p class='text-red-600 dark:text-red-300'>No performers found.</p>";
+                                    } ?>
                                 </div>
                             </div>
 
@@ -782,10 +807,8 @@ include_once "./include/headerLinks.php"; ?>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= htmlspecialchars($task['title']) ?></td>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= htmlspecialchars($task['assign_to']) ?></td>
                                                     <td class="py-3 text-sm">
-                                                        <span class="px-2 py-1 rounded-full text-xs <?=
-                                                                                                    $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : ($task['status'] == 'working' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')
-                                                                                                    ?>">
-                                                            <?= ucfirst($task['status']) ?>
+                                                        <span class="px-2 py-1 rounded-full text-xs <?= ($task['due_date'] < date('Y-m-d') && $task['status'] !== 'complete') ? 'bg-red-100 text-red-800' : ($task['status'] === 'complete' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800') ?>">
+                                                            <?= ucfirst(($task['due_date'] < date('Y-m-d') && $task['status'] !== 'complete') ? 'expired' : $task['status']) ?>
                                                         </span>
                                                     </td>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= date('M d, Y', strtotime($task['due_date'])) ?></td>

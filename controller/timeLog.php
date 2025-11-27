@@ -11,49 +11,44 @@ if (!$data || !isset($data['action'])) {
 }
 
 // Helper function for duration formatting
-function formatDuration($seconds) {
+function formatDuration($seconds)
+{
     $hours = floor($seconds / 3600);
     $minutes = floor(($seconds % 3600) / 60);
     $seconds = $seconds % 60;
-    
+
     return sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
 }
 
 // Function to check if date is weekend
-function isWeekend($date) {
+function isWeekend($date)
+{
     $dayOfWeek = date('N', strtotime($date));
     return ($dayOfWeek >= 6); // 6 = Saturday, 7 = Sunday
 }
 
 // Function to update attendance for specific task
-function updateAttendance($conn, $user_id, $task_id, $date, $additional_seconds = 0) {
+function updateAttendance($conn, $user_id, $task_id, $date, $additional_seconds = 0)
+{
     // Check if attendance record exists for this task and date
     $stmt = $conn->prepare("SELECT id, total_work_seconds FROM attendance WHERE user_id = ? AND task_id = ? AND date = ?");
     $stmt->bind_param("iis", $user_id, $task_id, $date);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     $total_seconds = $additional_seconds;
     $status = 'absent';
-    
+
     if ($result->num_rows > 0) {
         $attendance = $result->fetch_assoc();
         $total_seconds = $attendance['total_work_seconds'] + $additional_seconds;
     }
-    
+
     // Determine status based on total work time
-    if ($total_seconds >= 10800) { // 3 hours = 10800 seconds
+    if ($total_seconds > 10800) {
         $status = 'present';
     }
-    if ($total_seconds >= 14400) { // 4 hours = half day
-        $status = 'half_day';
-    }
-    if ($total_seconds >= 28800) { // 8 hours = full day
-        $status = 'present';
-        // Cap at 8 hours
-        $total_seconds = 28800;
-    }
-    
+
     if ($result->num_rows > 0) {
         // Update existing record
         $stmt = $conn->prepare("UPDATE attendance SET total_work_seconds = ?, status = ?, updated_at = NOW() WHERE user_id = ? AND task_id = ? AND date = ?");
@@ -63,15 +58,16 @@ function updateAttendance($conn, $user_id, $task_id, $date, $additional_seconds 
         $stmt = $conn->prepare("INSERT INTO attendance (user_id, task_id, date, total_work_seconds, status) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("iisis", $user_id, $task_id, $date, $total_seconds, $status);
     }
-    
+
     return $stmt->execute();
 }
 
 // Function to mark absent for skipped days between task creation and current date
-function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date) {
+function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date)
+{
     $current_date = date('Y-m-d');
     $start_date = date('Y-m-d', strtotime($task_created_date));
-    
+
     // Mark absent for all weekdays between task creation date and current date
     $date = $start_date;
     while (strtotime($date) <= strtotime($current_date)) {
@@ -81,7 +77,7 @@ function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date) 
             $check_stmt->bind_param("iis", $user_id, $task_id, $date);
             $check_stmt->execute();
             $check_result = $check_stmt->get_result();
-            
+
             if ($check_result->num_rows == 0) {
                 // Insert absent record for this task
                 $insert_stmt = $conn->prepare("INSERT INTO attendance (user_id, task_id, date, total_work_seconds, status) VALUES (?, ?, ?, 0, 'absent')");
@@ -89,7 +85,7 @@ function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date) 
                 $insert_stmt->execute();
                 $insert_stmt->close();
             }
-            
+
             $check_stmt->close();
         }
         $date = date('Y-m-d', strtotime($date . ' +1 day'));
@@ -97,13 +93,14 @@ function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date) 
 }
 
 // Function to auto-complete overdue tasks
-function autoCompleteOverdueTasks($conn) {
+function autoCompleteOverdueTasks($conn)
+{
     $current_time = date('Y-m-d H:i:s');
     $stmt = $conn->prepare("SELECT id FROM tasks WHERE due_date < ? AND status NOT IN ('complete', 'cancelled')");
     $stmt->bind_param("s", $current_time);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     while ($task = $result->fetch_assoc()) {
         // Auto-complete the task
         $update_stmt = $conn->prepare("UPDATE tasks SET status = 'complete', completed_at = ? WHERE id = ?");
@@ -118,19 +115,19 @@ if ($data['action'] === 'start') {
     $user_id = $_SESSION['user_id'];
     $current_time = date('H:i:s');
     $current_date = date('Y-m-d');
-    
+
     // Check if current time is before 9:00 AM
     if ($current_time < '09:00:00') {
         echo json_encode(["success" => false, "message" => "Cannot start timer before 9:00 AM"]);
         exit;
     }
-    
+
     // Check if it's weekend
     if (isWeekend($current_date)) {
         echo json_encode(["success" => false, "message" => "Cannot work on weekends"]);
         exit;
     }
-    
+
     $task_id = (int)$data['task_id'];
     $start_time = $data['started_at'];
 
@@ -144,17 +141,17 @@ if ($data['action'] === 'start') {
 
     // Mark skipped days as absent for this specific task
     markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_at);
-    
+
     // Auto-complete overdue tasks
     autoCompleteOverdueTasks($conn);
-    
+
     $stmt_select = $conn->prepare("SELECT started_at FROM tasks WHERE id = ?");
     $stmt_select->bind_param("i", $task_id);
     $stmt_select->execute();
     $stmt_select->bind_result($started_at);
     $stmt_select->fetch();
     $stmt_select->close();
-    
+
     $status = 'working';
     $stmt_update = $conn->prepare("UPDATE tasks SET started_at = ?, status = ? WHERE id = ?");
     $stmt_update->bind_param("ssi", $start_time, $status, $task_id);
@@ -167,7 +164,7 @@ if ($data['action'] === 'start') {
 
     $stmt = $conn->prepare("INSERT INTO time_logs (task_id, user_id, start_time) VALUES (?, ?, ?)");
     $stmt->bind_param("iis", $task_id, $user_id, $start_time);
-    
+
     if ($stmt->execute()) {
         // SUCCESS: Timer started - Now update attendance
         $currentDate = date('Y-m-d');
@@ -176,7 +173,7 @@ if ($data['action'] === 'start') {
         $attendanceCheckStmt->bind_param("isi", $_SESSION['user_id'], $currentDate, $task_id);
         $attendanceCheckStmt->execute();
         $attendanceResult = $attendanceCheckStmt->get_result();
-        
+
         if ($attendanceResult->num_rows == 0) {
             // Create attendance record for this task
             $attendanceSql = "INSERT INTO attendance (user_id, task_id, date, status, total_work_seconds) VALUES (?, ?, ?, 'present', 0)";
@@ -192,9 +189,9 @@ if ($data['action'] === 'start') {
             $attendanceUpdateStmt->execute();
             $attendanceUpdateStmt->close();
         }
-        
+
         $attendanceCheckStmt->close();
-        
+
         echo json_encode(['success' => true, 'message' => 'Timer started successfully']);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to insert time log"]);
@@ -205,9 +202,9 @@ if ($data['action'] === 'start') {
 if ($data['action'] === 'stop') {
     $user_id = $_SESSION['user_id'];
     $current_date = date('Y-m-d');
-    
+
     $task_id = (int)$data['task_id'];
-    $stop_time = $data['stoped_at']; 
+    $stop_time = $data['stoped_at'];
 
     $stmt_select = $conn->prepare("SELECT started_at FROM tasks WHERE id = ?");
     $stmt_select->bind_param("i", $task_id);
@@ -224,7 +221,7 @@ if ($data['action'] === 'stop') {
     $status = 'pending';
 
     $duration = strtotime($stop_time) - strtotime($started_at);
-    
+
     // Update attendance for this specific task
     updateAttendance($conn, $user_id, $task_id, $current_date, $duration);
 
@@ -275,7 +272,7 @@ if ($data['action'] === 'get') {
 if ($data['action'] === 'complete') {
     $user_id = $_SESSION['user_id'];
     $current_date = date('Y-m-d');
-    
+
     $task_id = (int)$data['task_id'];
     $stop_time = $data['stoped_at'];
     $github_repo  = $data['github_repo'];
@@ -297,9 +294,9 @@ if ($data['action'] === 'complete') {
     $status = 'complete';
 
     $duration = strtotime($stop_time) - strtotime($started_at);
-    
+
     // Update attendance for this specific task
-    updateAttendance($conn, $user_id, $task_id, $current_date, $duration);
+    // updateAttendance($conn, $user_id, $task_id, $current_date, $duration);
 
     $stmt_update = $conn->prepare("UPDATE tasks SET status = ?, completed_at = ?, github_repo = ?, live_url = ?,
     additional_notes = ? WHERE id = ?");
@@ -314,6 +311,8 @@ if ($data['action'] === 'complete') {
     $stmt = $conn->prepare("UPDATE time_logs SET end_time = ?, duration = ? WHERE task_id = ? AND end_time IS NULL");
     $stmt->bind_param("sii", $stop_time, $duration, $task_id);
     if ($stmt->execute()) {
+        // $stmt = $conn->prepare("UPDATE attendance SET status = 'present' WHERE task_id = ? AND user_id = ? AND date = CURDATE()");
+        // $stmt->bind_param("ii", $task_id, $user_id);
         echo json_encode(["success" => true, "message" => "Task Completed successfully"]);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to update time log"]);
@@ -325,12 +324,12 @@ if ($data['action'] === 'complete') {
 if ($data['action'] === 'get_task_attendance') {
     $user_id = $_SESSION['user_id'];
     $task_id = isset($data['task_id']) ? (int)$data['task_id'] : null;
-    
+
     if (!$task_id) {
         echo json_encode(["success" => false, "message" => "Task ID is required"]);
         exit;
     }
-    
+
     $stmt = $conn->prepare("SELECT date, total_work_seconds, status FROM attendance WHERE user_id = ? AND task_id = ? ORDER BY date DESC");
     $stmt->bind_param("ii", $user_id, $task_id);
     $stmt->execute();
@@ -338,7 +337,7 @@ if ($data['action'] === 'get_task_attendance') {
 
     $attendance = [];
     $total_task_time = 0;
-    
+
     while ($row = $result->fetch_assoc()) {
         $attendance[] = [
             "date" => $row['date'],
@@ -348,9 +347,9 @@ if ($data['action'] === 'get_task_attendance') {
         ];
         $total_task_time += $row['total_work_seconds'];
     }
-    
+
     echo json_encode([
-        "success" => true, 
+        "success" => true,
         "attendance" => $attendance,
         "total_task_time" => formatDuration($total_task_time)
     ]);
@@ -360,20 +359,20 @@ if ($data['action'] === 'get_task_attendance') {
 // Add this function to handle automatic attendance marking
 if ($data['action'] == 'mark_auto_attendance') {
     $currentDate = date('Y-m-d');
-    
+
     // Check if attendance already exists for today
     $checkSql = "SELECT * FROM attendance WHERE user_id = ? AND date = ?";
     $checkStmt = $conn->prepare($checkSql);
     $checkStmt->bind_param("is", $_SESSION['user_id'], $currentDate);
     $checkStmt->execute();
     $result = $checkStmt->get_result();
-    
+
     if ($result->num_rows == 0) {
         // No attendance record for today, mark as absent
         $insertSql = "INSERT INTO attendance (user_id, date, status, total_work_seconds) VALUES (?, ?, 'absent', 0)";
         $insertStmt = $conn->prepare($insertSql);
         $insertStmt->bind_param("is", $_SESSION['user_id'], $currentDate);
-        
+
         if ($insertStmt->execute()) {
             echo json_encode(['success' => true, 'message' => 'Auto-marked as absent for today']);
         } else {
@@ -388,4 +387,3 @@ if ($data['action'] == 'mark_auto_attendance') {
 }
 
 $conn->close();
-?>

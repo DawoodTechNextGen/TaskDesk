@@ -2,7 +2,7 @@
      class="header-half fixed z-1 border-b border-gray-200 dark:border-gray-700 bg-white/10 dark:bg-gray-800/10 backdrop-blur-md ">
      <div class="flex items-center justify-between px-6 py-4">
          <div class="flex items-center space-x-4">
-             <h1 class="text-xl font-semibold text-gray-800 dark:text-white"><?= ($_SESSION['user_role'] == 1) ? 'Admin Dashboard' : (($_SESSION['user_role'] == 2) ? 'Internee Dashboard' : 'Supervisor Dashboard') ?></h1>
+             <h1 class="text-xl font-semibold text-gray-800 dark:text-white"><?= ($_SESSION['user_role'] == 1) ? 'Admin Dashboard' : (($_SESSION['user_role'] == 2) ? 'Intern Dashboard' : 'Supervisor Dashboard') ?></h1>
          </div>
          <div class="flex items-center align-middle space-x-4">
              <button id="dark-mode-toggle"
@@ -26,14 +26,17 @@
              </button>
 
              <div class="relative pe-2">
-                 <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
-                     <span class="text-gray-700 dark:text-gray-200 hidden md:inline"><?php echo $_SESSION['user_name'] ?></span>
-                     <div class="h-8 w-8 bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-200 rounded-full flex items-center justify-center font-semibold">
+                 <button id="user-menu-button" class="group flex items-center space-x-1 focus:outline-none">
+                     <span id="nav-name" class="text-gray-700 dark:text-gray-200 hidden md:inline text-sm"><?php echo $_SESSION['user_name'] ?></span>
+                     <div id="name-short" class="h-8 w-8 bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-200 rounded-full flex items-center justify-center font-semibold">
                          <?= strtoupper(substr($_SESSION['user_name'], 0, 1) . substr(strstr($_SESSION['user_name'], ' '), 1, 1)) ?>
                      </div>
+                     <span>
+                        <svg id="userArrow" class="text-gray-700 w-4 h-4 dark:text-gray-200 transform transition-transform duration-300" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M5.70711 9.71069C5.31658 10.1012 5.31658 10.7344 5.70711 11.1249L10.5993 16.0123C11.3805 16.7927 12.6463 16.7924 13.4271 16.0117L18.3174 11.1213C18.708 10.7308 18.708 10.0976 18.3174 9.70708C17.9269 9.31655 17.2937 9.31655 16.9032 9.70708L12.7176 13.8927C12.3271 14.2833 11.6939 14.2832 11.3034 13.8927L7.12132 9.71069C6.7308 9.32016 6.09763 9.32016 5.70711 9.71069Z" fill="currentColor"></path> </g></svg>
+                     </span>
                  </button>
                  <div id="user-menu"
-                     class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
+                     class="hidden opacity-0 -translate-y-2 transition-all duration-300 absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
                      <a href="profile.php"
                          class="flex px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                          <svg class="me-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -225,10 +225,7 @@ include_once "./include/headerLinks.php"; ?>
                             task.id,
                             task.title,
                             task.assign_by,
-                            getStatusBadge((task.status === 'complete') ?
-                                (task.approval_status === 2 ? 'Declined' : task.status) :
-                                task.status
-                            ),
+                            getStatusBadge((task.due_date < new Date().toISOString().split('T')[0] && task.status !== 'complete') ? 'Expired' : task.status),
                             formatDateTime(task.created_at),
                             `<div class="flex gap-2">
                                 <button class="open-modal text-yellow-600 me-2"
@@ -248,13 +245,15 @@ include_once "./include/headerLinks.php"; ?>
                                     </svg>
                                 </button>
 
-                               ${task.status === 'pending' ? `
-                                <button data-start="start-button" data-id="${task.id}" 
-                                    class="bg-emerald-700 px-2 py-1 text-white rounded-sm start-btn">
-                                    Start
-                                </button>` : ''}
-
-
+                                ${task.due_date < new Date().toISOString().split('T')[0] && task.status !== 'complete' ? `
+                                <span class="cursor-not-allowed cursor-pointer bg-red-600 px-2 py-1 text-white rounded-sm">
+                                    Exipred
+                                </span>` : ''}
+                               ${task.status === 'pending' && task.due_date >= new Date().toISOString().split('T')[0] ? `
+                                    <button data-start="start-button" data-id="${task.id}" 
+                                        class="bg-emerald-700 px-2 py-1 text-white rounded-sm start-btn">
+                                        Start
+                                    </button>` : ''}
                                 ${task.status === 'working' ? `
                                     <button data-stop="stop-button" data-id="${task.id}" 
                                         class="bg-red-600 px-2 py-1 text-white rounded-sm">
@@ -476,13 +475,14 @@ include_once "./include/headerLinks.php"; ?>
                 btn.addEventListener("click", () => clearInterval(liveInterval));
             });
         }
+        const tech = "<?php echo $_SESSION['tech'] ?>";
 
         function setupSubmissionModal() {
             // Open submission modal when complete button is clicked
             document.getElementById("assignedTasksTable").addEventListener("click", function(e) {
                 const button = e.target.closest(".open-submission-modal");
                 if (!button) return;
-
+                console.log(tech);
                 const taskId = button.dataset.id;
                 document.getElementById('submission-task-id').value = taskId;
 
@@ -501,25 +501,26 @@ include_once "./include/headerLinks.php"; ?>
                     document.getElementById('submission-modal').classList.add('hidden');
                 });
             });
+            if (tech !== 'Ai / Machine Learning' && tech !== 'Graphic Design') {
+                // Validate URLs
+                document.getElementById('github-repo').addEventListener('input', function() {
+                    const errorDiv = document.getElementById('github-error');
+                    if (!this.value.includes('github.com')) {
+                        errorDiv.classList.remove('hidden');
+                    } else {
+                        errorDiv.classList.add('hidden');
+                    }
+                });
 
-            // Validate URLs
-            document.getElementById('github-repo').addEventListener('input', function() {
-                const errorDiv = document.getElementById('github-error');
-                if (!this.value.includes('github.com')) {
-                    errorDiv.classList.remove('hidden');
-                } else {
-                    errorDiv.classList.add('hidden');
-                }
-            });
-
-            document.getElementById('live-view').addEventListener('input', function() {
-                const errorDiv = document.getElementById('live-view-error');
-                if (!this.value) {
-                    errorDiv.classList.remove('hidden');
-                } else {
-                    errorDiv.classList.add('hidden');
-                }
-            });
+                document.getElementById('live-view').addEventListener('input', function() {
+                    const errorDiv = document.getElementById('live-view-error');
+                    if (!this.value) {
+                        errorDiv.classList.remove('hidden');
+                    } else {
+                        errorDiv.classList.add('hidden');
+                    }
+                });
+            }
 
             // Submit task
             document.getElementById('submit-task-btn').addEventListener('click', async function() {
@@ -527,16 +528,17 @@ include_once "./include/headerLinks.php"; ?>
                 const githubRepo = document.getElementById('github-repo').value;
                 const liveView = document.getElementById('live-view').value;
                 const additionalNotes = document.getElementById('additional-notes').value;
+                if (tech !== 'Ai / Machine Learning' && tech !== 'Graphic Design') {
+                    // Validate inputs
+                    if (!githubRepo || !githubRepo.includes('github.com')) {
+                        document.getElementById('github-error').classList.remove('hidden');
+                        return;
+                    }
 
-                // Validate inputs
-                if (!githubRepo || !githubRepo.includes('github.com')) {
-                    document.getElementById('github-error').classList.remove('hidden');
-                    return;
-                }
-
-                if (!liveView) {
-                    document.getElementById('live-view-error').classList.remove('hidden');
-                    return;
+                    if (!liveView) {
+                        document.getElementById('live-view-error').classList.remove('hidden');
+                        return;
+                    }
                 }
                 const now = new Date();
                 const formattedDateTime = now.getFullYear() + "-" +

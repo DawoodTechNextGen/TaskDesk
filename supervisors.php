@@ -12,7 +12,9 @@ include_once './include/connection.php';
 $page_title = 'Supervisors Management - TaskDesk';
 include_once "./include/headerLinks.php"; ?>
 
+
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
+    
     <div id="toast-container" class="fixed top-18 right-4 z-[9999] space-y-4"></div>
 
     <div class="flex h-screen overflow-hidden">
@@ -33,7 +35,7 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Supervisors</h2>
                     </div>
-                    <div class="overflow-x-auto p-4">
+                    <div class="overflow-x-auto p-4 custom-scrollbar">
                         <table id="supervisorsTable" class="min-w-full">
                             <thead class="bg-indigo-200 dark:bg-indigo-600">
                                 <tr>

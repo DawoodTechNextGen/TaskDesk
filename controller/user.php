@@ -2,6 +2,53 @@
 include '../include/connection.php';
 header('Content-Type: application/json');
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require '../vendor/autoload.php'; // PHPMailer autoload
+
+// Your reusable function to send emails
+function sendCredentialsEmail($toEmail, $name, $password, $role)
+{
+    $mail = new PHPMailer(true);
+    try {
+        // SMTP settings (update these with your SMTP info)
+        $mail->isSMTP();
+        $mail->Host       = 'sandbox.smtp.mailtrap.io';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = '83769ecefdbd49';
+        $mail->Password   = '57a469f363c058';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 2525;
+
+        $mail->setFrom('no-reply@yourwebsite.com', 'Your Website');
+        $mail->addAddress($toEmail, $name);
+
+        $mail->isHTML(true);
+        $mail->Subject = 'Your Account Credentials';
+
+        $roleText = ($role == 2) ? 'Internee' : 'Supervisor';
+        $loginUrl = 'https://yourwebsite.com/login';
+
+        $mailContent = "
+            <p>Hello <strong>{$name}</strong>,</p>
+            <p>Your account as a <strong>{$roleText}</strong> has been created/updated.</p>
+            <p><strong>Login Credentials:</strong><br>
+               Email: {$toEmail}<br>
+               Password: {$password}</p>
+            <p>You can login here: <a href='{$loginUrl}'>{$loginUrl}</a></p>
+            <p>Please change your password after first login.</p>
+            <p>Regards,<br>Your Company</p>
+        ";
+
+        $mail->Body = $mailContent;
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Mail error: {$mail->ErrorInfo}");
+        return false;
+    }
+}
 // Allow both POST and GET for 'action'
 $action = $_POST['action'] ?? $_GET['action'] ?? $_REQUEST['action'] ?? '';
 
@@ -25,12 +72,33 @@ switch ($action) {
     // Get all internees/students
     case 'get_internees':
         $stmt = $conn->prepare("
-            SELECT u.id, u.name, u.tech_id, u.email,  u.plain_password, t.name AS tech_name 
-            FROM users u 
-            LEFT JOIN technologies t ON u.tech_id = t.id 
-            WHERE u.user_role = 2 
-            ORDER BY u.name ASC
-        ");
+                                        SELECT 
+    u.id,
+    u.name,
+    u.email,
+    u.tech_id,
+    t.name AS tech_name,
+    DATE(u.created_at) AS joining_date,
+
+    -- Completion Rate
+    (
+        SELECT ROUND(
+            (COUNT(CASE WHEN status = 'complete' THEN 1 END) / COUNT(*)) * 100
+        )
+        FROM tasks 
+        WHERE assign_to = u.id
+    ) AS completion_rate,
+
+    -- Months Passed
+    TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
+
+    c.approve_status
+
+FROM users u
+LEFT JOIN technologies t ON u.tech_id = t.id
+LEFT JOIN certificate c ON c.intern_id = u.id
+WHERE u.user_role = 2
+                        ");
         $stmt->execute();
         $result = $stmt->get_result();
         $data = $result->fetch_all(MYSQLI_ASSOC);
@@ -41,7 +109,7 @@ switch ($action) {
     case 'create':
         $name     = trim($_POST['name']);
         $password = $_POST['password'] ?? '';
-        $role     = (int)$_POST['role']; // 'supervisor' or 'student'
+        $role     = (int)$_POST['role'];
         $tech_id  = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : null;
         $email = trim($_POST['email']);
 
@@ -56,10 +124,27 @@ switch ($action) {
         $stmt->bind_param('sssiss', $name, $hashed, $role, $tech_id, $email, $password);
 
         if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => ($role == 2)? 'Internee'. ' created successfully!': 'Supervisor' . ' created successfully!']);
+            // uncomment this for Queue
+            //  $payload = json_encode([
+            //     'email' => $email,
+            //     'name' => $name,
+            //     'password' => $password,
+            //     'role' => $role
+            // ]);
+
+            // $stmt = $conn->prepare("INSERT INTO jobs (type, payload) VALUES ('send_email', ?)");
+            // $stmt->bind_param('s', $payload);
+            // $stmt->execute();
+            $user_id = $conn->insert_id;
+            $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
+            $stmt->bind_param('s', $user_id);
+            $stmt->execute();
+            // sendCredentialsEmail($email, $name, $password, $role);
+            echo json_encode(['success' => true, 'message' => ($role == 2) ? 'Internee created successfully!' : 'Supervisor created successfully!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to create user']);
         }
+
         break;
 
     // Update existing user
@@ -88,10 +173,16 @@ switch ($action) {
         }
 
         $success = $stmt->execute();
+
+        if ($success && !empty($password)) {
+            sendCredentialsEmail($email, $name, $password, $role);
+        }
+
         echo json_encode([
             'success' => $success,
             'message' => $success ? 'Updated successfully!' : 'Update failed'
         ]);
+
         break;
 
     // Delete user

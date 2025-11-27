@@ -163,8 +163,18 @@ if ($action === 'supervisor_stats') {
 }
 
 if ($action === 'supervisor_task_stats') {
-    // Get task status distribution for supervisor's tasks
-    $stmt = $conn->prepare("SELECT status, COUNT(*) as count FROM tasks WHERE created_by = ? GROUP BY status");
+    // First: Count statuses but exclude overdue pending tasks from 'pending'
+    $stmt = $conn->prepare("
+        SELECT
+            CASE 
+                WHEN status = 'pending' AND due_date < CURDATE() THEN 'expired'
+                ELSE status
+            END AS status_group,
+            COUNT(*) as count
+        FROM tasks
+        WHERE created_by = ?
+        GROUP BY status_group
+    ");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -172,29 +182,26 @@ if ($action === 'supervisor_task_stats') {
     $labels = [];
     $values = [];
 
-    // Define all possible statuses
-    $all_statuses = ['complete', 'working', 'pending'];
-    $status_counts = array_fill_keys($all_statuses, 0);
+    // Initialize counts with zero
+    $status_counts = [
+        'complete' => 0,
+        'working' => 0,
+        'pending' => 0,
+        'expired' => 0
+    ];
 
     while ($row = $result->fetch_assoc()) {
-        $status_counts[$row['status']] = $row['count'];
+        $status_counts[$row['status_group']] = $row['count'];
     }
 
-    foreach ($all_statuses as $status) {
-        $labels[] = ucfirst($status);
-        $values[] = $status_counts[$status];
-    }
-
-    // Add overdue tasks count
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM tasks 
-                           WHERE created_by = ? 
-                           AND due_date < completed_at");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $overdue = $stmt->get_result()->fetch_assoc()['count'];
-
-    $labels[] = 'Overdue';
-    $values[] = $overdue;
+    // Prepare labels and values in desired order
+    $labels = ['Complete', 'Working', 'Pending', 'Expire'];
+    $values = [
+        $status_counts['complete'],
+        $status_counts['working'],
+        $status_counts['pending'],
+        $status_counts['expired']
+    ];
 
     echo json_encode([
         'success' => true,
@@ -203,19 +210,25 @@ if ($action === 'supervisor_task_stats') {
     ]);
 }
 
+
 if ($action === 'supervisor_team_performance') {
 
     // Fetch technologies based on assigned user's tech_id for tasks created by supervisor
     $sql = "
-        SELECT DISTINCT u.tech_id, tech.name
-        FROM tasks t
-        JOIN users u ON u.id = t.assign_to
-        JOIN technologies tech ON tech.id = u.tech_id
-        WHERE t.created_by = ?
+SELECT 
+    tech.id AS tech_id,
+    tech.name AS tech_name,
+    COUNT(t.id) AS used_in_tasks
+FROM technologies tech
+LEFT JOIN users u 
+    ON u.tech_id = tech.id
+LEFT JOIN tasks t 
+    ON t.assign_to = u.id
+GROUP BY tech.id, tech.name
+ORDER BY tech.name
     ";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $techRows = $stmt->get_result();
 
@@ -226,7 +239,7 @@ if ($action === 'supervisor_team_performance') {
     while ($row = $techRows->fetch_assoc()) {
 
         $techId = $row['tech_id'];
-        $labels[] = $row['name'];
+        $labels[] = $row['tech_name'];
 
         // Calculate stats for tasks supervisor created, grouped by assigned user's tech_id
         $sql2 = "

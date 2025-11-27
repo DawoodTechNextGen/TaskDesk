@@ -5,69 +5,71 @@ function initializeSupervisorCharts() {
     getThemeColors();
 
   // Team Performance
-fetch("controller/dashboard.php?action=supervisor_team_performance")
+  fetch("controller/dashboard.php?action=supervisor_team_performance")
     .then((response) => response.json())
     .then((data) => {
-        if (data.success) {
-            const ctx = document.getElementById("teamPerformanceChart").getContext("2d");
+      if (data.success) {
+        const ctx = document
+          .getElementById("teamPerformanceChart")
+          .getContext("2d");
 
-            new Chart(ctx, {
-                type: "radar",
-                data: {
-                    labels: data.labels, // course names
-                    datasets: [
-                        {
-                            label: "Completion Rate",
-                            data: data.completion,
-                            borderColor: "#3B82F6",
-                            backgroundColor: "rgba(59, 130, 246, 0.2)",
-                            pointBackgroundColor: "#3B82F6",
-                            borderWidth: 2,
-                        },
-                        {
-                            label: "On-time Delivery",
-                            data: data.on_time,
-                            borderColor: "#10B981",
-                            backgroundColor: "rgba(16, 185, 129, 0.2)",
-                            pointBackgroundColor: "#10B981",
-                            borderWidth: 2,
-                        }
-                    ],
+        new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: data.labels, // course names
+            datasets: [
+              {
+                label: "Completion Rate",
+                data: data.completion,
+                borderColor: "#3B82F6",
+                backgroundColor: "rgba(59, 130, 246, 0.2)",
+                pointBackgroundColor: "#3B82F6",
+                borderWidth: 2,
+              },
+              {
+                label: "On-time Delivery",
+                data: data.on_time,
+                borderColor: "#10B981",
+                backgroundColor: "rgba(16, 185, 129, 0.2)",
+                pointBackgroundColor: "#10B981",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true, // Allows hiding datasets
+              },
+              tooltip: {
+                backgroundColor: backgroundColor,
+                titleColor: textColor,
+                bodyColor: textColor,
+                borderColor: gridColor,
+                borderWidth: 1,
+              },
+            },
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                grid: { color: gridColor },
+                angleLines: { color: gridColor },
+                pointLabels: {
+                  color: textColor,
+                  font: { size: 11 },
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true, // Allows hiding datasets
-                        },
-                        tooltip: {
-                            backgroundColor: backgroundColor,
-                            titleColor: textColor,
-                            bodyColor: textColor,
-                            borderColor: gridColor,
-                            borderWidth: 1,
-                        },
-                    },
-                    scales: {
-                        r: {
-                            min: 0,
-                            max: 100,
-                            grid: { color: gridColor },
-                            angleLines: { color: gridColor },
-                            pointLabels: {
-                                color: textColor,
-                                font: { size: 11 },
-                            },
-                            ticks: {
-                                backdropColor: "transparent",
-                                color: textColor,
-                            },
-                        },
-                    },
+                ticks: {
+                  backdropColor: "transparent",
+                  color: textColor,
                 },
-            });
-        }
+              },
+            },
+          },
+        });
+      }
     });
 
   // Task Status Overview
@@ -86,7 +88,7 @@ fetch("controller/dashboard.php?action=supervisor_team_performance")
               {
                 label: "Tasks",
                 data: data.values,
-                backgroundColor: ["#10B981", "#F59E0B", "#EF4444", "#6B7280"],
+                backgroundColor: ["#10B981", "#F59E0B", "#6B7280", "#EF4444"],
                 borderWidth: 0,
                 borderRadius: 4,
               },
@@ -232,62 +234,62 @@ document
     }
   });
 
-// Add this once, outside any function
-// Fixed technology dropdown event listener
-document.addEventListener('DOMContentLoaded', function() {
-    // Technology dropdown change event - FIXED VERSION
-    const technologySelect = document.getElementById('technology_id');
-    if (technologySelect) {
-        technologySelect.addEventListener('change', async function() {
-            const techId = this.value;
-            const userSelect = document.getElementById('user_id');
+document.addEventListener("DOMContentLoaded", function () {
+  // Technology dropdown change event - FIXED VERSION
+  const technologySelect = document.getElementById("technology_id");
+  if (technologySelect) {
+    technologySelect.addEventListener("change", async function () {
+      const techId = this.value;
+      const userSelect = document.getElementById("user_id");
 
-            // Reset user dropdown
-            userSelect.innerHTML = '<option value="">Loading users...</option>';
+      // Reset user dropdown
+      userSelect.innerHTML = '<option value="">Loading users...</option>';
 
-            if (!techId) {
-                userSelect.innerHTML = '<option value="">First select technology</option>';
-                return;
-            }
+      if (!techId) {
+        userSelect.innerHTML =
+          '<option value="">First select technology</option>';
+        return;
+      }
 
-            try {
-                console.log('Fetching users for technology:', techId); // Debug log
-                
-                const response = await fetch('controller/get_users_by_tech.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        tech_id: techId
-                    })
-                });
+      try {
+        console.log("Fetching users for technology:", techId); // Debug log
 
-                console.log('Response status:', response.status); // Debug log
-                
-                const result = await response.json();
-                console.log('API Response:', result); // Debug log
-
-                userSelect.innerHTML = '<option value="">Select User</option>';
-
-                if (result.success && result.users && result.users.length > 0) {
-                    result.users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = user.name;
-                        userSelect.appendChild(option);
-                    });
-                } else {
-                    userSelect.innerHTML = '<option value="">No users found for this technology</option>';
-                }
-            } catch (error) {
-                console.error('Error loading users:', error);
-                userSelect.innerHTML = '<option value="">Error loading users</option>';
-            }
+        const response = await fetch("controller/get_users_by_tech.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tech_id: techId,
+          }),
         });
-    } else {
-        console.error('Technology select element not found');
-    }
+
+        console.log("Response status:", response.status); // Debug log
+
+        const result = await response.json();
+        console.log("API Response:", result); // Debug log
+
+        userSelect.innerHTML = '<option value="">Select User</option>';
+
+        if (result.success && result.users && result.users.length > 0) {
+          result.users.forEach((user) => {
+            const option = document.createElement("option");
+            option.value = user.id;
+            option.textContent = user.name;
+            userSelect.appendChild(option);
+          });
+        } else {
+          userSelect.innerHTML =
+            '<option value="">No users found for this technology</option>';
+        }
+      } catch (error) {
+        console.error("Error loading users:", error);
+        userSelect.innerHTML = '<option value="">Error loading users</option>';
+      }
+    });
+  } else {
+    console.error("Technology select element not found");
+  }
 });
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -398,10 +400,9 @@ async function getTasks() {
           (task.assign_to =
             task.assign_to == currentUserName ? "Me" : task.assign_to),
           getStatusBadge(
-            task.status === "complete"
-              ? task.approval_status === 2
-                ? "Declined"
-                : task.status
+            task.due_date < new Date().toISOString().split("T")[0] &&
+              task.status !== "complete"
+              ? "Expired"
               : task.status
           ),
           formatDateTime(task.created_at),
@@ -733,51 +734,52 @@ document.addEventListener("click", async function (e) {
 
 // Handle technology change in edit modal
 // Edit modal technology dropdown - FIXED VERSION
-document.addEventListener('DOMContentLoaded', function() {
-    const editTechnologySelect = document.getElementById('edit_technology_id');
-    if (editTechnologySelect) {
-        editTechnologySelect.addEventListener('change', async function() {
-            const techId = this.value;
-            const userSelect = document.getElementById('edit_user_id');
+document.addEventListener("DOMContentLoaded", function () {
+  const editTechnologySelect = document.getElementById("edit_technology_id");
+  if (editTechnologySelect) {
+    editTechnologySelect.addEventListener("change", async function () {
+      const techId = this.value;
+      const userSelect = document.getElementById("edit_user_id");
 
-            if (!techId) {
-                userSelect.innerHTML = '<option value="">First select technology</option>';
-                return;
-            }
+      if (!techId) {
+        userSelect.innerHTML =
+          '<option value="">First select technology</option>';
+        return;
+      }
 
-            userSelect.innerHTML = '<option value="">Loading users...</option>';
-            
-            try {
-                const response = await fetch('controller/get_users_by_tech.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        tech_id: techId
-                    })
-                });
+      userSelect.innerHTML = '<option value="">Loading users...</option>';
 
-                const result = await response.json();
-
-                userSelect.innerHTML = '<option value="">Select User</option>';
-                
-                if (result.success && result.users && result.users.length > 0) {
-                    result.users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = user.name;
-                        userSelect.appendChild(option);
-                    });
-                } else {
-                    userSelect.innerHTML = '<option value="">No users found</option>';
-                }
-            } catch (error) {
-                console.error('Error loading users for edit modal:', error);
-                userSelect.innerHTML = '<option value="">Error loading users</option>';
-            }
+      try {
+        const response = await fetch("controller/get_users_by_tech.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tech_id: techId,
+          }),
         });
-    }
+
+        const result = await response.json();
+
+        userSelect.innerHTML = '<option value="">Select User</option>';
+
+        if (result.success && result.users && result.users.length > 0) {
+          result.users.forEach((user) => {
+            const option = document.createElement("option");
+            option.value = user.id;
+            option.textContent = user.name;
+            userSelect.appendChild(option);
+          });
+        } else {
+          userSelect.innerHTML = '<option value="">No users found</option>';
+        }
+      } catch (error) {
+        console.error("Error loading users for edit modal:", error);
+        userSelect.innerHTML = '<option value="">Error loading users</option>';
+      }
+    });
+  }
 });
 // Submit edit form
 document
@@ -831,33 +833,76 @@ document
 function addModalScrollStyles() {
   const style = document.createElement("style");
   style.textContent = `
-            .modal-content {
-                display: flex;
-                flex-direction: column;
-                max-height: 85vh;
-            }
-            .modal-body {
-                flex: 1;
-                overflow-y: hidden;
-                max-height: calc(85vh - 120px);
-            }
-            .modal-footer {
-                flex-shrink: 0;
-                padding-top: 1rem;
-                border-top: 1px solid #e5e7eb;
-                background: white;
-                position: sticky;
-                bottom: 0;
-            }
-            .dark .modal-footer {
-                border-top-color: #4b5563;
-                background: #1f2937;
-            }
-            .ck-editor__editable {
-                max-height: 200px !important;
-                overflow-y: auto !important;
-            }
-        `;
+  .dark .ck-editor__editable {
+  background-color: #374151 !important;  /* dark background */
+  color: #d1d5db !important;             /* light text */
+  }
+
+    /* Optional: toolbar buttons dark style */
+    .dark .ck-toolbar {
+      background-color: #374151 !important;
+      border-color: #4b5563 !important;
+      color: #d1d5db !important;
+    }
+/* Dark mode styles for CKEditor toolbar */
+.dark .ck.ck-toolbar {
+  background-color: #1f2937 !important; /* dark background */
+  border-color: #374151 !important; /* dark border */
+}
+
+.dark .ck.ck-toolbar .ck-button {
+  color: #d1d5db !important; /* light text color */
+}
+
+.dark .ck.ck-toolbar .ck-button:hover,
+.dark .ck.ck-toolbar .ck-button.ck-on {
+  background-color: #374151 !important; /* hover/active bg */
+  color: #f9fafb !important; /* hover/active text */
+}
+
+.dark .ck.ck-toolbar .ck-dropdown__panel {
+  background-color: #1f2937 !important;
+  color: #d1d5db !important;
+}
+
+.dark .ck.ck-toolbar .ck-dropdown__panel .ck-list .ck-list__item {
+  color: #d1d5db !important;
+}
+
+.dark .ck.ck-toolbar .ck-dropdown__panel .ck-list .ck-list__item.ck-list__item_selected {
+  background-color: #2563eb !important; /* selected background */
+  color: #f9fafb !important;
+}
+
+    .modal-content {
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: hidden;
+      max-height: calc(85vh - 120px);
+    }
+    .modal-footer {
+      flex-shrink: 0;
+      padding-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+      background: white;
+      position: sticky;
+      bottom: 0;
+    }
+    .dark .modal-footer {
+      border-top-color: #4b5563;
+      background: #1f2937;
+    }
+    .ck-editor__editable {
+      max-height: 200px !important;
+      overflow-y: auto !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+    }
+  `;
   document.head.appendChild(style);
 }
 

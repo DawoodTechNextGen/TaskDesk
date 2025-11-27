@@ -1,3 +1,9 @@
+<?php
+session_start();
+$error = $_SESSION['error'] ?? null;
+unset($_SESSION['error']);
+?>
+
 <?php require_once('./include/config.php') ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -7,8 +13,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TaskDesk - Manage your tasks and boost your productivity.</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="<?= BASE_URL ?>assets/images/favicon-36x16.png">
-    
+  <link rel="icon" type="image/png" sizes="16x16" href="<?= BASE_URL ?>assets/images/favicon-36x16.png">
+
   <script src="./assets/js/tailwind.js"></script>
   <link rel="stylesheet" href="./assets/css/libs/animation.css">
   <style>
@@ -74,6 +80,7 @@
       0% {
         transform: rotate(0deg);
       }
+
       100% {
         transform: rotate(360deg);
       }
@@ -123,15 +130,22 @@
             <span class="text-blue-500 font-bold text-3xl ms-2">TaskDesk</span>
           </div>
 
-          <form id="login-form">
+          <form method="POST" action="controller/auth.php" autocomplete="on">
             <div class="mb-2">
               <label class="block text-gray-700 text-sm font-medium mb-2" for="login-email">Email</label>
-              <input type="email" id="login-email" class="border border-gray-200 w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition"
+              <input
+                type="email"
+                name="email"
+                autocomplete="email"
+                class="border border-gray-200 w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition"
                 placeholder="Enter your email">
             </div>
             <div class="mb-5 relative">
               <label class="block text-gray-700 text-sm font-medium mb-2" for="login-password">Password</label>
-              <input type="password" id="login-password"
+              <input
+                type="password"
+                name="password"
+                autocomplete="current-password"
                 class="border border-gray-200 w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition pr-10"
                 placeholder="Enter your password">
               <!-- Toggle button -->
@@ -146,12 +160,13 @@
                 </svg>
               </button>
             </div>
-            <button type="submit" id="signin" class="w-full auth-btn text-white p-3 rounded-lg font-medium
-            bg-gradient-to-r from-blue-500 to-blue-600 cursor-pointer flex items-center justify-center gap-2">
+            <button type="submit" class="w-full auth-btn text-white p-3 rounded-lg font-medium
+                bg-gradient-to-r from-blue-500 to-blue-600 cursor-pointer flex items-center justify-center gap-2">
               <span id="signin-text">Sign in</span>
               <div id="signin-loader" class="loader hidden"></div>
             </button>
           </form>
+
         </div>
       </div>
 
@@ -607,143 +622,32 @@
     </div>
 
   </div>
+  <?php if (!empty($error)): ?>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        showToast("<?= $error ?>", "error");
+    });
+</script>
+<?php endif; ?>
 
   <script>
-    document.getElementById('login-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const signinBtn = document.getElementById('signin');
-      const signinText = document.getElementById('signin-text');
-      const signinLoader = document.getElementById('signin-loader');
-      
-      // Show loader
-      signinBtn.classList.add('btn-loading');
-      signinText.textContent = 'Signing in...';
-      signinLoader.classList.remove('hidden');
+    function showToast(message, type = "error") {
+    const container = document.getElementById("toast-container");
 
-      const loginEmail = document.getElementById('login-email').value.trim();
-      const loginPassword = document.getElementById('login-password').value.trim();
+    const toast = document.createElement("div");
+    toast.className = `p-3 rounded shadow text-white ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+    }`;
 
-      if (loginEmail === '' || loginPassword === '') {
-        showToast('error', 'All Fields are required!');
-        resetSigninButton(signinBtn, signinText, signinLoader);
-        return;
-      }
+    toast.innerText = message;
+    container.appendChild(toast);
 
-      try {
-        const response = await fetch('controller/auth.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'login',
-            email: loginEmail,
-            password: loginPassword,
-          })
-        });
+    setTimeout(() => {
+        toast.classList.add("opacity-0");
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
 
-        const result = await response.json();
-
-        if (result.success) {
-          showToast('success', result.message);
-          setTimeout(function() {
-            window.location.href = "index.php";
-          }, 500);
-        } else {
-          showToast('error', result.message);
-          resetSigninButton(signinBtn, signinText, signinLoader);
-        }
-
-      } catch (exception) {
-        console.error('Error:', exception);
-        showToast('error', 'Something went wrong. Try again later!');
-        resetSigninButton(signinBtn, signinText, signinLoader);
-      }
-    });
-
-    function resetSigninButton(button, text, loader) {
-      button.classList.remove('btn-loading');
-      text.textContent = 'Sign in';
-      loader.classList.add('hidden');
-    }
-
-    function showLogin() {
-      const loginSection = document.getElementById('login-section');
-      const signupSection = document.getElementById('signup-section');
-      const loginForm = loginSection.querySelector('.form-container');
-      const loginVector = loginSection.querySelector('.vector-container');
-      const signupForm = signupSection.querySelector('.form-container');
-      const signupVector = signupSection.querySelector('.vector-container');
-
-      signupForm.classList.add('form-slide-left');
-      signupVector.classList.add('vector-slide-right');
-      loginForm.classList.remove('form-slide-right');
-      loginVector.classList.remove('vector-slide-left');
-
-      setTimeout(() => {
-        signupSection.classList.add('hidden');
-        signupSection.classList.remove('active-section');
-        loginSection.classList.remove('hidden');
-        loginSection.classList.add('active-section');
-      }, 300);
-    }
-
-    function showToast(type, message) {
-      const toastContainer = document.getElementById('toast-container');
-      const toastId = Date.now();
-      const toast = document.createElement('div');
-      toast.id = `toast-${toastId}`;
-      toast.className = `p-4 rounded-lg shadow-lg flex items-center justify-between transition-all duration-300 max-w-sm opacity-0 transform translate-x-full`;
-
-      const styles = {
-        success: 'bg-emerald-500 text-white',
-        error: 'bg-red-500 text-white',
-        warning: 'bg-yellow-500 text-black',
-        info: 'bg-blue-500 text-white'
-      };
-
-      toast.className += ` ${styles[type]}`;
-      toast.innerHTML = `
-        <span>${message}</span>
-        <button onclick="dismissToast(${toastId})" class="ml-4 text-white hover:text-gray-200">✕</button>
-    `;
-
-      toastContainer.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.remove('opacity-0', 'translate-x-full');
-      }, 100);
-
-      setTimeout(() => {
-        dismissToast(toastId);
-      }, 5000);
-    }
-
-    function dismissToast(toastId) {
-      const toast = document.getElementById(`toast-${toastId}`);
-      if (toast) {
-        toast.classList.add('opacity-0', 'translate-x-full');
-        setTimeout(() => {
-          toast.remove();
-        }, 300);
-      }
-    }
-
-    const togglePassword = document.getElementById('toggle-password');
-    const passwordInput = document.getElementById('login-password');
-    const toggleSignupPassword = document.getElementById('toggle-signup-password');
-    const toggleSignupConfirmPassword = document.getElementById('toggle-signup-confirm-password');
-    
-    togglePassword.addEventListener('click', () => {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
-
-      togglePassword.innerHTML = type === 'password' ?
-        `<svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.2"><path d="M4 12C4 12 5.6 7 12 7M12 7C18.4 7 20 12 20 12M12 7V4M18 5L16 7.5M6 5L8 7.5M15 13C15 14.6569 13.6569 16 12 16C10.3431 16 9 14.6569 9 13C9 11.3431 10.3431 10 12 10C13.6569 10 15 11.3431 15 13Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path></svg>` :
-        `<svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 10C4 10 5.6 15 12 15M12 15C18.4 15 20 10 20 10M12 15V18M18 17L16 14.5M6 17L8 14.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
-    });
-    
   </script>
 </body>
 

@@ -58,7 +58,7 @@ include_once "./include/headerLinks.php"; ?>
     <div id="internee-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold" id="modal-title">Add Internee</h3>
+                <h3 class="text-xl font-bold text-gray-950 dark:text-gray-50" id="modal-title">Add Internee</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
@@ -68,21 +68,21 @@ include_once "./include/headerLinks.php"; ?>
             <form id="internee-form">
                 <input type="hidden" name="id">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Full Name</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700">
+                    <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Full Name</label>
+                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Email</label>
-                    <input type="email" name="email" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700">
+                    <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Email</label>
+                    <input type="email" name="email" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">
+                    <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                         Password
-                        <span class="text-xs text-gray-500">(Leave blank to keep current)</span>
+                        <!-- <span class="text-xs text-gray-500">(Leave blank to keep current)</span> -->
                     </label>
                     <div class="relative">
                         <input type="password" name="password" id="password-input"
-                            class="w-full px-3 py-2 pr-12 border rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            class="w-full px-3 py-2 pr-12 border rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
                             placeholder="Enter password">
 
                         <button type="button" id="toggle-password"
@@ -97,8 +97,8 @@ include_once "./include/headerLinks.php"; ?>
                     </div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Assigned Technology</label>
-                    <select name="tech_id" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700">
+                    <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Assigned Technology</label>
+                    <select name="tech_id" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                         <option value="">Select Technology</option>
                         <?php
                         $techs = $conn->query("SELECT id, name FROM technologies ORDER BY name");

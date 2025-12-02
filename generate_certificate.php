@@ -2,9 +2,12 @@
 session_start();
 include_once './include/config.php';
 if (!isset($_SESSION['user_id'])) {
-    header('Location:' . BASE_URL . '/login');
+    header('Location:' . BASE_URL . 'login');
     exit;
 }
+// if($_SESSION['approval_status'] == 0){
+//     header('Location:'.BASE_URL.'index.php');
+// }
 $page_title = 'Generate Certificate';
 include_once "./include/headerLinks.php";
 
@@ -22,8 +25,9 @@ if ($user_result->num_rows > 0) {
     $user_data = $user_result->fetch_assoc();
 
     // Calculate dates
-    $start_date = date('Y-m-d', strtotime($user_data['created_at']));
-    $end_date = date('Y-m-d', strtotime($user_data['created_at'] . ' + 3 months'));
+    $start_date = date('d-M-Y', strtotime($user_data['created_at']));
+    $end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' + 3 months'));
+
     $issue_date = $end_date;
 
     // Get technology name
@@ -34,7 +38,7 @@ if ($user_result->num_rows > 0) {
     $tech_name = $tech_result->num_rows > 0 ? $tech_result->fetch_assoc()['name'] : 'Technology';
 } else {
     // Redirect if user not found
-    header('location: index.php');
+    header('location: ' . BASE_URL . 'index.php');
     exit();
 }
 ?>
@@ -402,9 +406,9 @@ if ($user_result->num_rows > 0) {
             // Certificate data
             const name = certificateData.name;
             const technology = certificateData.technology;
-            const startDate = formatDate(certificateData.start_date);
-            const endDate = formatDate(certificateData.end_date);
-            const issueDate = formatDate(certificateData.issue_date);
+            const startDate = certificateData.start_date;
+            const endDate = certificateData.end_date;
+            const issueDate = certificateData.issue_date;
 
             ctx.textAlign = "center";
             ctx.fillStyle = "#2c3e50";
@@ -433,8 +437,29 @@ if ($user_result->num_rows > 0) {
             yPosition += lineHeight;
 
             // Line 2
+            // One-line sentence, only last part bold
+            let text1 = "has successfully completed his/her internship at ";
+            let text2 = "DawoodTech NextGen";
+
+            // Measure widths
             ctx.font = "28px Arial";
-            ctx.fillText("has successfully completed an internship at DawoodTech NextGen", canvas.width / 2, yPosition);
+            let text1Width = ctx.measureText(text1).width;
+
+            ctx.font = "bold 28px Arial";
+            let text2Width = ctx.measureText(text2).width;
+
+            // Center whole line
+            let totaltWidth = text1Width + text2Width;
+            let startX = (canvas.width - totaltWidth) / 2;
+
+            // Draw normal text
+            ctx.font = "28px Arial";
+            ctx.fillText(text1, startX + text1Width / 2, yPosition);
+
+            // Draw bold text immediately after
+            ctx.font = "bold 28px Arial";
+            ctx.fillText(text2, startX + text1Width + text2Width / 2, yPosition);
+
             yPosition += lineHeight;
 
             /* *******************************
@@ -487,7 +512,7 @@ if ($user_result->num_rows > 0) {
 
             yPosition += lineHeight;
 
-            const techText1 = "as a ";
+            const techText1 = "in ";
             ctx.font = "28px Arial";
             const tech1Width = ctx.measureText(techText1).width;
 
@@ -517,9 +542,9 @@ if ($user_result->num_rows > 0) {
             ctx.fillText("willingness to learn while contributing effectively to assigned projects.", canvas.width / 2, yPosition);
 
             // Issue date
-            ctx.font = "bold 24px Arial";
+            ctx.font = "bold 30px Arial";
             ctx.textAlign = "left";
-            ctx.fillText(`${issueDate}`, 600, canvas.height - 80);
+            ctx.fillText(`${issueDate}`, 630, canvas.height - 75);
         }
 
 

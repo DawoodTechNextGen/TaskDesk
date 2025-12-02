@@ -131,15 +131,17 @@ WHERE u.user_role = 2
             //     'password' => $password,
             //     'role' => $role
             // ]);
-
+            if ($role == 2) {
+                $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
+                $stmt->bind_param('s', $user_id);
+                $stmt->execute();
+            }
             // $stmt = $conn->prepare("INSERT INTO jobs (type, payload) VALUES ('send_email', ?)");
             // $stmt->bind_param('s', $payload);
             // $stmt->execute();
-            $user_id = $conn->insert_id;
-            $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
-            $stmt->bind_param('s', $user_id);
-            $stmt->execute();
-            // sendCredentialsEmail($email, $name, $password, $role);
+            // $user_id = $conn->insert_id;
+
+            sendCredentialsEmail($email, $name, $password, $role);
             echo json_encode(['success' => true, 'message' => ($role == 2) ? 'Internee created successfully!' : 'Supervisor created successfully!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to create user']);

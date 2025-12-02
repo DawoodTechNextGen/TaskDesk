@@ -1,0 +1,33 @@
+# DawoodTech Training Management System - Git Ignore
+
+# Composer
+/vendor/
+composer.lock
+
+# Certificates (generated files)
+/certificates/*.html
+/certificates/*.pdf
+!certificates/.gitkeep
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.cache
+

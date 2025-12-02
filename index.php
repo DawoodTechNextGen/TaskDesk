@@ -1,7 +1,8 @@
 <?php
 session_start();
+include_once './include/config.php';
 if (!isset($_SESSION['user_id'])) {
-    header('location: login.php');
+    header('location:'.BASE_URL.'login.php');
 } else {
     include_once './include/connection.php';
 }
@@ -910,7 +911,7 @@ include_once "./include/headerLinks.php"; ?>
 
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Due Date:</label>
-                                    <input type="date" id="due_date" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
+                                    <input type="date" id="due_date" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700  text-gray-900 dark:text-gray-100">
                                 </div>
 
                                 <div>

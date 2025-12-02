@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if(empty($email) || empty($password)){
         $_SESSION['error'] = 'All fields are required';
-    header('Location:'.BASE_URL.'/login.php');
+    header('Location:'.BASE_URL.'login.php');
     exit;
     }
 
@@ -32,17 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_password'] = $user['plain_password'];
             $_SESSION['user_role'] = $user['user_role'];
             $_SESSION['tech'] = isset($tech) && isset($tech['name']) ? $tech['name'] : null;
-$_SESSION['approval_status'] = isset($tech) && isset($tech['approve_status']) ? $tech['approve_status'] : null;
-            header('Location:' . BASE_URL . '/index.php');
+            $_SESSION['approval_status'] = isset($tech) && isset($tech['approve_status']) ? $tech['approve_status'] : null;
+            header('Location:' . BASE_URL . 'index.php');
             exit;
         } else {
             $_SESSION['error'] = 'Invalid password';
-            header('Location:'.BASE_URL.'/login.php');
+            header('Location:'.BASE_URL.'login.php');
             exit;
         }
     } else {
         $_SESSION['error'] = 'User not found';
-        header('Location:'.BASE_URL.'/login.php');
+        header('Location:'.BASE_URL.'login.php');
         exit;
     }
 }

@@ -67,7 +67,7 @@ include_once "./include/headerLinks.php"; ?>
     <div id="add-tech-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div class="animate-fadeIn bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Add New Technology</h3>
+                <h3 class="text-xl font-bold text-gray-950 dark:text-gray-50">Add New Technology</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
@@ -76,8 +76,8 @@ include_once "./include/headerLinks.php"; ?>
             </div>
             <form id="add-tech-form">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">Technology Name</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700" placeholder="e.g. Laravel">
+                    <label class="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Technology Name</label>
+                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="e.g. Laravel">
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" class="close-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>
@@ -91,7 +91,7 @@ include_once "./include/headerLinks.php"; ?>
     <div id="edit-tech-modal" class="modal hidden fixed inset-0 z-50 bg-black  bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div class="animate-fadeIn bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">Edit Technology</h3>
+                <h3 class="text-xl font-bold text-gray-950 dark:text-gray-50">Edit Technology</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
@@ -101,8 +101,8 @@ include_once "./include/headerLinks.php"; ?>
             <form id="edit-tech-form">
                 <input type="hidden" name="id">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">Technology Name</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg focus:outline-none bg-white focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700">
+                    <label class="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Technology Name</label>
+                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg focus:outline-none bg-white focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 text-gray-900">
                 </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" class="close-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>

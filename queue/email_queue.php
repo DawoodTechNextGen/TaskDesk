@@ -18,7 +18,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         $options->set('isRemoteEnabled', true);
         $dompdf = new Dompdf($options);
 
-        $bgImage = "https://i.ibb.co/7t0xSD60/offerletter.png";
+        $bgImage = BASE_URL."assets/images/offerletter.png";
 
         $html = '
         <!DOCTYPE html>

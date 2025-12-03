@@ -3,6 +3,8 @@
 define('PROCESSING', true);
 require '../include/connection.php';
 require '../vendor/autoload.php';
+// require '/home2/dawoodte/public_html/taskdesk/include/connection.php';
+// require '/home2/dawoodte/public_html/taskdesk/vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -34,7 +36,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
                     background-repeat: no-repeat;
                 }
                 .content-box {
-                    margin: 200px 80px 80px 80px;
+                    margin: 200px 40px 40px 80px;
                     padding: 20px 40px;
                     height: 700px;
                     background: rgba(255,255,255,0);
@@ -88,7 +90,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         return null;
     }
 }
-function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $role, $tech_name, $tech_id)
+function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
 {
     $mail = new PHPMailer(true);
 
@@ -130,43 +132,43 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $role, $tec
         <head>
             <style>
                 body { font-family: "Segoe UI", Tahoma; line-height: 1.6; color: #333; max-width: 700px; margin: auto; }
-                .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 40px; text-align:center; border-radius: 10px 10px 0 0; }
+                .header { background: linear-gradient(135deg, #3B81F6, #2563EB); color: white; padding: 40px; text-align:center; border-radius: 10px 10px 0 0; }
                 .content { padding: 40px; background: #f9f9f9; }
                 .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                .credentials { background: #f0f7ff; border-left: 4px solid #667eea; }
-                .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color:white; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; margin-top:10px; }
+                .credentials { background: #f0f7ff; border-left: 4px solid #3B81F6; }
+                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color:white; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; margin-top:10px; }
                 .footer { text-align:center; padding:20px; margin-top:20px; color:#666; font-size:14px; }
             </style>
         </head>
         <body>
 
             <div class="header">
-                <h1>🎉 Welcome to DawoodTech NextGen!</h1>
+                <h1>Welcome to DawoodTech NextGen!</h1>
                 <p>Your Journey Begins Here</p>
             </div>
 
             <div class="content">
                 <div class="card">
 
-                    <h2 style="color:#667eea;">Dear ' . htmlspecialchars($name) . ',</h2>
+                    <h2 style="color:#3B81F6;">Dear ' . htmlspecialchars($name) . ',</h2>
                     <p>We are thrilled to welcome you to the DawoodTech NextGen family! You have been selected for our <strong>' . htmlspecialchars($tech_name) . '</strong> internship program.</p>
 
                     <div class="card credentials">
-                        <h3>🔐 Your Login Credentials</h3>
+                        <h3>Your Login Credentials</h3>
                         <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
                         <p><strong>Password:</strong> ' . htmlspecialchars($password) . '</p>
                         <a href="' . $loginUrl . '" class="btn-primary">Access Your Dashboard</a>
                         <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
                     </div>
 
-                    <h3>📅 Internship Details</h3>
+                    <h3>Internship Details</h3>
                     <ul>
                         <li><strong>Duration:</strong> ' . $startDate . ' to ' . $endDate . ' (2 months)</li>
                         <li><strong>Technology:</strong> ' . htmlspecialchars($tech_name) . '</li>
                         <li><strong>Reporting Date:</strong> ' . $startDate . '</li>
                     </ul>
 
-                    <h3>🚀 What to Expect</h3>
+                    <h3>What to Expect</h3>
                     <ul>
                         <li>Real-world project experience</li>
                         <li>Mentorship from industry experts</li>

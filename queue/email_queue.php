@@ -66,7 +66,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
                 <div class="section">
                     <p>Dear ' . htmlspecialchars($name) . ',</p>
                     <p>We are pleased to offer you an internship opportunity from 
-                    <strong>' . $startDate . '</strong> to <strong>' . $endDate . '</strong> at <strong>DawoodTech NextGen</strong> as a 
+                    <strong>' . $startDate . '</strong> to <br> <strong>' . $endDate . '</strong> at <strong>DawoodTech NextGen</strong> as a 
                     <strong>' . htmlspecialchars($tech_name) . ' Intern</strong>.</p>
                     <pThis internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
                     <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>

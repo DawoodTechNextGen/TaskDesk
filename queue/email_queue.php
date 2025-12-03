@@ -44,7 +44,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         padding: 20px 40px;
         height: 700px;
         background: transparent;
-        font-size: 13px;
+        font-size: 16px;
     }
 </style>
 

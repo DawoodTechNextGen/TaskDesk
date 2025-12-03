@@ -44,6 +44,14 @@ define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'task_management');
+// Smtp
+define('MAIL_HOST', getenv('MAIL_HOST'));
+define('MAIL_PORT', getenv('MAIL_PORT'));
+define('MAIL_USERNAME', getenv('MAIL_USERNAME'));
+define('MAIL_PASSWORD', getenv('MAIL_PASSWORD'));
+define('MAIL_ENCRYPTION', getenv('MAIL_ENCRYPTION'));
+define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL'));
+define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME'));
 
 // Application Configuration
 define('APP_DEBUG', filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN));

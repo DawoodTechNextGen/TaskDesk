@@ -103,18 +103,18 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
     try {
 
         // ---------------------------
-        // SMTP Settings
+        // SMTP Settings (from .env)
         // ---------------------------
         $mail->isSMTP();
-        $mail->Host       = 'sandbox.smtp.mailtrap.io';
+        $mail->Host       = MAIL_HOST;
         $mail->SMTPAuth   = true;
-        $mail->Username   = '83769ecefdbd49';
-        $mail->Password   = '57a469f363c058';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 2525;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
+        $mail->SMTPSecure = MAIL_ENCRYPTION;
+        $mail->Port       = MAIL_PORT;
 
         // Sender / Receiver
-        $mail->setFrom('no-reply@dawoodtechnextgen.org', 'DawoodTech NextGen HR');
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
         $mail->addAddress($toEmail, $name);
 
         // Email Format

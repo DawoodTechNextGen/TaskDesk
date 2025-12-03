@@ -119,7 +119,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
 
         // Email Format
         $mail->isHTML(true);
-        $mail->Subject = 'Welcome to DawoodTech NextGen - Your Internship Offer & Credentials';
+        $mail->Subject = 'Welcome to DawoodTech NextGen - Your Internship Offer Letter & Login Credentials';
 
         // ---------------------------
         // Internship dates
@@ -127,7 +127,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         $startDate = date('Y-m-d');
         $endDate   = date('Y-m-d', strtotime('+2 months'));
 
-        $loginUrl = 'https://dawoodtech.org/taskdesk/login';
+        $loginUrl = 'https://dawoodtech.org/taskdesk/login.php';
 
         // ---------------------------
         // Email Template
@@ -236,9 +236,7 @@ while ($job = $result->fetch_assoc()) {
         $data['email'],
         $data['name'],
         $data['password'],
-        2, // role
-        $data['tech_name'],
-        $data['tech_id']
+        $data['tech_name']
     );
 
     if ($success) {

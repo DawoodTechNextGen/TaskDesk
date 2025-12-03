@@ -20,61 +20,67 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         $options->set('isRemoteEnabled', true);
         $dompdf = new Dompdf($options);
 
-        $bgImage = BASE_URL."assets/images/offerletter.png";
+        $bgImage = BASE_URL . "assets/images/offerletter.png";
 
         $html = '
         <!DOCTYPE html>
         <html>
         <head>
-            <style>
-                body {
-                    margin: 0;
-                    padding: 0;
-                    font-family: Arial, sans-serif;
-                    background-image: url('.$bgImage.');
-                    background-size: cover;
-                    background-repeat: no-repeat;
-                }
-                .content-box {
-                    margin: 200px 40px 40px 80px;
-                    padding: 20px 40px;
-                    height: 700px;
-                    background: rgba(255,255,255,0);
-                    font-size: 13px;
-                }
-                .title { font-size: 22px; font-weight: bold; margin-bottom: 10px; }
-                .section { margin-bottom: 15px; }
-                .signature { margin-top: 50px; }
-            </style>
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    body {
+        font-family: Arial, sans-serif;
+        background-image: url(' . $bgImage . ');
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+    .content-box {
+        margin: 200px 40px 40px 40px;
+        padding: 20px 40px;
+        height: 700px;
+        background: transparent;
+        font-size: 13px;
+    }
+</style>
+
         </head>
         <body>
             <div class="content-box">
                 <div class="section" style="text-align:right;">
-                    <strong>Date:</strong> '.htmlspecialchars($startDate).'
+                    <strong>Date:</strong> ' . htmlspecialchars($startDate) . '
                 </div>
                 <div class="section">
                     <strong>To:</strong><br>
-                    '.htmlspecialchars($name).'<br>
-                    <strong>Designation:</strong> Intern – '.htmlspecialchars($tech_name).'<br>
+                    ' . htmlspecialchars($name) . '<br>
+                    <strong>Designation:</strong> Intern – ' . htmlspecialchars($tech_name) . '<br>
                     DawoodTech NextGen
                 </div>
                 <div class="section title">
-                    Internship Offer – '.htmlspecialchars($tech_name).'
+                    Internship Offer – ' . htmlspecialchars($tech_name) . '
                 </div>
                 <div class="section">
-                    <p>Dear '.htmlspecialchars($name).',</p>
+                    <p>Dear ' . htmlspecialchars($name) . ',</p>
                     <p>We are pleased to offer you an internship opportunity from 
-                    <strong>'.$startDate.' to '.$endDate.'</strong> at DawoodTech NextGen as a 
-                    <strong>'.htmlspecialchars($tech_name).'</strong>.</p>
-                    <p>This internship will allow you to enhance your skills, gain practical exposure, 
-                    and contribute to real-world projects under professional guidance.</p>
-                    <p>We look forward to your valuable contribution and growth during this program.</p>
+                    <strong>' . $startDate . '</strong> to <strong>' . $endDate . '</strong> at <strong>DawoodTech NextGen</strong> as a 
+                    <strong>' . htmlspecialchars($tech_name) . ' Intern</strong>.</p>
+                    <pThis internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
+                    <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>
+                    <p>We value our professional relationship and look forward to your continued support. Should you have any questions or require further details, please do not hesitate to contact us.</p>
                 </div>
                 <div class="signature">
                     <strong>Sincerely,</strong><br>
                     Qamar Naveed<br>
                     Founder<br>
-                    DawoodTech NextGen
+                    <strong?>DawoodTech NextGen</strong><br><br>
+                    <strong>Contact Information:</strong><br>
+                    <strong>Phone: </strong>+92-311-7305346<br>
+                    <strong>Email: </strong>info@dawoodtechnextgen.org<br>
+                    <strong>Website: </strong>https://dawoodtechnextgen.org
                 </div>
             </div>
         </body>
@@ -83,7 +89,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        
+
         return $dompdf->output();
     } catch (Exception $e) {
         error_log("PDF generation error: " . $e->getMessage());
@@ -205,7 +211,6 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         // Send Email
         $mail->send();
         return true;
-
     } catch (Exception $e) {
         error_log("Email failed: " . $mail->ErrorInfo);
         return false;

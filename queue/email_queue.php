@@ -127,7 +127,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         $startDate = date('Y-m-d');
         $endDate   = date('Y-m-d', strtotime('+2 months'));
 
-        $loginUrl = 'https://dawoodtech.org/taskdesk/login.php';
+        $loginUrl = 'https://dawoodtechnextgen.org/taskdesk/login.php';
 
         // ---------------------------
         // Email Template
@@ -142,7 +142,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
                 .content { padding: 40px; background: #f9f9f9; }
                 .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
                 .credentials { background: #f0f7ff; border-left: 4px solid #3B81F6; }
-                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color:white; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; margin-top:10px; }
+                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color:white !important; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; margin-top:10px; }
                 .footer { text-align:center; padding:20px; margin-top:20px; color:#666; font-size:14px; }
             </style>
         </head>
@@ -163,7 +163,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
                         <h3>Your Login Credentials</h3>
                         <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
                         <p><strong>Password:</strong> ' . htmlspecialchars($password) . '</p>
-                        <a href="' . $loginUrl . '" class="btn-primary">Access Your Dashboard</a>
+                        <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access Your Dashboard</a>
                         <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
                     </div>
 

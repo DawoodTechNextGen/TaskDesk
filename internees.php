@@ -202,7 +202,6 @@ include_once "./include/headerLinks.php"; ?>
             if (json.success) {
                 table.clear();
                 json.data.forEach(u => {
-                    console.log(typeof(u.approve_status));
                     table.row.add([
                         u.id,
                         u.name,

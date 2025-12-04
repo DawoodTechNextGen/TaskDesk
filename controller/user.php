@@ -6,6 +6,21 @@ header('Content-Type: application/json');
 $action = $_POST['action'] ?? $_GET['action'] ?? $_REQUEST['action'] ?? '';
 
 switch ($action) {
+    // Get all supervisors
+    case 'get_supervisors':
+        $stmt = $conn->prepare("
+            SELECT u.id, u.name,u.email, u.plain_password
+            FROM users u 
+            WHERE u.user_role = 3 
+            ORDER BY u.name ASC
+        ");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_all(MYSQLI_ASSOC);
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    
     case 'get_internees':
         $stmt = $conn->prepare("
             SELECT 
@@ -13,6 +28,7 @@ switch ($action) {
                 u.name,
                 u.email,
                 u.tech_id,
+                u.plain_password,
                 t.name AS tech_name,
                 DATE(u.created_at) AS joining_date,
                 (
@@ -39,7 +55,7 @@ switch ($action) {
         $name = trim($_POST['name']);
         $password = $_POST['password'] ?? '';
         $role = (int)$_POST['role'];
-        $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : null;
+        $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : 0;
         $email = trim($_POST['email']);
 
         if (empty($name) || empty($password) || !in_array($role, ['3', '2'])) {
@@ -95,7 +111,7 @@ switch ($action) {
 
         echo json_encode([
             'success' => true,
-            'message' => 'Internee created successfully!'
+            'message' => ($role ==2)?'Internee':'Supervisor'.' created successfully!'
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to create user']);
@@ -107,7 +123,7 @@ switch ($action) {
         $name = trim($_POST['name']);
         $email = trim($_POST['email']);
         $role = (int)$_POST['role'];
-        $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : null;
+        // $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : 0;
         $password = $_POST['password'] ?? '';
 
         if ($id <= 0 || empty($name) || !in_array($role, ['3', '2'])) {
@@ -117,13 +133,13 @@ switch ($action) {
 
         if (!empty($password)) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?, tech_id = ? WHERE id = ?");
-            $stmt->bind_param('sssssii', $name, $password, $email, $hashed, $role, $tech_id, $id);
+            $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?");
+            $stmt->bind_param('sssssii', $name, $password, $email, $hashed, $role, $id);
             
             if ($stmt->execute()) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Updated successfully! Credentials emailed.'
+                    'message' => 'Updated successfully!'
                 ]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Update failed']);

@@ -111,7 +111,7 @@ switch ($action) {
 
         echo json_encode([
             'success' => true,
-            'message' => ($role ==2)?'Internee':'Supervisor'.' created successfully!'
+            'message' => ($role ==2)?'Internee created successfully!':'Supervisor created successfully!'
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to create user']);

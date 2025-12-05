@@ -194,6 +194,9 @@ include_once "./include/headerLinks.php"; ?>
             await stop();
             await setupSubmissionModal();
         });
+        setInterval(() => {
+            getAssignedTasks();
+        }, 60000); // 1 minute
 
         async function getAssignedTasks() {
             try {
@@ -793,7 +796,6 @@ include_once "./include/headerLinks.php"; ?>
                 if (isRestrictedTime || isWeekend) {
                     button.disabled = true;
                     button.classList.add('opacity-50', 'cursor-not-allowed');
-                    // Add tooltip or title to explain why it's disabled
                     button.title = isWeekend ?
                         'Cannot work on weekends' :
                         'Cannot start timer between 12:00 AM to 9:00 AM';
@@ -804,6 +806,7 @@ include_once "./include/headerLinks.php"; ?>
                 }
             });
         }
+
 
         // Call this in your DOMContentLoaded
         document.addEventListener('DOMContentLoaded', async function() {

@@ -116,6 +116,11 @@ if ($data['action'] === 'start') {
     $current_time = date('H:i:s');
     $current_date = date('Y-m-d');
 
+    if (date('H:i:s') >= '00:00:00' && date('H:i:s') < '09:00:00') {
+        echo json_encode(["success" => false, "message" => "Cannot start timer after midnight"]);
+        exit;
+    }
+
     // Check if current time is before 9:00 AM
     if ($current_time < '09:00:00') {
         echo json_encode(["success" => false, "message" => "Cannot start timer before 9:00 AM"]);

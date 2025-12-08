@@ -115,13 +115,15 @@ if ($action === 'intern_monthly_stats') {
 if ($action === 'intern_weekly_hours') {
     // Get weekly hours for the current week
     $stmt = $conn->prepare("SELECT 
-        DAYNAME(FROM_UNIXTIME(UNIX_TIMESTAMP(start_time))) as day,
-        SUM(duration) as total_seconds
-        FROM time_logs 
-        WHERE user_id = ? 
-        AND YEARWEEK(start_time) = YEARWEEK(NOW())
-        GROUP BY DAYOFWEEK(start_time)
-        ORDER BY DAYOFWEEK(start_time)");
+    DAYNAME(start_time) AS day,
+    SUM(duration) AS total_seconds
+FROM time_logs
+WHERE user_id = ?
+  AND YEAR(start_time) = YEAR(NOW())
+  AND WEEK(start_time, 1) = WEEK(NOW(), 1)
+GROUP BY DAYOFWEEK(start_time)
+ORDER BY DAYOFWEEK(start_time);
+");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();

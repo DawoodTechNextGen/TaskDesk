@@ -4,14 +4,14 @@ include_once "./include/connection.php";
 // Stop all tasks where status = 'working'
 $current_time = date("Y-m-d") . " 23:59:59";
 
-$sql = "SELECT id, started_at, user_id FROM tasks WHERE status = 'working'";
+$sql = "SELECT id, started_at, assign_to FROM tasks WHERE status = 'working'";
 $result = $conn->query($sql);
 
 while ($task = $result->fetch_assoc()) {
 
     $task_id = $task['id'];
     $started_at = $task['started_at'];
-    $user_id = $task['user_id'];
+    $user_id = $task['assign_to'];
 
     // calculate duration
     $duration = strtotime($current_time) - strtotime($started_at);
@@ -29,7 +29,7 @@ while ($task = $result->fetch_assoc()) {
     $stmt2->execute();
 
     // update attendance (optional)
-    updateAttendance($conn, $user_id, $task_id, date("Y-m-d"), $duration);
+    // updateAttendance($conn, $user_id, $task_id, date("Y-m-d"), $duration);
 }
 
 $conn->close();

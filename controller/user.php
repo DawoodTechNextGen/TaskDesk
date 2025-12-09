@@ -20,7 +20,7 @@ switch ($action) {
         echo json_encode(['success' => true, 'data' => $data]);
         break;
 
-    
+
     case 'get_internees':
         $stmt = $conn->prepare("
             SELECT 
@@ -58,14 +58,14 @@ switch ($action) {
         $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : 0;
         $email = trim($_POST['email']);
 
-        if (empty($name) || empty($password) || !in_array($role, ['3', '2'])) {
+        if (empty($name) || !in_array($role, ['3', '2'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid data']);
             exit;
         }
 
         // Generate a secure password if not provided
         if (empty($password)) {
-            $password = bin2hex(random_bytes(4)); // 8 character password
+            $password = generateStrictPassword(12); 
         }
 
         $hashed = password_hash($password, PASSWORD_DEFAULT);
@@ -73,50 +73,50 @@ switch ($action) {
         $stmt = $conn->prepare("INSERT INTO users (name, password, user_role, tech_id, email, plain_password) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->bind_param('sssiss', $name, $hashed, $role, $tech_id, $email, $password);
 
-       if ($stmt->execute()) {
-        $user_id = $conn->insert_id;
+        if ($stmt->execute()) {
+            $user_id = $conn->insert_id;
 
-        if ($role == 2) {
-            // Insert certificate
-            $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
-            $stmt->bind_param('i', $user_id);
-            $stmt->execute();
+            if ($role == 2) {
+                // Insert certificate
+                $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
+                $stmt->bind_param('i', $user_id);
+                $stmt->execute();
 
-            // Get tech name
-            $tech_name = '';
-            if ($tech_id) {
-                $t = $conn->prepare("SELECT name FROM technologies WHERE id = ?");
-                $t->bind_param('i', $tech_id);
-                $t->execute();
-                $techResult = $t->get_result()->fetch_assoc();
-                $tech_name = $techResult['name'] ?? 'Intern';
-            }
+                // Get tech name
+                $tech_name = '';
+                if ($tech_id) {
+                    $t = $conn->prepare("SELECT name FROM technologies WHERE id = ?");
+                    $t->bind_param('i', $tech_id);
+                    $t->execute();
+                    $techResult = $t->get_result()->fetch_assoc();
+                    $tech_name = $techResult['name'] ?? 'Intern';
+                }
 
-            // QUEUE THE EMAIL (not send now)
-            $data = json_encode([
-                'name' => $name,
-                'email' => $email,
-                'password' => $password,
-                'tech_name' => $tech_name,
-                'tech_id' => $tech_id
-            ]);
+                // QUEUE THE EMAIL (not send now)
+                $data = json_encode([
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $password,
+                    'tech_name' => $tech_name,
+                    'tech_id' => $tech_id
+                ]);
 
-            $queueStmt = $conn->prepare("
+                $queueStmt = $conn->prepare("
                 INSERT INTO email_queue (to_email, to_name, template, data) 
                 VALUES (?, ?, 'welcome_offer', ?)
             ");
-            $queueStmt->bind_param('sss', $email, $name, $data);
-            $queueStmt->execute();
-        }
+                $queueStmt->bind_param('sss', $email, $name, $data);
+                $queueStmt->execute();
+            }
 
-        echo json_encode([
-            'success' => true,
-            'message' => ($role ==2)?'Internee created successfully!':'Supervisor created successfully!'
-        ]);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to create user']);
-    }
-    break;
+            echo json_encode([
+                'success' => true,
+                'message' => ($role == 2) ? 'Internee created successfully!' : 'Supervisor created successfully!'
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to create user']);
+        }
+        break;
 
     case 'update':
         $id = (int)($_POST['id'] ?? 0);
@@ -135,7 +135,7 @@ switch ($action) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?");
             $stmt->bind_param('sssssii', $name, $password, $email, $hashed, $role, $id);
-            
+
             if ($stmt->execute()) {
                 echo json_encode([
                     'success' => true,
@@ -148,7 +148,7 @@ switch ($action) {
             $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, user_role = ?, tech_id = ? WHERE id = ?");
             $stmt->bind_param('sssii', $name, $email, $role, $tech_id, $id);
             $success = $stmt->execute();
-            
+
             echo json_encode([
                 'success' => $success,
                 'message' => $success ? 'Updated successfully!' : 'Update failed'
@@ -161,7 +161,7 @@ switch ($action) {
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->bind_param('i', $id);
         $success = $stmt->execute();
-        
+
         echo json_encode([
             'success' => $success,
             'message' => $success ? 'Deleted successfully!' : 'Cannot delete user'
@@ -171,4 +171,28 @@ switch ($action) {
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
+}
+function generateStrictPassword($length = 12)
+{
+    $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $lower = 'abcdefghijklmnopqrstuvwxyz';
+    $numbers = '0123456789';
+    $symbols = '!@#$%^&*()-_=+{}[]<>?';
+
+    $all = $upper . $lower . $numbers . $symbols;
+
+    // Ensure each category exists
+    $password = '';
+    $password .= $upper[random_int(0, strlen($upper) - 1)];
+    $password .= $lower[random_int(0, strlen($lower) - 1)];
+    $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+    $password .= $symbols[random_int(0, strlen($symbols) - 1)];
+
+    // Fill remaining characters
+    for ($i = 4; $i < $length; $i++) {
+        $password .= $all[random_int(0, strlen($all) - 1)];
+    }
+
+    // Shuffle to avoid pattern
+    return str_shuffle($password);
 }

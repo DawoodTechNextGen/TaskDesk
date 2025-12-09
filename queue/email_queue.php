@@ -135,21 +135,79 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         $mailContent = '
         <!DOCTYPE html>
         <html>
+
         <head>
             <style>
-                body { font-family: "Segoe UI", Tahoma; line-height: 1.6; color: #333; max-width: 700px; margin: auto; }
-                .header { background: linear-gradient(135deg, #3B81F6, #2563EB); color: white; padding: 40px; text-align:center; border-radius: 10px 10px 0 0; }
-                .content { padding: 40px; background: #f9f9f9; }
-                .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                .credentials { background: #f0f7ff; border-left: 4px solid #3B81F6; }
-                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color:white !important; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; margin-top:10px; }
-                .footer { text-align:center; padding:20px; margin-top:20px; color:#666; font-size:14px; }
+                body {
+                    font-family: "Segoe UI", Tahoma;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 800px;
+                    margin: auto;
+                }
+
+                .header {
+                    background: linear-gradient(135deg, #deeafc, #c8dcfa);
+                    padding: 40px;
+                    text-align: center;
+                    border-radius: 10px 10px 0 0;
+                }
+                .header p {
+                    margin: 0;
+                }
+                .content {
+                    padding: 40px;
+                    background: #f9f9f9;
+                }
+
+                .card {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+
+                .credentials {
+                    background: #f0f7ff;
+                    border-left: 4px solid #3B81F6;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #3B81F6, #2563EB);
+                    color: white !important;
+                    padding: 14px 28px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin-top: 10px;
+                }
+
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    margin-top: 20px;
+                    color: #666;
+                    font-size: 14px;
+                }
             </style>
         </head>
+
         <body>
 
             <div class="header">
-                <h1>Welcome to DawoodTech NextGen!</h1>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 641.5 138.99" width="250px" height="70px">
+                    <g id="Layer_2" data-name="Layer 2">
+                        <path d="M166.61,317.91a50.62,50.62,0,0,1-14,34.7c-9.1,9.7-22.44,16.72-39.38,18.66H82.86V310.55h38.29v11.54H96.32v36.17h10.29a46.37,46.37,0,0,0,16.67-3,42,42,0,0,0,19.86-15.35,39.33,39.33,0,0,0,7-22.29c0-19.86-20.77-38.58-39.08-40.63H71v17.69h50.14V308h-78V294.69H58V264.56h55.22C142.72,264.56,166.61,291.84,166.61,317.91Z" transform="translate(-43.17 -264.56)" fill="#2775e9" />
+                        <polygon points="37.88 45.99 37.88 106.71 24.41 106.71 24.41 57.54 0 57.54 0 45.99 37.88 45.99" fill="#2775e9" /><text transform="translate(137.28 87.25)" font-size="85" font-family="GothamRnd-Medium, Gotham Rounded" font-weight="500" letter-spacing="-0.06em">D<tspan x="61.2" y="0" letter-spacing="-0.07em">a</tspan>
+                            <tspan x="104.72" y="0" letter-spacing="-0.08em">w</tspan>
+                            <tspan x="170.51" y="0" letter-spacing="-0.06em">ood</tspan>
+                            <tspan x="323.42" y="0" letter-spacing="-0.18em">T</tspan>
+                            <tspan x="363.54" y="0" letter-spacing="-0.06em">ech</tspan>
+                        </text><text transform="translate(494.44 121.5)" font-size="37" fill="#2775e9" stroke="#2775e9" stroke-miterlimit="10" font-family="Montserrat-Regular, Montserrat" letter-spacing="-0.06em">N<tspan x="27.79" y="0" letter-spacing="-0.08em">e</tspan>
+                            <tspan x="47.29" y="0">xtGen</tspan>
+                        </text>
+                    </g>
+                </svg>
                 <p>Your Journey Begins Here</p>
             </div>
 
@@ -193,6 +251,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
             </div>
 
         </body>
+
         </html>
         ';
 

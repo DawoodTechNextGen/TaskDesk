@@ -78,7 +78,7 @@ include_once "./include/headerLinks.php"; ?>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                         Password
-                        <!-- <span class="text-xs text-gray-500">(Leave blank to keep current)</span> -->
+                        <span class="text-xs text-gray-500">(Leave blank to auto-generate)</span>
                     </label>
                     <div class="relative">
                         <input type="password" name="password" id="password-input"
@@ -260,7 +260,6 @@ include_once "./include/headerLinks.php"; ?>
             document.getElementById('modal-title').textContent = 'Add Internee';
             document.getElementById('internee-form').reset();
             document.querySelector('[name="id"]').value = '';
-            document.querySelector('[name="password"]').required = true;
             document.querySelector('[name="email"]').required = true;
             document.getElementById('internee-modal').classList.remove('hidden');
         };

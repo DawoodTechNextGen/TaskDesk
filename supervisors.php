@@ -78,7 +78,7 @@ include_once "./include/headerLinks.php"; ?>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                         Password
-                        <!-- <span class="text-xs text-gray-500">(Leave blank to keep current)</span> -->
+                        <span class="text-xs text-gray-500">(Leave blank to auto-generate)</span>
                     </label>
                     <div class="relative">
                         <input
@@ -164,7 +164,7 @@ include_once "./include/headerLinks.php"; ?>
                 document.getElementById('modal-title').textContent = 'Add Supervisor';
                 document.getElementById('supervisor-form').reset();
                 document.querySelector('[name="id"]').value = '';
-                document.querySelector('[name="password"]').required = true;
+                // document.querySelector('[name="password"]').required = true;
                 document.querySelector('[name="email"]').required = true;
                 document.getElementById('supervisor-modal').classList.remove('hidden');
             };

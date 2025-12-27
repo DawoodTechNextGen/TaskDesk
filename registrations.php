@@ -123,13 +123,13 @@ include_once "./include/headerLinks.php"; ?>
                             if (k === 'status') {
                                 const raw = String(row[k] ?? '').toUpperCase();
                                 const statusClassMap = {
-                                    'NEW': 'bg-blue-100 text-blue-800',
-                                    'CONTACT': 'bg-yellow-100 text-yellow-800',
-                                    'HIRE': 'bg-green-100 text-green-800',
-                                    'REJECTED': 'bg-red-100 text-red-800'
+                                    'NEW': 'bg-blue-600 text-white',
+                                    'CONTACT': 'bg-yellow-500 text-white',
+                                    'HIRE': 'bg-green-600 text-white',
+                                    'REJECTED': 'bg-red-600 text-white'
                                 };
-                                const cls = statusClassMap[raw] || 'bg-gray-100 text-gray-800';
-                                cell = `<span class="px-2 py-1 rounded-full text-xs font-medium ${cls}">${raw}</span>`;
+                                const cls = statusClassMap[raw] || 'bg-gray-400 text-white';
+                                cell = `<span class="px-3 py-1 rounded-full text-xs font-semibold shadow ${cls}">${raw}</span>`;
                             } else if (k === 'technology') {
                                 cell = escapeHTML(row['technology'] ?? '');
                             } else if (k === 'mbl_number') {

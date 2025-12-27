@@ -109,8 +109,8 @@ include_once "./include/headerLinks.php"; ?>
                     const preferred = ['id', 'name', 'email', 'country', 'mbl_number', 'cnic', 'city', 'technology', 'internship_type', 'experience', 'status'];
                     const keys = Object.keys(data[0]);
                     const keysOrdered = preferred.filter(k => keys.includes(k)).concat(keys.filter(k => !preferred.includes(k)));
-                    // Exclude columns we don't want to show
-                    const keysFiltered = keysOrdered.filter(k => k !== 'updated_at');
+                    // Exclude columns we don't want to show (hide updated_at and technology_id)
+                    const keysFiltered = keysOrdered.filter(k => k !== 'updated_at' && k !== 'technology_id');
 
                     const headerMap = { 'mbl_number': 'Contact', 'cnic': 'City', 'city': 'CNIC' };
                     const headRow = '<tr>' + keysFiltered.map(k => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">${headerMap[k] || toTitle(k)}</th>`).join('') + '<th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th></tr>';
@@ -131,16 +131,11 @@ include_once "./include/headerLinks.php"; ?>
                                 cell = `<span class="px-2 py-1 rounded-full text-xs font-medium ${cls}">${raw}</span>`;
                             } else if (k === 'technology') {
                                 cell = escapeHTML(row['technology'] ?? '');
-                            } else if (k === 'cnic') {
-                                // Show City value under CNIC header (per request: swap)
-                                cell = escapeHTML(row['city'] ?? row['cnic'] ?? '');
-                            } else if (k === 'city') {
-                                // Show CNIC value under City header (per request: swap)
-                                cell = escapeHTML(row['cnic'] ?? row['city'] ?? '');
                             } else if (k === 'mbl_number') {
                                 // Display as Contact
                                 cell = escapeHTML(row['mbl_number'] ?? '');
                             } else {
+                                // For CNIC and City, show their actual values (no value swap)
                                 cell = escapeHTML(row[k]);
                             }
 

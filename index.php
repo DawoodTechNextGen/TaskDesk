@@ -206,7 +206,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="relative">
                                         <p class="text-teal-500 dark:text-teal-100 text-sm font-medium mb-2">New Registrations</p>
                                         <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $new_registrations ?></h3>
-                                        <p class="text-teal-500 dark:text-teal-100 text-sm">Recent signups (status: NEW)</p>
+                                        <p class="text-teal-500 dark:text-teal-100 text-sm">Recent entries</p>
                                     </div>
                                 </a>
                                 <div class="absolute top-4 right-4">

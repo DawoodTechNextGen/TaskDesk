@@ -17,6 +17,8 @@ if ($user_role == 1) {
     $active_interns = $conn->query("SELECT COUNT(id) as total FROM users WHERE user_role = 2 AND status = 1")->fetch_assoc()['total'];
     $total_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks")->fetch_assoc()['total'];
     $total_tech = $conn->query("SELECT COUNT(id) as total FROM technologies")->fetch_assoc()['total'];
+    // Count of new registrations (status = 'new')
+    $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
 
     // Additional admin stats
     $pending_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'pending'")->fetch_assoc()['total'];
@@ -192,6 +194,25 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
+                            <!-- New Registrations -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="registrations.php?status=new" class="block">
+                                    <div class="relative">
+                                        <p class="text-teal-500 dark:text-teal-100 text-sm font-medium mb-2">New Registrations</p>
+                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $new_registrations ?></h3>
+                                        <p class="text-teal-500 dark:text-teal-100 text-sm">Recent signups (status: NEW)</p>
+                                    </div>
+                                </a>
+                                <div class="absolute top-4 right-4">
+                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
                                         </svg>
                                     </div>
                                 </div>

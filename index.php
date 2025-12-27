@@ -122,7 +122,7 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="mb-8">
 
                         <!-- Admin Stats Cards - Modern Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                             <!-- Total Users -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
                                 <div class="relative">

@@ -17,7 +17,7 @@ switch ($action) {
         $status = $_GET['status'] ?? $_POST['status'] ?? '';
         $allowedStatus = ['new','contact','hire','rejected'];
 
-        $sql = "SELECT r.*, t.name AS technology_name FROM registrations r LEFT JOIN technologies t ON (t.id = r.tech_id OR t.id = r.technology_id)";
+        $sql = "SELECT r.*, t.name AS technology_name FROM registrations r LEFT JOIN technologies t ON (t.id = r.technology_id);";
         $params = [];
 
         if (!empty($status) && in_array(strtolower($status), $allowedStatus)) {

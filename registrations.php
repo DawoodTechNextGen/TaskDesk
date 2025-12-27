@@ -106,7 +106,8 @@ include_once "./include/headerLinks.php"; ?>
                 $tbody.empty();
 
                 if (data.length > 0) {
-                    const preferred = ['id', 'name', 'email', 'country', 'mbl_number', 'cnic', 'city', 'technology', 'internship_type', 'experience', 'status'];
+                    // Place Contact (mbl_number) and CNIC right after email as requested
+                    const preferred = ['id', 'name', 'email', 'mbl_number', 'cnic', 'country', 'city', 'technology', 'internship_type', 'experience', 'status'];
                     const keys = Object.keys(data[0]);
                     const keysOrdered = preferred.filter(k => keys.includes(k)).concat(keys.filter(k => !preferred.includes(k)));
                     // Exclude columns we don't want to show (hide updated_at and technology_id)

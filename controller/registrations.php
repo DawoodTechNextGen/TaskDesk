@@ -85,11 +85,11 @@ switch ($action) {
                 }
             }
 
-            // Format created_at for readability (if present)
+            // Format created_at to date-only for readability (if present)
             if (!empty($r['created_at'])) {
                 $dt = strtotime($r['created_at']);
                 if ($dt !== false) {
-                    $r['created_at'] = date('Y-m-d H:i', $dt);
+                    $r['created_at'] = date('Y-m-d', $dt);
                 }
             }
         }

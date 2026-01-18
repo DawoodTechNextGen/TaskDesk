@@ -58,7 +58,7 @@ include_once "./include/headerLinks.php"; ?>
         </div>
     </div>
 
-    <!-- Add & Edit Modal -->
+    <!-- Add & Edit Modal (indigo theme like supervisors but with indigo instead of indigo) -->
     <div id="internee-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
@@ -112,128 +112,11 @@ include_once "./include/headerLinks.php"; ?>
                         ?>
                     </select>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Assigned Supervisor</label>
-                    <select name="supervisor_id" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                        <option value="">Select Supervisor</option>
-                        <?php
-                        $techs = $conn->query("SELECT id, name FROM users WHERE user_role = 3 ORDER BY name");
-                        while ($t = $techs->fetch_assoc()) {
-                            echo "<option value='{$t['id']}'>{$t['name']}</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
                 <div class="flex justify-end gap-3">
                     <button type="button" class="close-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- View Internee Modal -->
-    <div id="view-internee-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-950 dark:text-gray-50">Internee Details</h3>
-                <button class="close-modal text-gray-500 hover:text-gray-700">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                    </svg>
-                </button>
-            </div>
-            
-            <div class="space-y-5 overflow-y-scroll max-h-96 custom-scrollbar">
-                <!-- Personal Info -->
-                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">Personal Information</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Full Name</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-name">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-email">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Internee ID</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-id">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                            <span id="view-status" class="inline-flex px-2 py-1 text-xs font-medium rounded-full">Active</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Technology & Progress -->
-                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">Technology & Progress</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Assigned Technology</p>
-                            <p class="font-medium text-indigo-600 dark:text-indigo-400" id="view-technology">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Completion Rate</p>
-                            <div class="flex items-center space-x-2">
-                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div class="bg-indigo-600 h-2 rounded-full" id="view-progress-bar"></div>
-                                </div>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100" id="view-completion">0%</span>
-                            </div>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Months Completed</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-months">0</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Certificate Status</p>
-                            <span id="view-cert-status" class="inline-flex px-2 py-1 text-xs font-medium rounded-full">Not Eligible</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Supervisor Info -->
-                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">Supervisor Information</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Supervisor Name</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-supervisor">-</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Supervisor ID</p>
-                            <p class="font-medium text-gray-900 dark:text-gray-100" id="view-supervisor-id">-</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Eligibility Criteria -->
-                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">Certificate Eligibility</h4>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Completion Rate ≥ 75%</span>
-                            <span id="view-eligibility-rate" class="text-sm font-medium text-red-600 dark:text-red-400">✗ Not Met</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Months Completed ≥ 3</span>
-                            <span id="view-eligibility-months" class="text-sm font-medium text-red-600 dark:text-red-400">✗ Not Met</span>
-                        </div>
-                        <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
-                            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">Overall Eligibility</span>
-                            <span id="view-eligibility-overall" class="text-sm font-medium text-red-600 dark:text-red-400">Not Eligible</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="close-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Close</button>
-            </div>
         </div>
     </div>
 
@@ -300,18 +183,6 @@ include_once "./include/headerLinks.php"; ?>
                 opacity: 1;
             }
         }
-        
-        /* Status badges */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
     `;
         document.head.appendChild(style);
 
@@ -328,46 +199,18 @@ include_once "./include/headerLinks.php"; ?>
             }
         });
 
-        // Store internees data globally
-        let interneesData = [];
-
         async function loadInternees() {
             try {
                 const res = await fetch('controller/user.php?action=get_internees');
                 const json = await res.json();
                 const user_role = <?php echo $_SESSION['user_role']; ?>;
-                const canEditDelete = user_role == 1 || user_role == 4;
+                const canEditDelete = user_role == 1 || user_role == 4; // Check if user can edit/delete
 
                 if (json.success) {
-                    interneesData = json.data; // Store the data
                     table.clear();
                     json.data.forEach(u => {
                         // Build actions HTML conditionally
                         let actionsHTML = '<div class="flex items-center space-x-2">';
-
-                        // View button - always visible
-                        actionsHTML += `
-                        <button class="view-internee text-green-600 hover:text-green-800 transition-colors" 
-                                data-id="${u.id}"
-                                data-name="${u.name}"
-                                data-email="${u.email || ''}"
-                                data-tech="${u.tech_id || ''}"
-                                data-tech-name="${u.tech_name || ''}"
-                                data-supervisor="${u.supervisor_id || ''}"
-                                data-supervisor-name="${u.supervisor_name || ''}"
-                                data-completion="${u.completion_rate || 0}"
-                                data-months="${u.months_completed || 0}"
-                                data-approved="${u.approve_status || 0}"
-                                data-total-tasks="${u.total_tasks || 0}"
-                                data-completed-tasks="${u.completed_tasks || 0}"
-                                data-pending-tasks="${u.pending_tasks || 0}"
-                                data-overdue-tasks="${u.overdue_tasks || 0}"
-                                title="View Details">
-                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z" stroke="currentColor" stroke-width="1.5"></path>
-                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"></circle>
-                            </svg>
-                        </button>`;
 
                         // Edit button - only for roles 1 or 4
                         if (canEditDelete) {
@@ -377,12 +220,11 @@ include_once "./include/headerLinks.php"; ?>
                                 data-name="${u.name}" 
                                 data-email="${u.email || ''}"
                                 data-tech="${u.tech_id || ''}"
-                                data-supervisor="${u.supervisor_id || ''}"
                                 data-pass="${u.plain_password || ''}"
                                 title="Edit">
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22C16.714 22 19.0711 22 20.5355 20.5355C22 19.0711 22 16.714 22 12V10.5M13.5 2H12C7.28595 2 4.92893 2 3.46447 3.46447C2.49073 4.43821 2.16444 5.80655 2.0551 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-                                <path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795M16.652 3.45506C16.652 3.45506 16.7331 4.83379 17.9497 6.05032C19.1662 7.26685 20.5449 7.34795 20.5449 7.34795M16.652 3.45506L10.6872 9.41993C10.2832 9.82394 10.0812 10.0259 9.90743 10.2487C9.70249 10.5114 9.52679 10.7957 9.38344 11.0965C9.26191 11.3515 9.17157 11.6225 8.99089 12.1646L8.41242 13.9M20.5449 7.34795L17.5625 10.3304M14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876M10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 8.9492 15.2897 8.03811 15.0229L8.41242 13.9M10.1 15.5876L8.41242 13.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                <path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795M16.652 3.45506C16.652 3.45506 16.7331 4.83379 17.9497 6.05032C19.1662 7.26685 20.5449 7.34795 20.5449 7.34795M16.652 3.45506L10.6872 9.41993C10.2832 9.82394 10.0812 10.0259 9.90743 10.2487C9.70249 10.5114 9.52679 10.7957 9.38344 11.0965C9.26191 11.3515 9.17157 11.6225 8.99089 12.1646L8.41242 13.9M20.5449 7.34795L17.5625 10.3304M14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876M10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 7.9492 15.2897 8.03811 15.0229L8.41242 13.9M10.1 15.5876L8.41242 13.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
                             </svg>
                         </button>`;
                         }
@@ -437,92 +279,6 @@ include_once "./include/headerLinks.php"; ?>
             }
         }
 
-        // Function to display internee details using existing data
-        function viewInterneeDetails(btn) {
-            const id = btn.dataset.id;
-            const name = btn.dataset.name;
-            const email = btn.dataset.email;
-            const techId = btn.dataset.tech;
-            const techName = btn.dataset.techName;
-            const supervisorId = btn.dataset.supervisor;
-            const supervisorName = btn.dataset.supervisorName;
-            const completion = parseInt(btn.dataset.completion) || 0;
-            const months = parseInt(btn.dataset.months) || 0;
-            const approved = parseInt(btn.dataset.approved) || 0;
-            const totalTasks = parseInt(btn.dataset.totalTasks) || 0;
-            const completedTasks = parseInt(btn.dataset.completedTasks) || 0;
-            const pendingTasks = parseInt(btn.dataset.pendingTasks) || 0;
-            const overdueTasks = parseInt(btn.dataset.overdueTasks) || 0;
-
-            // Update personal info
-            document.getElementById('view-name').textContent = name || '-';
-            document.getElementById('view-email').textContent = email || 'No email';
-            document.getElementById('view-id').textContent = id || '-';
-            
-            // Update status
-            const statusBadge = document.getElementById('view-status');
-            statusBadge.textContent = 'Active';
-            statusBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-
-            // Update technology & progress
-            document.getElementById('view-technology').textContent = techName || 'Not assigned';
-            document.getElementById('view-completion').textContent = completion + '%';
-            document.getElementById('view-progress-bar').style.width = completion + '%';
-            document.getElementById('view-months').textContent = months;
-
-            // Update supervisor info
-            document.getElementById('view-supervisor').textContent = supervisorName || 'Not assigned';
-            document.getElementById('view-supervisor-id').textContent = supervisorId || '-';
-
-            // Update certificate status
-            const certBadge = document.getElementById('view-cert-status');
-            if (approved === 1) {
-                certBadge.textContent = 'Approved';
-                certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            } else if (completion >= 75 && months >= 3) {
-                certBadge.textContent = 'Eligible';
-                certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300';
-            } else {
-                certBadge.textContent = 'Not Eligible';
-                certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-            }
-
-            // Update eligibility criteria
-            const rateEligibility = document.getElementById('view-eligibility-rate');
-            const monthsEligibility = document.getElementById('view-eligibility-months');
-            const overallEligibility = document.getElementById('view-eligibility-overall');
-
-            if (completion >= 75) {
-                rateEligibility.textContent = '✓ Met';
-                rateEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else {
-                rateEligibility.textContent = `✗ ${completion}%`;
-                rateEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-            }
-
-            if (months >= 3) {
-                monthsEligibility.textContent = '✓ Met';
-                monthsEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else {
-                monthsEligibility.textContent = `✗ ${months} months`;
-                monthsEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-            }
-
-            if (completion >= 75 && months >= 3 && approved !== 1) {
-                overallEligibility.textContent = 'Eligible';
-                overallEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else if (approved === 1) {
-                overallEligibility.textContent = 'Already Approved';
-                overallEligibility.className = 'text-sm font-medium text-blue-600 dark:text-blue-400';
-            } else {
-                overallEligibility.textContent = 'Not Eligible';
-                overallEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-            }
-
-            // Show the modal
-            document.getElementById('view-internee-modal').classList.remove('hidden');
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             // Open Add Modal
             const openModalBtn = document.querySelector('.open-modal');
@@ -536,15 +292,7 @@ include_once "./include/headerLinks.php"; ?>
                 };
             }
 
-            // View Internee Details
-            document.addEventListener('click', e => {
-                const viewBtn = e.target.closest('.view-internee');
-                if (viewBtn) {
-                    viewInterneeDetails(viewBtn);
-                }
-            });
-
-            // Edit Internee from table
+            // Edit Internee
             document.addEventListener('click', e => {
                 const editBtn = e.target.closest('.edit-internee');
                 if (editBtn) {
@@ -553,9 +301,8 @@ include_once "./include/headerLinks.php"; ?>
                     document.querySelector('[name="name"]').value = editBtn.dataset.name;
                     document.querySelector('[name="email"]').value = editBtn.dataset.email;
                     document.querySelector('[name="tech_id"]').value = editBtn.dataset.tech;
-                    document.querySelector('[name="supervisor_id"]').value = editBtn.dataset.supervisor || '';
                     document.querySelector('[name="password"]').required = false;
-                    document.querySelector('[name="password"]').value = editBtn.dataset.pass || '';
+                    document.querySelector('[name="password"]').value = editBtn.dataset.pass;
                     document.getElementById('internee-modal').classList.remove('hidden');
                 }
             });
@@ -632,7 +379,7 @@ include_once "./include/headerLinks.php"; ?>
                 }
             });
 
-            // Approve Certificate from table with loading state
+            // Approve Certificate with loading state
             document.addEventListener('click', async function(e) {
                 const approveBtn = e.target.closest('.approve-certificate');
                 if (approveBtn && approveBtn.dataset.approved !== "true") {

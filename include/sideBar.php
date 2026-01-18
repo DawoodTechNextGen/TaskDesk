@@ -78,7 +78,7 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
-                        <?php if ($_SESSION['user_role'] == 1) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
                             <li>
                                 <a href="registrations.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -139,8 +139,32 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Surpervisors</span>
                                 </a>
                             </li>
-                        <?php } ?>
-                        <?php if ($_SESSION['user_role'] == 3) { ?>
+                        <?php }
+                        if ($_SESSION['user_role'] == 1) {
+                            ?>
+                            
+                            <li>
+                                <a href="managers.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'managers.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <circle cx="9" cy="6" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                                <path d="M15 9C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M5.88915 20.5843C6.82627 20.8504 7.88256 21 9 21C12.866 21 16 19.2091 16 17C16 14.7909 12.866 13 9 13C5.13401 13 2 14.7909 2 17C2 17.3453 2.07657 17.6804 2.22053 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M18 14C19.7542 14.3847 21 15.3589 21 16.5C21 17.5293 19.9863 18.4229 18.5 18.8704" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Managers</span>
+                                </a>
+                            </li>
+                            <?php
+                        } ?>
+                        <?php if ($_SESSION['user_role'] != 2) { ?>
                             <li>
                                 <a href="internees.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 

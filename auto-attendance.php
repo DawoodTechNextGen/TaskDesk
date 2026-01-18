@@ -9,7 +9,7 @@ function markAutoAttendance() {
     $currentDate = date('Y-m-d');
     
     // Get all users
-    $usersSql = "SELECT id FROM users WHERE status = 'active'";
+    $usersSql = "SELECT id FROM users WHERE status = 1 AND user_role = 2"; 
     $usersResult = $conn->query($usersSql);
     
     while ($user = $usersResult->fetch_assoc()) {

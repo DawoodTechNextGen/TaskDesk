@@ -39,8 +39,8 @@ if ($new_password !== $confirm_password) {
 $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
 try {
-    $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-    $stmt->bind_param("si", $hashed_password, $user_id);
+    $stmt = $conn->prepare("UPDATE users SET plain_password = ?, password = ? WHERE id = ?");
+    $stmt->bind_param("ssi",$new_password, $hashed_password, $user_id);
     $stmt->execute();
 
     echo json_encode(['success' => true, 'message' => 'Password updated successfully']);

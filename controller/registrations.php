@@ -5,17 +5,24 @@ header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
-// Only admin (user_role == 1) can access registrations
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] != 1) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+// Only Admin (1) and Manager (4) can access registrations
+if (
+    !isset($_SESSION['user_role']) ||
+    !in_array($_SESSION['user_role'], [1, 4], true)
+) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unauthorized'
+    ]);
     exit;
 }
+
 
 switch ($action) {
     case 'get_registrations':
         /* Join with technologies to get human-friendly technology name and map codes to labels */
         $status = $_GET['status'] ?? $_POST['status'] ?? '';
-        $allowedStatus = ['new','contact','hire','rejected'];
+        $allowedStatus = ['new', 'contact', 'hire', 'rejected'];
 
         $sql = "SELECT r.*, t.name AS technology_name FROM registrations r LEFT JOIN technologies t ON (t.id = r.technology_id)";
         $params = [];
@@ -100,21 +107,99 @@ switch ($action) {
     case 'update_status':
         $id = (int)($_POST['id'] ?? 0);
         $newStatus = strtolower(trim($_POST['status'] ?? ''));
-        $allowed = ['new','contact','hire','rejected'];
+        $allowed = ['new', 'contact', 'hire', 'rejected'];
         if ($id <= 0 || !in_array($newStatus, $allowed)) {
-            echo json_encode(['success'=>false,'message'=>'Invalid parameters']);
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
             break;
         }
         $u = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
         $u->bind_param('si', $newStatus, $id);
         if ($u->execute()) {
-            echo json_encode(['success'=>true,'message'=>'Status updated']);
+            echo json_encode(['success' => true, 'message' => 'Status updated']);
         } else {
-            echo json_encode(['success'=>false,'message'=>'Update failed']);
+            echo json_encode(['success' => false, 'message' => 'Update failed']);
         }
         break;
-
+    case 'update_hire_status':
+        $id = (int)($_POST['id'] ?? 0);
+        $trainer = (int)($_POST['trainer'] ?? 0);
+        $password = generateStrictPassword(12);
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $userRole = 2;
+        $status = 1;
+        $newStatus = 'hire';
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            break;
+        }
+        $u = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
+        $u->bind_param('si', $newStatus, $id);
+        if ($u->execute()) {
+            $sqlSelect = $conn->prepare("SELECT r.*,t.name as tech_name FROM registrations r LEFT JOIN technologies t ON r.technology_id = t.id WHERE r.id = ?");
+            $sqlSelect->bind_param('i', $id);
+            if ($sqlSelect->execute()) {
+                $result = $sqlSelect->get_result();
+                $registration = $result->fetch_assoc();
+                $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $insertHire->bind_param('ssssiiii', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer);
+                if (!$insertHire->execute()) {
+                    echo json_encode(['success' => false, 'message' => 'Failed to create user']);
+                    break;
+                } else {
+                    $tech_id = $conn->insert_id;
+                    $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
+                    $stmt->bind_param('i', $tech_id);
+                    if ($stmt->execute()) {
+                        $data = json_encode([
+                            'name' => $registration['name'],
+                            'email' => $registration['email'],
+                            'password' => $password,
+                            'tech_name' => $registration['tech_name']
+                        ]);
+                        $queueStmt = $conn->prepare("
+                        INSERT INTO email_queue (to_email, to_name, template, data) 
+                        VALUES (?, ?, 'welcome_offer', ?)
+                        ");
+                        $queueStmt->bind_param('sss', $registration['email'], $registration['name'], $data);
+                        $queueStmt->execute();
+                        echo json_encode(['success' => true, 'message' => 'hired successfully!']);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Certificate creation failed']);
+                    }
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Fetch failed']);
+                break;
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Update failed']);
+        }
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
+}
+function generateStrictPassword($length = 12)
+{
+    $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $lower = 'abcdefghijklmnopqrstuvwxyz';
+    $numbers = '0123456789';
+    $symbols = '!@#$%^&*()-_=+{}[]<>?';
+
+    $all = $upper . $lower . $numbers . $symbols;
+
+    // Ensure each category exists
+    $password = '';
+    $password .= $upper[random_int(0, strlen($upper) - 1)];
+    $password .= $lower[random_int(0, strlen($lower) - 1)];
+    $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+    $password .= $symbols[random_int(0, strlen($symbols) - 1)];
+
+    // Fill remaining characters
+    for ($i = 4; $i < $length; $i++) {
+        $password .= $all[random_int(0, strlen($all) - 1)];
+    }
+
+    // Shuffle to avoid pattern
+    return str_shuffle($password);
 }

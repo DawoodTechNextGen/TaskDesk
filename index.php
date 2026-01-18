@@ -2,7 +2,7 @@
 session_start();
 include_once './include/config.php';
 if (!isset($_SESSION['user_id'])) {
-    header('location:'.BASE_URL.'login.php');
+    header('location:' . BASE_URL . 'login.php');
 } else {
     include_once './include/connection.php';
 }
@@ -918,28 +918,50 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Technology:</label>
-                                    <select id="technology_id" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                        <option value="">Select Technology</option>
-                                        <?php
-                                        $stmt = $conn->query("SELECT id, name FROM technologies ORDER BY name");
-                                        while ($tech = $stmt->fetch_assoc()) {
-                                            echo "<option value='{$tech['id']}'>{$tech['name']}</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-
-                                <div>
                                     <label class="block text-sm font-medium mb-2">Due Date:</label>
                                     <input type="date" id="due_date" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700  text-gray-900 dark:text-gray-100">
                                 </div>
-
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Assign To:</label>
-                                    <select id="user_id" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                        <option value="">First select technology</option>
-                                    </select>
+                                    <div class="searchable-wrapper relative w-full">
+
+                                        <!-- original select -->
+                                        <select id="user_id"
+                                            class="searchable-select hidden"
+                                            name="hireTrainer">
+                                            <option value="">Select Intern</option>
+                                            <?php
+                                            $userQuery = "SELECT id, name FROM users where user_role = 2 AND supervisor_id = $user_id ORDER BY name ASC";
+                                            $userResult = mysqli_query($conn, $userQuery);
+                                            while ($user = mysqli_fetch_assoc($userResult)) {
+                                                echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
+                                            }
+                                            ?>
+                                        </select>
+
+                                        <!-- input + arrow -->
+                                        <div class="relative">
+                                            <input type="text"
+                                                class="searchable-input w-full px-3 py-2 pr-10 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
+                                                placeholder="Select Supervisor"
+                                                autocomplete="off">
+
+                                            <!-- dropdown arrow -->
+                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500 dark:text-gray-300">
+                                                <svg class="size-2" fill="currentColor" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M0.256 8.606c0-0.269 0.106-0.544 0.313-0.75 0.412-0.412 1.087-0.412 1.5 0l14.119 14.119 13.913-13.912c0.413-0.412 1.087-0.412 1.5 0s0.413 1.088 0 1.5l-14.663 14.669c-0.413 0.413-1.088 0.413-1.5 0l-14.869-14.869c-0.213-0.213-0.313-0.481-0.313-0.756z"></path>
+                                                    </g>
+                                                </svg>
+                                            </span>
+                                        </div>
+
+                                        <!-- dropdown -->
+                                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-60 overflow-y-auto"></ul>
+
+                                    </div>
                                 </div>
 
                                 <div>
@@ -976,29 +998,31 @@ include_once "./include/headerLinks.php"; ?>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium mb-2">Technology:</label>
-                                        <select id="edit_technology_id" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                            <option value="">Select Technology</option>
-                                            <?php
-                                            $techs = $conn->query("SELECT id, name FROM technologies ORDER BY name");
-                                            while ($t = $techs->fetch_assoc()) {
-                                                echo "<option value='{$t['id']}'>{$t['name']}</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                    </div>
-
-                                    <div>
                                         <label class="block text-sm font-medium mb-2">Due Date:</label>
                                         <input type="date" id="edit_due_date" class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
                                     </div>
                                 </div>
 
+                                <!-- Assign To with Searchable Dropdown -->
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Assign To:</label>
-                                    <select id="edit_user_id" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                        <option value="">First select technology</option>
-                                    </select>
+                                    <div class="searchable-wrapper relative">
+                                        <input type="text"
+                                            class="searchable-input w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white cursor-pointer"
+                                            placeholder="Type to search interns..."
+                                            readonly>
+                                        <select id="edit_user_id" class="searchable-select hidden">
+                                            <option value="">Select Intern</option>
+                                            <?php
+                                            $userQuery = "SELECT id, name FROM users where user_role = 2 AND supervisor_id = $user_id ORDER BY name ASC";
+                                            $userResult = mysqli_query($conn, $userQuery);
+                                            while ($user = mysqli_fetch_assoc($userResult)) {
+                                                echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <ul class="searchable-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></ul>
+                                    </div>
                                 </div>
 
                                 <div>

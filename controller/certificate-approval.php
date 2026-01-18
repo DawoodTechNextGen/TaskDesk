@@ -7,7 +7,6 @@ if ($_POST['action'] === 'approve') {
     $intern_id = $_POST['id'];
     $stmt = $conn->prepare("UPDATE certificate SET approve_status = 1 where intern_id = ?");
     $stmt->bind_param("i", $intern_id);
-
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Certificate Approved Successfully']);
     } else {

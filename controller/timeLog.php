@@ -96,7 +96,7 @@ function markSkippedDaysAsAbsent($conn, $user_id, $task_id, $task_created_date)
 function autoCompleteOverdueTasks($conn)
 {
     $current_time = date('Y-m-d H:i:s');
-    $stmt = $conn->prepare("SELECT id FROM tasks WHERE due_date < ? AND status NOT IN ('complete', 'cancelled')");
+    $stmt = $conn->prepare("SELECT id FROM tasks WHERE due_date < ? AND status NOT 'complete'");
     $stmt->bind_param("s", $current_time);
     $stmt->execute();
     $result = $stmt->get_result();

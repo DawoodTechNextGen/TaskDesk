@@ -9,12 +9,12 @@ include_once './include/connection.php';
 <!DOCTYPE html>
 <html lang="en">
 <?php
-$page_title = 'Supervisors Management - TaskDesk';
+$page_title = 'Manager Management - TaskDesk';
 include_once "./include/headerLinks.php"; ?>
 
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
-
+    
     <div id="toast-container" class="fixed top-18 right-4 z-[9999] space-y-4"></div>
 
     <div class="flex h-screen overflow-hidden">
@@ -24,25 +24,24 @@ include_once "./include/headerLinks.php"; ?>
 
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Manage Supervisors</h2>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Manage Managers</h2>
                     <button class="open-modal bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium"
-                        data-modal="add-supervisor-modal">
-                        Add Supervisor
+                        data-modal="add-Manager-modal">
+                        Add Manager
                     </button>
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Supervisors</h2>
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Managers</h2>
                     </div>
                     <div class="overflow-x-auto p-4 custom-scrollbar">
-                        <table id="supervisorsTable" class="min-w-full">
+                        <table id="ManagersTable" class="min-w-full">
                             <thead class="bg-indigo-200 dark:bg-indigo-600">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Technology</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -56,17 +55,17 @@ include_once "./include/headerLinks.php"; ?>
     </div>
 
     <!-- Add & Edit Modal -->
-    <div id="supervisor-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+    <div id="Manager-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold dark:text-gray-50 text-gray-950" id="modal-title">Add Supervisor</h3>
+                <h3 class="text-xl font-bold dark:text-gray-50 text-gray-950" id="modal-title">Add Manager</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                     </svg>
                 </button>
             </div>
-            <form id="supervisor-form">
+            <form id="Manager-form">
                 <input type="hidden" name="id">
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Full Name</label>
@@ -75,48 +74,6 @@ include_once "./include/headerLinks.php"; ?>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Email</label>
                     <input type="email" name="email" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Technology</label>
-                    <div class="searchable-wrapper relative w-full">
-
-                        <!-- original select -->
-                        <select id="techId"
-                            class="searchable-select hidden"
-                            name="tech_id">
-                            <option value="">Select Technology</option>
-                            <?php
-                            $techQuery = "SELECT id, name FROM technologies ORDER BY name ASC";
-                            $techResult = mysqli_query($conn, $techQuery);
-                            while ($tech = mysqli_fetch_assoc($techResult)) {
-                                echo "<option value=\"{$tech['id']}\">{$tech['name']}</option>";
-                            }
-                            ?>
-                        </select>
-
-                        <!-- input + arrow -->
-                        <div class="relative">
-                            <input type="text"
-                                class="searchable-input w-full px-3 py-2 pr-10 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
-                                placeholder="Select Technology"
-                                autocomplete="off">
-
-                            <!-- dropdown arrow -->
-                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500 dark:text-gray-300">
-                                <svg class="size-2" fill="currentColor" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g id="SVGRepo_iconCarrier">
-                                        <path d="M0.256 8.606c0-0.269 0.106-0.544 0.313-0.75 0.412-0.412 1.087-0.412 1.5 0l14.119 14.119 13.913-13.912c0.413-0.412 1.087-0.412 1.5 0s0.413 1.088 0 1.5l-14.663 14.669c-0.413 0.413-1.088 0.413-1.5 0l-14.869-14.869c-0.213-0.213-0.313-0.481-0.313-0.756z"></path>
-                                    </g>
-                                </svg>
-                            </span>
-                        </div>
-
-                        <!-- dropdown -->
-                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-60 overflow-y-auto"></ul>
-
-                    </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
@@ -149,7 +106,7 @@ include_once "./include/headerLinks.php"; ?>
                         </button>
                     </div>
                 </div>
-
+                
                 <div class="flex justify-end gap-3">
                     <button type="button" class="close-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save</button>
@@ -161,18 +118,19 @@ include_once "./include/headerLinks.php"; ?>
     <?php include_once "./include/footerLinks.php"; ?>
 
     <script>
-        const table = $('#supervisorsTable').DataTable({
+        const table = $('#ManagersTable').DataTable({
             ordering: false,
             pageLength: 10,
             columnDefs: [{
-                targets: 4,
-                orderable: false // disable sorting on Actions column
-            }]
+                    targets: 3,
+                    orderable: true
+                } // disable sorting on Actions
+            ]
         });
 
-        async function loadSupervisors() {
+        async function loadManagers() {
             try {
-                const res = await fetch('controller/user.php?action=get_supervisors');
+                const res = await fetch('controller/user.php?action=get_managers');
                 const json = await res.json();
                 if (json.success) {
                     table.clear();
@@ -181,17 +139,14 @@ include_once "./include/headerLinks.php"; ?>
                             u.id,
                             u.name,
                             u.email || '<em class="text-gray-400">No email</em>',
-                            u.tech_name || '<em class="text-gray-400">No technology</em>',
-                            `<button class="edit-supervisor text-blue-600 mr-3" 
+                            `<button class="edit-Manager text-blue-600 mr-3" 
                                     data-id="${u.id}" 
                                     data-name="${u.name}" 
                                     data-email="${u.email || ''}"
-                                    data-pass="${u.plain_password}"
-                                    data-tech-id="${u.tech_id || ''}"
-                                    data-tech-name="${u.tech_name || ''}">
+                                    data-pass="${u.plain_password}">
                                 <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22C16.714 22 19.0711 22 20.5355 20.5355C22 19.0711 22 16.714 22 12V10.5M13.5 2H12C7.28595 2 4.92893 2 3.46447 3.46447C2.49073 4.43821 2.16444 5.80655 2.0551 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795M16.652 3.45506C16.652 3.45506 16.7331 4.83379 17.9497 6.05032C19.1662 7.26685 20.5449 7.34795 20.5449 7.34795M16.652 3.45506L10.6872 9.41993C10.2832 9.82394 10.0812 10.0259 9.90743 10.2487C9.70249 10.5114 9.52679 10.7957 9.38344 11.0965C9.26191 11.3515 9.17157 11.6225 8.99089 12.1646L8.41242 13.9M20.5449 7.34795L17.5625 10.3304M14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876M10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 7.9492 15.2897 8.03811 15.0229L8.41242 13.9M10.1 15.5876L8.41242 13.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
                             </button>
-                            <button class="delete-supervisor text-red-600" data-id="${u.id}">
+                            <button class="delete-Manager text-red-600" data-id="${u.id}">
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20.5001 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M9.5 11L10 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M14.5 11L14 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path> <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
                             </button>`
                         ]);
@@ -199,153 +154,41 @@ include_once "./include/headerLinks.php"; ?>
                     table.draw(false); // false = keep current page
                 }
             } catch (err) {
-                console.error("Failed to load supervisors:", err);
+                console.error("Failed to load Managers:", err);
             }
-        }
-
-        function setTechnology(techId, techName) {
-            const select = document.getElementById('techId');
-            const input = document.querySelector('.searchable-input');
-            const dropdown = document.querySelector('.searchable-dropdown');
-
-            if (!select || !input) return;
-
-            // Set the hidden select value
-            select.value = techId || '';
-            
-            // Set the visible input value
-            input.value = techName || 'Select Technology';
-            
-            // Update dropdown options
-            updateDropdownOptions();
-            
-            // Highlight the selected option in dropdown
-            if (dropdown) {
-                const dropdownItems = dropdown.querySelectorAll('li');
-                dropdownItems.forEach(item => {
-                    item.classList.remove('bg-indigo-100', 'dark:bg-indigo-600');
-                    if (item.dataset.value == techId) {
-                        item.classList.add('bg-indigo-100', 'dark:bg-indigo-600');
-                    }
-                });
-            }
-        }
-
-        function updateDropdownOptions() {
-            const select = document.getElementById('techId');
-            const dropdown = document.querySelector('.searchable-dropdown');
-            
-            if (!select || !dropdown) return;
-            
-            dropdown.innerHTML = '';
-            
-            // Create dropdown options from select
-            Array.from(select.options).forEach(option => {
-                if (option.value === '') return; // Skip "Select Technology" placeholder
-                
-                const li = document.createElement('li');
-                li.textContent = option.text;
-                li.dataset.value = option.value;
-                
-                li.className = 'px-3 py-2 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-600 dark:text-gray-200';
-                
-                li.onclick = () => {
-                    select.value = option.value;
-                    document.querySelector('.searchable-input').value = option.text;
-                    dropdown.classList.add('hidden');
-                    
-                    // Update highlight
-                    dropdown.querySelectorAll('li').forEach(item => {
-                        item.classList.remove('bg-indigo-100', 'dark:bg-indigo-600');
-                    });
-                    li.classList.add('bg-indigo-100', 'dark:bg-indigo-600');
-                };
-                
-                dropdown.appendChild(li);
-            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize dropdown options
-            updateDropdownOptions();
-            
-            // Searchable dropdown functionality
-            const input = document.querySelector('.searchable-input');
-            const dropdown = document.querySelector('.searchable-dropdown');
-            const select = document.getElementById('techId');
-            
-            if (input && dropdown && select) {
-                // Toggle dropdown on input click
-                input.addEventListener('click', () => {
-                    dropdown.classList.toggle('hidden');
-                });
-                
-                // Filter dropdown options on input
-                input.addEventListener('input', () => {
-                    const searchTerm = input.value.toLowerCase();
-                    const options = dropdown.querySelectorAll('li');
-                    
-                    options.forEach(option => {
-                        const text = option.textContent.toLowerCase();
-                        if (text.includes(searchTerm)) {
-                            option.style.display = 'block';
-                        } else {
-                            option.style.display = 'none';
-                        }
-                    });
-                    
-                    dropdown.classList.remove('hidden');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.searchable-wrapper')) {
-                        dropdown.classList.add('hidden');
-                    }
-                });
-            }
-
             // Open Add Modal
             document.querySelector('.open-modal').onclick = () => {
-                document.getElementById('modal-title').textContent = 'Add Supervisor';
-                document.getElementById('supervisor-form').reset();
+                document.getElementById('modal-title').textContent = 'Add Manager';
+                document.getElementById('Manager-form').reset();
                 document.querySelector('[name="id"]').value = '';
-                document.querySelector('[name="password"]').required = true;
-                
-                setTechnology('', '');
-                document.getElementById('supervisor-modal').classList.remove('hidden');
+                // document.querySelector('[name="password"]').required = true;
+                document.querySelector('[name="email"]').required = true;
+                document.getElementById('Manager-modal').classList.remove('hidden');
             };
 
-            // Edit Supervisor
+            // Edit Manager
             document.addEventListener('click', e => {
-                const editBtn = e.target.closest('.edit-supervisor');
-                if (!editBtn) return;
-
-                document.getElementById('modal-title').textContent = 'Edit Supervisor';
-
-                document.querySelector('[name="id"]').value = editBtn.dataset.id;
-                document.querySelector('[name="name"]').value = editBtn.dataset.name;
-                document.querySelector('[name="email"]').value = editBtn.dataset.email;
-
-                document.querySelector('[name="password"]').required = false;
-                document.querySelector('[name="password"]').value = '';
-
-                // Set technology with delay to ensure DOM is ready
-                setTimeout(() => {
-                    setTechnology(
-                        editBtn.dataset.techId || '',
-                        editBtn.dataset.techName || ''
-                    );
-                }, 10);
-
-                document.getElementById('supervisor-modal').classList.remove('hidden');
+                const editBtn = e.target.closest('.edit-Manager');
+                if (editBtn) {
+                    document.getElementById('modal-title').textContent = 'Edit Manager';
+                    document.querySelector('[name="id"]').value = editBtn.dataset.id;
+                    document.querySelector('[name="name"]').value = editBtn.dataset.name;
+                    document.querySelector('[name="email"]').value = editBtn.dataset.email;
+                    document.querySelector('[name="password"]').required = false;
+                    document.querySelector('[name="password"]').value = editBtn.dataset.pass;
+                    document.querySelector('[name="email"]').required = true;
+                    document.getElementById('Manager-modal').classList.remove('hidden');
+                }
             });
 
             // Submit Form (Add or Update)
-            document.getElementById('supervisor-form').onsubmit = async e => {
+            document.getElementById('Manager-form').onsubmit = async e => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
-                fd.append('role', '3');
+                fd.append('role', '4');
                 fd.append('action', fd.get('id') ? 'update' : 'create');
 
                 const res = await fetch('controller/user.php', {
@@ -357,14 +200,14 @@ include_once "./include/headerLinks.php"; ?>
 
                 if (json.success) {
                     document.querySelector('.close-modal').click();
-                    loadSupervisors(); // Auto-refresh table
+                    loadManagers(); // Auto-refresh table
                 }
             };
 
-            // Delete Supervisor
+            // Delete Manager
             document.addEventListener('click', async e => {
-                const delBtn = e.target.closest('.delete-supervisor');
-                if (delBtn && confirm('Delete this supervisor permanently?')) {
+                const delBtn = e.target.closest('.delete-Manager');
+                if (delBtn && confirm('Delete this Manager permanently?')) {
                     const res = await fetch('controller/user.php', {
                         method: 'POST',
                         body: new URLSearchParams({
@@ -374,7 +217,7 @@ include_once "./include/headerLinks.php"; ?>
                     });
                     const json = await res.json();
                     showToast(json.success ? 'success' : 'error', json.message);
-                    if (json.success) loadSupervisors();
+                    if (json.success) loadManagers();
                 }
             });
 
@@ -383,25 +226,8 @@ include_once "./include/headerLinks.php"; ?>
                 b.onclick = () => b.closest('.modal').classList.add('hidden');
             });
 
-            // Password Toggle Functionality
-            document.getElementById('toggle-password')?.addEventListener('click', function() {
-                const passwordInput = document.getElementById('password-input');
-                const eyeOpen = document.getElementById('eye-open');
-                const eyeClosed = document.getElementById('eye-closed');
-
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    eyeOpen.classList.add('hidden');
-                    eyeClosed.classList.remove('hidden');
-                } else {
-                    passwordInput.type = 'password';
-                    eyeOpen.classList.remove('hidden');
-                    eyeClosed.classList.add('hidden');
-                }
-            });
-
             // Initial load
-            loadSupervisors();
+            loadManagers();
         });
 
         function showToast(type, msg) {
@@ -413,6 +239,22 @@ include_once "./include/headerLinks.php"; ?>
             document.getElementById('toast-container').appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
         }
+        // Password Toggle Functionality
+        document.getElementById('toggle-password')?.addEventListener('click', function() {
+            const passwordInput = document.getElementById('password-input');
+            const eyeOpen = document.getElementById('eye-open');
+            const eyeClosed = document.getElementById('eye-closed');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            } else {
+                passwordInput.type = 'password';
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 

@@ -138,7 +138,7 @@ function initializeSupervisorCharts() {
 async function loadSupervisorStats() {
   try {
     const response = await fetch(
-      "controller/dashboard.php?action=supervisor_stats"
+      "controller/dashboard.php?action=supervisor_stats",
     );
     const data = await response.json();
 
@@ -166,7 +166,6 @@ document
     const description = createEditor?.getData?.().trim() || "";
     const user_id = document.getElementById("user_id").value;
     const due_date = document.getElementById("due_date").value;
-    const technology_id = document.getElementById("technology_id").value;
 
     // Validation
     if (!title) {
@@ -175,10 +174,6 @@ document
     }
     if (!description) {
       alert("Please enter a task description");
-      return;
-    }
-    if (!technology_id) {
-      alert("Please select a technology");
       return;
     }
     if (!user_id) {
@@ -234,63 +229,119 @@ document
     }
   });
 
-document.addEventListener("DOMContentLoaded", function () {
-  // Technology dropdown change event - FIXED VERSION
-  const technologySelect = document.getElementById("technology_id");
-  if (technologySelect) {
-    technologySelect.addEventListener("change", async function () {
-      const techId = this.value;
-      const userSelect = document.getElementById("user_id");
+// Initialize searchable selects for both create and edit modals
+function initializeSearchableSelects() {
+  document.querySelectorAll(".searchable-wrapper").forEach((wrapper) => {
+    const select = wrapper.querySelector(".searchable-select");
+    const input = wrapper.querySelector(".searchable-input");
+    const dropdown = wrapper.querySelector(".searchable-dropdown");
 
-      // Reset user dropdown
-      userSelect.innerHTML = '<option value="">Loading users...</option>';
+    if (!select || !input || !dropdown) return;
 
-      if (!techId) {
-        userSelect.innerHTML =
-          '<option value="">First select technology</option>';
-        return;
-      }
+    function populateDropdown(showAll = false) {
+      dropdown.innerHTML = "";
 
-      try {
-        console.log("Fetching users for technology:", techId); // Debug log
+      const options = Array.from(select.options);
+      const searchTerm = showAll ? "" : input.value.toLowerCase().trim();
 
-        const response = await fetch("controller/get_users_by_tech.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tech_id: techId,
-          }),
-        });
+      let hasResults = false;
 
-        console.log("Response status:", response.status); // Debug log
+      options.forEach((option) => {
+        if (!option.value) return;
 
-        const result = await response.json();
-        console.log("API Response:", result); // Debug log
+        const optionText = option.text.toLowerCase();
 
-        userSelect.innerHTML = '<option value="">Select User</option>';
+        if (!searchTerm || optionText.includes(searchTerm)) {
+          hasResults = true;
 
-        if (result.success && result.users && result.users.length > 0) {
-          result.users.forEach((user) => {
-            const option = document.createElement("option");
-            option.value = user.id;
-            option.textContent = user.name;
-            userSelect.appendChild(option);
+          const li = document.createElement("li");
+          li.className =
+            "px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200";
+          li.textContent = option.text;
+          li.dataset.value = option.value;
+
+          li.addEventListener("click", () => {
+            input.value = option.text;
+            select.value = option.value;
+            dropdown.classList.add("hidden");
+            select.dispatchEvent(new Event("change"));
           });
-        } else {
-          userSelect.innerHTML =
-            '<option value="">No users found for this technology</option>';
+
+          dropdown.appendChild(li);
         }
-      } catch (error) {
-        console.error("Error loading users:", error);
-        userSelect.innerHTML = '<option value="">Error loading users</option>';
+      });
+
+      if (!hasResults) {
+        const li = document.createElement("li");
+        li.className = "px-3 py-2 text-gray-500 dark:text-gray-400 text-center";
+        li.textContent = "No results found";
+        li.style.pointerEvents = "none";
+        dropdown.appendChild(li);
+      }
+    }
+
+    // 🔥 CLICK / FOCUS → SHOW ALL INTERNS (FIX)
+    input.addEventListener("focus", (e) => {
+      e.stopPropagation();
+      input.value = ""; // 🔑 CLEAR FILTER
+      populateDropdown(true); // 🔑 SHOW ALL
+      dropdown.classList.remove("hidden");
+    });
+
+    input.addEventListener("click", (e) => {
+      e.stopPropagation();
+      input.value = ""; // 🔑 CLEAR FILTER
+      populateDropdown(true); // 🔑 SHOW ALL
+      dropdown.classList.remove("hidden");
+    });
+
+    // TYPE TO SEARCH
+    input.addEventListener("input", () => {
+      populateDropdown();
+      dropdown.classList.remove("hidden");
+    });
+
+    // CLICK OUTSIDE → HIDE
+    document.addEventListener("click", (e) => {
+      if (!wrapper.contains(e.target)) {
+        dropdown.classList.add("hidden");
       }
     });
-  } else {
-    console.error("Technology select element not found");
+
+    dropdown.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    // SET INITIAL VALUE (EDIT MODAL)
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      input.value = selectedOption.text;
+    } else {
+      input.value = "";
+    }
+  });
+}
+
+// Function to set searchable select value
+function setSearchableSelectValue(wrapperId, value, text) {
+  const wrapper = document.querySelector(`#${wrapperId} .searchable-wrapper`);
+  if (!wrapper) return;
+
+  const select = wrapper.querySelector(".searchable-select");
+  const input = wrapper.querySelector(".searchable-input");
+
+  if (select && input) {
+    // Find the option with the given value
+    const option = Array.from(select.options).find((opt) => opt.value == value);
+    if (option) {
+      select.value = value;
+      input.value = text || option.text;
+
+      // Re-initialize the select
+      setTimeout(() => initializeSearchableSelects(), 50);
+    }
   }
-});
+}
 
 document.addEventListener("DOMContentLoaded", async function () {
   dataTable = $("#tasksTable").DataTable({
@@ -318,7 +369,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         ],
         height: "150px",
         minHeight: "150px",
-      }
+      },
     );
   } catch (error) {
     console.error("Error initializing create editor:", error);
@@ -346,7 +397,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         ],
         height: "200px",
         minHeight: "200px",
-      }
+      },
     );
   } catch (error) {
     console.error("Error initializing edit editor:", error);
@@ -355,10 +406,30 @@ document.addEventListener("DOMContentLoaded", async function () {
       '<textarea id="edit-description-fallback" rows="6" class="text-sm w-full p-2 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Task description"></textarea>';
   }
 
+  // Initialize searchable selects
+  initializeSearchableSelects();
+
+  // Also initialize when modals are opened
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(".open-modal")) {
+      setTimeout(() => {
+        initializeSearchableSelects();
+        // Debug: Log number of options in edit modal
+        const editSelect = document.querySelector(
+          "#edit-task-modal .searchable-select",
+        );
+        if (editSelect) {
+          console.log(
+            "Edit modal interns loaded:",
+            editSelect.options.length - 1,
+          );
+        }
+      }, 100);
+    }
+  });
+
   await getTasks();
   await viewTask();
-  await editTask();
-  // Removed admin-specific functions: allTasks(), completeTasks(), workingTasks(), pendingTasks()
 });
 
 async function getTasks() {
@@ -393,17 +464,23 @@ async function getTasks() {
       const currentUserName = "<?php echo $_SESSION['user_name'] ?>";
 
       result.data.forEach((task) => {
+        const assignToId = task.assign_id ?? "";
+        const assignToName = task.assign_to
+          ? task.assign_to === currentUserName
+            ? "Me"
+            : task.assign_to
+          : "";
+
         dataTable.row.add([
           count,
           task.id,
           task.title,
-          (task.assign_to =
-            task.assign_to == currentUserName ? "Me" : task.assign_to),
+          assignToName,
           getStatusBadge(
             task.due_date < new Date().toISOString().split("T")[0] &&
               task.status !== "complete"
               ? "Expired"
-              : task.status
+              : task.status,
           ),
           formatDateTime(task.created_at),
           `
@@ -416,8 +493,8 @@ async function getTasks() {
                             data-id="${task.id}"
                             data-title="${task.title}"
                             data-description="${task.description}"
-                            data-assign-id="${task.assign_id}"
-                            data-tech-id="${task.tech_id || ""}"
+                            data-assign-id="${assignToId}"
+                            data-assign-name="${assignToName}"
                             data-due-date="${task.due_date || ""}">
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 22H8M20 22H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M13.8881 3.66293L14.6296 2.92142C15.8581 1.69286 17.85 1.69286 19.0786 2.92142C20.3071 4.14999 20.3071 6.14188 19.0786 7.37044L18.3371 8.11195M13.8881 3.66293C13.8881 3.66293 13.9807 5.23862 15.3711 6.62894C16.7614 8.01926 18.3371 8.11195 18.3371 8.11195M13.8881 3.66293L7.07106 10.4799C6.60933 10.9416 6.37846 11.1725 6.17992 11.4271C5.94571 11.7273 5.74491 12.0522 5.58107 12.396C5.44219 12.6874 5.33894 12.9972 5.13245 13.6167L4.25745 16.2417M18.3371 8.11195L14.9286 11.5204M11.5201 14.9289C11.0584 15.3907 10.8275 15.6215 10.5729 15.8201C10.2727 16.0543 9.94775 16.2551 9.60398 16.4189C9.31256 16.5578 9.00282 16.6611 8.38334 16.8675L5.75834 17.7426M5.75834 17.7426L5.11667 17.9564C4.81182 18.0581 4.47573 17.9787 4.2485 17.7515C4.02128 17.5243 3.94194 17.1882 4.04356 16.8833L4.25745 16.2417M5.75834 17.7426L4.25745 16.2417" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
                             </button>
@@ -428,14 +505,10 @@ async function getTasks() {
                                 data-id="${task.id}" 
                                 data-title="${task.title}" 
                                 data-description="${task.description}" 
-                                data-assign="${
-                                  task.assign_to == currentUserName
-                                    ? "Me"
-                                    : task.assign_to
-                                }" 
+                                data-assign="${assignToName}" 
                                 data-status="${task.status}" 
                                 data-created="${formatDateTime(
-                                  task.created_at
+                                  task.created_at,
                                 )}"
                                 data-started="${
                                   task.started_at == null
@@ -471,7 +544,7 @@ function viewTask() {
     .getElementById("tasksTable")
     .addEventListener("click", async function (e) {
       const button = e.target.closest(
-        ".open-modal[data-modal='view-task-modal']"
+        ".open-modal[data-modal='view-task-modal']",
       );
       if (!button) return;
 
@@ -593,7 +666,7 @@ function viewTask() {
                 "hover:bg-gray-50 dark:bg-gray-600 bg-white transition-colors";
 
               let startTd = `<td class="py-3 px-6 text-sm">${formatDateTime(
-                log.started_at
+                log.started_at,
               )}</td>`;
 
               if (!log.stopped_at) {
@@ -611,17 +684,17 @@ function viewTask() {
 
                   liveTd.innerText = formatDuration(diffSec);
                   totalTimeEl.innerText = `Total Time: ${formatDuration(
-                    totalTime + diffSec
+                    totalTime + diffSec,
                   )}`;
                 }, 1000);
               } else {
                 row.innerHTML = `
                                 ${startTd}
                                 <td class="py-3 px-6 text-sm">${formatDateTime(
-                                  log.stopped_at
+                                  log.stopped_at,
                                 )}</td>
                                 <td class="py-3 px-6 text-sm">${formatDuration(
-                                  log.duration
+                                  log.duration,
                                 )}</td>
                             `;
                 totalTime += parseInt(log.duration, 10);
@@ -646,48 +719,10 @@ function viewTask() {
     });
 }
 
-function editTask() {
-  document
-    .getElementById("edit_technology_id")
-    .addEventListener("change", async function () {
-      const techId = this.value;
-      const userSelect = document.getElementById("edit_user_id");
-
-      if (!techId) {
-        userSelect.innerHTML =
-          '<option value="">First select technology</option>';
-        return;
-      }
-
-      userSelect.innerHTML = '<option value="">Loading...</option>';
-      try {
-        const res = await fetch("controller/get_users_by_tech.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tech_id: techId,
-          }),
-        });
-        const result = await res.json();
-
-        userSelect.innerHTML = '<option value="">Select User</option>';
-        if (result.success) {
-          result.users.forEach((u) => userSelect.add(new Option(u.name, u.id)));
-        } else {
-          userSelect.innerHTML = '<option value="">No users found</option>';
-        }
-      } catch (err) {
-        userSelect.innerHTML = '<option value="">Error loading users</option>';
-      }
-    });
-}
-
 // Handle edit button click to populate the modal
 document.addEventListener("click", async function (e) {
   const editButton = e.target.closest(
-    '.open-modal[data-modal="edit-task-modal"]'
+    '.open-modal[data-modal="edit-task-modal"]',
   );
   if (!editButton) return;
 
@@ -695,27 +730,18 @@ document.addEventListener("click", async function (e) {
   const taskTitle = editButton.dataset.title;
   const taskDescription = editButton.dataset.description;
   const taskAssignId = editButton.dataset.assignId;
-  const taskTechId = editButton.dataset.techId;
+  const taskAssignName = editButton.dataset.assignName;
   const taskDueDate = editButton.dataset.dueDate;
 
   // Populate basic fields
   document.getElementById("edit_task_id").value = taskId;
   document.getElementById("edit_title").value = taskTitle;
-  document.getElementById("edit_due_date").value = taskDueDate;
 
-  // Set technology and trigger change to load users
-  const techSelect = document.getElementById("edit_technology_id");
-  techSelect.value = taskTechId || "";
-
-  // Trigger change event to load users for this technology
-  if (taskTechId) {
-    const event = new Event("change");
-    techSelect.dispatchEvent(event);
-
-    // Wait a bit for users to load, then set the assigned user
-    setTimeout(() => {
-      document.getElementById("edit_user_id").value = taskAssignId;
-    }, 500);
+  // Format due date correctly
+  if (taskDueDate) {
+    const date = new Date(taskDueDate);
+    const formattedDate = date.toISOString().split("T")[0];
+    document.getElementById("edit_due_date").value = formattedDate;
   }
 
   // Set description in editor
@@ -724,63 +750,66 @@ document.addEventListener("click", async function (e) {
   } else {
     // Fallback for textarea
     const fallbackTextarea = document.getElementById(
-      "edit-description-fallback"
+      "edit-description-fallback",
     );
     if (fallbackTextarea) {
       fallbackTextarea.value = taskDescription;
     }
   }
+
+  // IMPORTANT: Re-initialize searchable selects first
+  initializeSearchableSelects();
+
+  // Then set the value with a small delay
+  setTimeout(() => {
+    // Find the edit modal wrapper
+    const wrapper = document.querySelector(
+      "#edit-task-modal .searchable-wrapper",
+    );
+    if (!wrapper) {
+      console.error("Searchable wrapper not found in edit modal!");
+      return;
+    }
+
+    const select = wrapper.querySelector(".searchable-select");
+    const input = wrapper.querySelector(".searchable-input");
+
+    if (!select || !input) {
+      console.error("Select or input not found!");
+      return;
+    }
+
+    console.log("Setting intern:", taskAssignId, taskAssignName);
+
+    // Set the select value
+    if (taskAssignId) {
+      select.value = taskAssignId;
+
+      // Find the corresponding option text
+      const option = Array.from(select.options).find(
+        (opt) => opt.value == taskAssignId,
+      );
+
+      if (option) {
+        input.value = taskAssignName || option.text;
+        console.log("Found option:", option.text);
+      } else {
+        // If intern not found, clear the input
+        input.value = "";
+        console.warn("Option not found for ID:", taskAssignId);
+      }
+    } else {
+      // No assignment selected
+      select.value = "";
+      input.value = "";
+      console.log("No assignment ID provided");
+    }
+
+    // Re-initialize one more time to ensure dropdown shows correctly
+    setTimeout(initializeSearchableSelects, 50);
+  }, 150);
 });
 
-// Handle technology change in edit modal
-// Edit modal technology dropdown - FIXED VERSION
-document.addEventListener("DOMContentLoaded", function () {
-  const editTechnologySelect = document.getElementById("edit_technology_id");
-  if (editTechnologySelect) {
-    editTechnologySelect.addEventListener("change", async function () {
-      const techId = this.value;
-      const userSelect = document.getElementById("edit_user_id");
-
-      if (!techId) {
-        userSelect.innerHTML =
-          '<option value="">First select technology</option>';
-        return;
-      }
-
-      userSelect.innerHTML = '<option value="">Loading users...</option>';
-
-      try {
-        const response = await fetch("controller/get_users_by_tech.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tech_id: techId,
-          }),
-        });
-
-        const result = await response.json();
-
-        userSelect.innerHTML = '<option value="">Select User</option>';
-
-        if (result.success && result.users && result.users.length > 0) {
-          result.users.forEach((user) => {
-            const option = document.createElement("option");
-            option.value = user.id;
-            option.textContent = user.name;
-            userSelect.appendChild(option);
-          });
-        } else {
-          userSelect.innerHTML = '<option value="">No users found</option>';
-        }
-      } catch (error) {
-        console.error("Error loading users for edit modal:", error);
-        userSelect.innerHTML = '<option value="">Error loading users</option>';
-      }
-    });
-  }
-});
 // Submit edit form
 document
   .getElementById("edit-task")
@@ -790,7 +819,16 @@ document
     const id = document.getElementById("edit_task_id").value;
     const title = document.getElementById("edit_title").value.trim();
     const description = editEditor.getData().trim();
-    const user_id = document.getElementById("edit_user_id").value;
+
+    // Get value from the searchable select element
+    const wrapper = document.querySelector(
+      "#edit-task-modal .searchable-wrapper",
+    );
+    const select = wrapper ? wrapper.querySelector(".searchable-select") : null;
+    const user_id = select
+      ? select.value
+      : document.getElementById("edit_user_id").value;
+
     const due_date = document.getElementById("edit_due_date").value;
 
     if (!title || !description || !user_id) {
@@ -809,7 +847,7 @@ document
           id,
           title,
           description,
-          user_id,
+          user_id: parseInt(user_id),
           due_date: due_date || null,
         }),
       });
@@ -901,6 +939,19 @@ function addModalScrollStyles() {
       overflow-y: auto !important;
       white-space: pre-wrap !important;
       word-break: break-word !important;
+    }
+    
+    /* Searchable dropdown styles */
+    .searchable-dropdown {
+      z-index: 9999 !important;
+      max-height: 250px !important;
+      overflow-y: auto !important;
+    }
+    
+    .searchable-dropdown li {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
   `;
   document.head.appendChild(style);

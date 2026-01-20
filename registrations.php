@@ -71,9 +71,72 @@ include_once "./include/headerLinks.php";
     tr.shown .expand-icon {
         transform: rotate(45deg);
     }
+
+    /* Loader Styles */
+    .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+    }
+
+    .loader {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .table-loader {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .table-loader.active {
+        display: block;
+    }
+
+    .table-container {
+        position: relative;
+        min-height: 200px;
+    }
+
+    .skeleton-row {
+        height: 40px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        margin: 5px 0;
+        border-radius: 4px;
+    }
+
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
 </style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
+    <!-- Global Loader Overlay -->
+    <div id="globalLoader" class="loader-overlay hidden">
+        <div class="loader"></div>
+    </div>
+
     <div id="toast-container" class="fixed top-18 right-4 z-[9999] space-y-4"></div>
 
     <div class="flex h-screen overflow-hidden">
@@ -94,8 +157,8 @@ include_once "./include/headerLinks.php";
 
                     <!-- Hire Card -->
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
-                        <h3 class="text-sm font-semibold text-green-500 dark:text-green-400 mb-2">Total Hire</h3>
-                        <p class="text-3xl font-bold text-green-600 dark:text-green-200" id="totalHire">
+                        <h3 class="text-sm font-semibold text-blue-500 dark:text-blue-400 mb-2">Total Hire</h3>
+                        <p class="text-3xl font-bold text-blue-600 dark:text-blue-200" id="totalHire">
                             <?php echo $total_hire; ?>
                         </p>
                     </div>
@@ -127,11 +190,31 @@ include_once "./include/headerLinks.php";
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">New Registrations</h2>
                     </div>
-                    <div class="overflow-x-auto p-4 custom-scrollbar">
-                        <table id="registrationsTable" class="min-w-full">
-                            <thead class="text-sm text-gray-800 dark:text-gray-50"></thead>
-                            <tbody class="text-xs dark:text-gray-100 text-gray-800"></tbody>
-                        </table>
+                    <div class="table-container">
+                        <!-- Table Loader -->
+                        <div id="tableLoader" class="table-loader p-8">
+                            <div class="flex justify-center items-center space-x-4">
+                                <div class="loader"></div>
+                                <span class="text-gray-600 dark:text-gray-300">Loading registrations...</span>
+                            </div>
+                        </div>
+
+                        <!-- Skeleton Loading -->
+                        <div id="skeletonLoader" class="p-4 hidden">
+                            <div class="skeleton-row"></div>
+                            <div class="skeleton-row"></div>
+                            <div class="skeleton-row"></div>
+                            <div class="skeleton-row"></div>
+                            <div class="skeleton-row"></div>
+                        </div>
+
+                        <!-- Table Content -->
+                        <div class="overflow-x-auto p-4 custom-scrollbar">
+                            <table id="registrationsTable" class="min-w-full">
+                                <thead class="text-sm text-gray-800 dark:text-gray-50"></thead>
+                                <tbody class="text-xs dark:text-gray-100 text-gray-800"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -197,6 +280,29 @@ include_once "./include/headerLinks.php";
 
     <?php include_once "./include/footerLinks.php"; ?>
     <script>
+        // Loader Management
+        const LoaderManager = {
+            showGlobal: function() {
+                document.getElementById('globalLoader').classList.remove('hidden');
+            },
+            
+            hideGlobal: function() {
+                document.getElementById('globalLoader').classList.add('hidden');
+            },
+            
+            showTable: function() {
+                document.getElementById('tableLoader').classList.add('active');
+                document.getElementById('skeletonLoader').classList.remove('hidden');
+                document.querySelector('#registrationsTable').style.opacity = '0.3';
+            },
+            
+            hideTable: function() {
+                document.getElementById('tableLoader').classList.remove('active');
+                document.getElementById('skeletonLoader').classList.add('hidden');
+                document.querySelector('#registrationsTable').style.opacity = '1';
+            }
+        };
+
         function escapeHTML(str) {
             if (str === null || str === undefined) return '';
             return String(str)
@@ -320,9 +426,32 @@ include_once "./include/headerLinks.php";
         }
 
         /* =====================================================
-        Load Registrations - UPDATED
+        Load Registrations - OPTIMIZED with Caching
         ===================================================== */
-        async function loadRegistrations(filter = '') {
+        let dataTable = null;
+        let cache = {
+            data: null,
+            timestamp: null,
+            filter: '',
+            ttl: 30000 // 30 seconds cache
+        };
+
+        async function loadRegistrations(filter = '', forceRefresh = false) {
+            // Show loader
+            LoaderManager.showTable();
+            
+            // Check cache if not forcing refresh
+            const now = Date.now();
+            if (!forceRefresh && cache.data && cache.filter === filter && 
+                cache.timestamp && (now - cache.timestamp) < cache.ttl) {
+                // Use cached data
+                setTimeout(() => {
+                    renderTable(cache.data);
+                    LoaderManager.hideTable();
+                }, 300); // Small delay for better UX
+                return;
+            }
+
             try {
                 // Build query parameters
                 const params = new URLSearchParams({
@@ -333,118 +462,148 @@ include_once "./include/headerLinks.php";
                     params.append('status', filter);
                 }
                 
+                // Add timestamp to prevent caching
+                params.append('_', now);
+                
                 const res = await fetch('controller/registrations.php?' + params.toString());
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
                 const json = await res.json();
                 
                 if (!json.success) {
                     showToast('error', 'Load failed: ' + json.message);
+                    LoaderManager.hideTable();
                     return;
                 }
                 
-                // Destroy existing DataTable if it exists
-                if ($.fn.dataTable.isDataTable('#registrationsTable')) {
-                    $('#registrationsTable').DataTable().destroy();
-                    $('#registrationsTable tbody').empty();
-                }
+                // Cache the data
+                cache.data = json.data;
+                cache.timestamp = now;
+                cache.filter = filter;
                 
-                // Build table header
-                $('#registrationsTable thead').html(`
-                    <tr>
-                        <th></th>
-                        ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
-                        <th>Actions</th>
-                    </tr>
-                `);
-                
-                // Build table body
-                let tbodyHTML = '';
-                if (json.data && json.data.length > 0) {
-                    json.data.forEach(row => {
-                        tbodyHTML += `<tr>
-                            <td class="details-control cursor-pointer text-center font-bold select-none">
-                                <span class="expand-icon">
-                                    <span class="bar horizontal"></span>
-                                    <span class="bar vertical"></span>
-                                </span>
-                            </td>
-                            ${visibleColumns.map(col => {
-                                let cellContent = '';
-                                if (col === 'status') {
-                                    const s = normalizeStatus(row[col]);
-                                    const map = {
-                                        new: ['NEW', 'bg-blue-600'],
-                                        contact: ['CONTACT', 'bg-yellow-500'],
-                                        hire: ['HIRE', 'bg-green-600'],
-                                        rejected: ['REJECTED', 'bg-red-600']
-                                    };
-                                    cellContent = `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
-                                } else {
-                                    cellContent = escapeHTML(row[col] || '-');
-                                }
-                                return `<td>${cellContent}</td>`;
-                            }).join('')}
-                            <td>${renderActions(row)}</td>
-                        </tr>`;
-                    });
-                } else {
-                    tbodyHTML = `<tr><td colspan="${visibleColumns.length + 2}" class="text-center py-4">No records found</td></tr>`;
-                }
-                
-                $('#registrationsTable tbody').html(tbodyHTML);
-                
-                // Initialize DataTable with client-side pagination
-                const table = $('#registrationsTable').DataTable({
-                    searching: true,
-                    ordering: true,
-                    paging: true,
-                    pageLength: 10,
-                    lengthMenu: [10, 25, 50, 100],
-                    lengthChange: true,
-                    info: true,
-                    autoWidth: false,
-                    order: [[1, 'desc']], // Order by ID descending
-                    columnDefs: [
-                        { orderable: false, targets: [0, visibleColumns.length + 1] } // Make first and last column non-orderable
-                    ],
-                    
-                    // Draw callback
-                    drawCallback: function() {
-                        // Set status dropdown values
-                        document.querySelectorAll('.status-select').forEach(select => {
-                            select.value = select.dataset.current;
-                        });
-                    }
-                });
-                
-                // Set up row expansion AFTER DataTable is initialized
-                $('#registrationsTable tbody').on('click', 'td.details-control', function() {
-                    const tr = $(this).closest('tr');
-                    const row = table.row(tr);
-                    const icon = this.querySelector('.expand-icon');
-                    
-                    if (row.child.isShown()) {
-                        const el = tr.next('tr').find('.expand-wrapper')[0];
-                        if (el) {
-                            animateCollapse(el);
-                            setTimeout(() => row.child.hide(), 300);
-                        }
-                        tr.removeClass('shown');
-                    } else {
-                        // Get the row data
-                        const rowData = table.row(tr).data();
-                        row.child(formatDetails(rowData)).show();
-                        const el = tr.next('tr').find('.expand-wrapper')[0];
-                        if (el) {
-                            requestAnimationFrame(() => animateExpand(el));
-                        }
-                        tr.addClass('shown');
-                    }
-                });
+                // Render table
+                renderTable(json.data);
                 
             } catch (error) {
                 console.error('Error loading registrations:', error);
                 showToast('error', 'Failed to load registrations');
+                
+                // Clear table
+                $('#registrationsTable tbody').html('<tr><td colspan="8" class="text-center py-4 text-red-500">Failed to load data</td></tr>');
+            } finally {
+                LoaderManager.hideTable();
             }
+        }
+
+        /* =====================================================
+        Render Table Function
+        ===================================================== */
+        function renderTable(data) {
+            // Destroy existing DataTable if it exists
+            if (dataTable) {
+                dataTable.destroy();
+                $('#registrationsTable tbody').empty();
+            }
+            
+            // Build table header
+            $('#registrationsTable thead').html(`
+                <tr>
+                    <th></th>
+                    ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
+                    <th>Actions</th>
+                </tr>
+            `);
+            
+            // Build table body
+            let tbodyHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(row => {
+                    tbodyHTML += `<tr>
+                        <td class="details-control cursor-pointer text-center font-bold select-none">
+                            <span class="expand-icon">
+                                <span class="bar horizontal"></span>
+                                <span class="bar vertical"></span>
+                            </span>
+                        </td>
+                        ${visibleColumns.map(col => {
+                            let cellContent = '';
+                            if (col === 'status') {
+                                const s = normalizeStatus(row[col]);
+                                const map = {
+                                    new: ['NEW', 'bg-blue-600'],
+                                    contact: ['CONTACT', 'bg-yellow-500'],
+                                    hire: ['HIRE', 'bg-green-600'],
+                                    rejected: ['REJECTED', 'bg-red-600']
+                                };
+                                cellContent = `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
+                            } else {
+                                cellContent = escapeHTML(row[col] || '-');
+                            }
+                            return `<td>${cellContent}</td>`;
+                        }).join('')}
+                        <td>${renderActions(row)}</td>
+                    </tr>`;
+                });
+            } else {
+                tbodyHTML = `<tr><td colspan="${visibleColumns.length + 2}" class="text-center py-4">No records found</td></tr>`;
+            }
+            
+            $('#registrationsTable tbody').html(tbodyHTML);
+            
+            // Initialize DataTable with client-side pagination
+            dataTable = $('#registrationsTable').DataTable({
+                searching: true,
+                ordering: true,
+                paging: true,
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                lengthChange: true,
+                info: true,
+                autoWidth: false,
+                order: [[1, 'desc']],
+                columnDefs: [
+                    { orderable: false, targets: [0, visibleColumns.length + 1] }
+                ],
+                language: {
+                    processing: '<div class="loader-small"></div> Processing...',
+                    emptyTable: 'No data available in table',
+                    zeroRecords: 'No matching records found'
+                },
+                initComplete: function() {
+                    // Set status dropdown values
+                    document.querySelectorAll('.status-select').forEach(select => {
+                        select.value = select.dataset.current;
+                    });
+                }
+            });
+            
+            // Set up row expansion
+            $('#registrationsTable tbody').on('click', 'td.details-control', function() {
+                const tr = $(this).closest('tr');
+                const row = dataTable.row(tr);
+                const icon = this.querySelector('.expand-icon');
+                
+                if (row.child.isShown()) {
+                    const el = tr.next('tr').find('.expand-wrapper')[0];
+                    if (el) {
+                        animateCollapse(el);
+                        setTimeout(() => row.child.hide(), 300);
+                    }
+                    tr.removeClass('shown');
+                } else {
+                    // Get the row data
+                    const rowData = dataTable.row(tr).data();
+                    row.child(formatDetails(rowData)).show();
+                    const el = tr.next('tr').find('.expand-wrapper')[0];
+                    if (el) {
+                        requestAnimationFrame(() => animateExpand(el));
+                    }
+                    tr.addClass('shown');
+                }
+            });
         }
 
         /* =====================================================
@@ -527,7 +686,8 @@ include_once "./include/headerLinks.php";
             try {
                 const res = await fetch(
                     'controller/registrations.php?action=get_counts' +
-                    (filter ? '&status=' + encodeURIComponent(filter) : '')
+                    (filter ? '&status=' + encodeURIComponent(filter) : '') +
+                    '&_=' + Date.now()
                 );
                 const json = await res.json();
 
@@ -547,18 +707,21 @@ include_once "./include/headerLinks.php";
         $(document).ready(function() {
             // Load initial data
             const status = new URLSearchParams(window.location.search).get('status') || '';
-            loadRegistrations(status);
+            $('#statusFilter').val(status);
             
-            // Update counts
-            updateCounts(status);
-
+            // Set a timeout to load data after page is ready
+            setTimeout(() => {
+                loadRegistrations(status);
+                updateCounts(status);
+            }, 100);
+            
             // Initialize searchable select
             initSearchableSelect();
 
             // Status filter change
             $('#statusFilter').on('change', function() {
                 const filterValue = this.value;
-                loadRegistrations(filterValue);
+                loadRegistrations(filterValue, true); // Force refresh on filter change
                 updateCounts(filterValue);
             });
 
@@ -583,9 +746,7 @@ include_once "./include/headerLinks.php";
 
                 if (newStatus === 'hire') {
                     // Get row data from DataTable
-                    const table = $('#registrationsTable').DataTable();
-                    const rowIndex = table.row(tr).index();
-                    const rowData = table.row(rowIndex).data();
+                    const rowData = dataTable.row(tr).data();
 
                     // Prefill modal inputs
                     $('#hireName').val(rowData.name || '');
@@ -605,6 +766,8 @@ include_once "./include/headerLinks.php";
                     if (!confirm(`Change status to "${select.val()}"?`)) return;
 
                     try {
+                        LoaderManager.showGlobal();
+                        
                         const res = await fetch('controller/registrations.php', {
                             method: 'POST',
                             headers: {
@@ -621,12 +784,15 @@ include_once "./include/headerLinks.php";
                         showToast(json.success ? 'success' : 'error', json.message);
 
                         if (json.success) {
-                            // Reload data with current filter
-                            loadRegistrations($('#statusFilter').val());
+                            // Invalidate cache and reload
+                            cache.data = null;
+                            loadRegistrations($('#statusFilter').val(), true);
                             updateCounts($('#statusFilter').val());
                         }
                     } catch (error) {
                         showToast('error', 'Update failed: ' + error.message);
+                    } finally {
+                        LoaderManager.hideGlobal();
                     }
                 }
             });
@@ -651,6 +817,8 @@ include_once "./include/headerLinks.php";
                 if (!confirm('Submit hire details?')) return;
 
                 try {
+                    LoaderManager.showGlobal();
+                    
                     const res = await fetch('controller/registrations.php', {
                         method: 'POST',
                         headers: {
@@ -668,11 +836,15 @@ include_once "./include/headerLinks.php";
 
                     if (json.success) {
                         $('#hireModal').addClass('hidden');
-                        loadRegistrations($('#statusFilter').val());
+                        // Invalidate cache and reload
+                        cache.data = null;
+                        loadRegistrations($('#statusFilter').val(), true);
                         updateCounts($('#statusFilter').val());
                     }
                 } catch (error) {
                     showToast('error', 'Submission failed: ' + error.message);
+                } finally {
+                    LoaderManager.hideGlobal();
                 }
             });
         });

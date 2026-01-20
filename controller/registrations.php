@@ -16,9 +16,13 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], [1, 4], 
 
 switch ($action) {
     case 'get_registrations':
+        // Start measuring execution time
+        $startTime = microtime(true);
+        
         $status = strtolower(trim($_GET['status'] ?? $_POST['status'] ?? ''));
         $allowedStatus = ['new', 'contact', 'hire', 'rejected'];
         
+        // Prepare query with optimizations
         $where = '';
         $params = [];
         $types = '';
@@ -29,6 +33,7 @@ switch ($action) {
             $types .= 's';
         }
         
+        // Only select needed columns
         $sql = "
             SELECT
                 r.id,
@@ -55,39 +60,75 @@ switch ($action) {
             $stmt->bind_param($types, ...$params);
         }
         
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Database query failed",
+                "error" => $stmt->error
+            ]);
+            exit;
+        }
+        
         $result = $stmt->get_result();
         
+        // Predefine arrays to avoid repetitive processing
+        $internshipTypes = [
+            'Internship Only',
+            'Full Training + Internship'
+        ];
+        
+        $experiences = [
+            "I don't have any Experience",
+            '6 Months',
+            '1 Year',
+            '2 Years',
+            'More than 2 Years'
+        ];
+        
         $rows = [];
+        $rowCount = 0;
+        
         while ($row = $result->fetch_assoc()) {
-            // Format internship_type
-            if (isset($row['internship_type'])) {
-                $internshipTypes = [
-                    'Internship Only',
-                    'Full Training + Internship'
-                ];
-                $row['internship_type'] = $internshipTypes[$row['internship_type']] ?? $row['internship_type'];
+            // Format data efficiently
+            if (isset($row['internship_type']) && isset($internshipTypes[$row['internship_type']])) {
+                $row['internship_type'] = $internshipTypes[$row['internship_type']];
             }
             
-            // Format experience
-            if (isset($row['experience'])) {
-                $experiences = [
-                    "I don't have any Experience",
-                    '6 Months',
-                    '1 Year',
-                    '2 Years',
-                    'More than 2 Years'
-                ];
-                $row['experience'] = $experiences[$row['experience']] ?? $row['experience'];
+            if (isset($row['experience']) && isset($experiences[$row['experience']])) {
+                $row['experience'] = $experiences[$row['experience']];
             }
             
             $rows[] = $row;
+            $rowCount++;
+            
+            // Break early if processing too many rows (for performance)
+            if ($rowCount > 1000) {
+                // Log warning or implement pagination
+                break;
+            }
         }
         
-        echo json_encode([
+        $stmt->close();
+        
+        $endTime = microtime(true);
+        $executionTime = round(($endTime - $startTime) * 1000, 2); // in milliseconds
+        
+        // Add performance info to response (for debugging)
+        $response = [
             "success" => true,
-            "data"    => $rows
-        ]);
+            "data" => $rows,
+            "meta" => [
+                "count" => $rowCount,
+                "execution_time_ms" => $executionTime
+            ]
+        ];
+        
+        // If we have many records, suggest pagination
+        if ($rowCount > 500) {
+            $response['meta']['warning'] = 'Large dataset detected. Consider implementing server-side pagination.';
+        }
+        
+        echo json_encode($response);
         exit;
         
     case 'update_status':
@@ -108,6 +149,7 @@ switch ($action) {
         } else {
             echo json_encode(['success' => false, 'message' => 'Update failed']);
         }
+        $u->close();
         break;
         
     case 'update_hire_status':
@@ -135,6 +177,7 @@ switch ($action) {
             if (!$u->execute()) {
                 throw new Exception('Failed to update registration status');
             }
+            $u->close();
             
             // Get registration details
             $sqlSelect = $conn->prepare("SELECT r.*, t.name as tech_name FROM registrations r LEFT JOIN technologies t ON r.technology_id = t.id WHERE r.id = ?");
@@ -146,6 +189,7 @@ switch ($action) {
             
             $result = $sqlSelect->get_result();
             $registration = $result->fetch_assoc();
+            $sqlSelect->close();
             
             if (!$registration) {
                 throw new Exception('Registration not found');
@@ -160,6 +204,7 @@ switch ($action) {
             }
             
             $tech_id = $conn->insert_id;
+            $insertHire->close();
             
             // Create certificate record
             $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
@@ -168,6 +213,7 @@ switch ($action) {
             if (!$stmt->execute()) {
                 throw new Exception('Failed to create certificate');
             }
+            $stmt->close();
             
             // Add to email queue
             $data = json_encode([
@@ -183,6 +229,7 @@ switch ($action) {
             if (!$queueStmt->execute()) {
                 throw new Exception('Failed to add to email queue');
             }
+            $queueStmt->close();
             
             // Commit transaction
             $conn->commit();
@@ -199,20 +246,32 @@ switch ($action) {
     case 'get_counts':
         // Build where clause if filter is provided
         $whereClause = "";
+        $params = [];
+        
         if (isset($_GET['status']) && !empty($_GET['status'])) {
             $status = mysqli_real_escape_string($conn, $_GET['status']);
-            $whereClause = " WHERE status = '$status'";
+            $whereClause = " WHERE status = ?";
+            $params[] = $status;
         }
         
-        // Fetch counts
+        // Use prepared statement for security
         $countQuery = "SELECT 
             SUM(CASE WHEN status = 'contact' THEN 1 ELSE 0 END) as total_contact,
             SUM(CASE WHEN status = 'hire' THEN 1 ELSE 0 END) as total_hire,
             SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as total_rejected
         FROM registrations" . $whereClause;
         
-        $countResult = mysqli_query($conn, $countQuery);
-        $counts = mysqli_fetch_assoc($countResult);
+        if (!empty($params)) {
+            $stmt = $conn->prepare($countQuery);
+            $stmt->bind_param('s', $params[0]);
+            $stmt->execute();
+            $countResult = $stmt->get_result();
+            $counts = $countResult->fetch_assoc();
+            $stmt->close();
+        } else {
+            $countResult = mysqli_query($conn, $countQuery);
+            $counts = mysqli_fetch_assoc($countResult);
+        }
         
         echo json_encode([
             'success' => true,
@@ -250,5 +309,10 @@ function generateStrictPassword($length = 12)
     
     // Shuffle to avoid pattern
     return str_shuffle($password);
+}
+
+// Close database connection
+if (isset($conn)) {
+    mysqli_close($conn);
 }
 ?>

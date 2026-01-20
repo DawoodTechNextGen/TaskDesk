@@ -279,94 +279,100 @@ include_once "./include/headerLinks.php";
     </div>
 
     <?php include_once "./include/footerLinks.php"; ?>
-    <script>
-        // Loader Management
-        const LoaderManager = {
-            showGlobal: function() {
-                document.getElementById('globalLoader').classList.remove('hidden');
-            },
-            
-            hideGlobal: function() {
-                document.getElementById('globalLoader').classList.add('hidden');
-            },
-            
-            showTable: function() {
-                document.getElementById('tableLoader').classList.add('active');
-                document.getElementById('skeletonLoader').classList.remove('hidden');
-                document.querySelector('#registrationsTable').style.opacity = '0.3';
-            },
-            
-            hideTable: function() {
-                document.getElementById('tableLoader').classList.remove('active');
-                document.getElementById('skeletonLoader').classList.add('hidden');
-                document.querySelector('#registrationsTable').style.opacity = '1';
-            }
-        };
-
-        function escapeHTML(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+<script>
+    // Loader Management
+    const LoaderManager = {
+        showGlobal: function() {
+            document.getElementById('globalLoader').classList.remove('hidden');
+        },
+        
+        hideGlobal: function() {
+            document.getElementById('globalLoader').classList.add('hidden');
+        },
+        
+        showTable: function() {
+            document.getElementById('tableLoader').classList.add('active');
+            document.getElementById('skeletonLoader').classList.remove('hidden');
+            document.querySelector('#registrationsTable').style.opacity = '0.3';
+        },
+        
+        hideTable: function() {
+            document.getElementById('tableLoader').classList.remove('active');
+            document.getElementById('skeletonLoader').classList.add('hidden');
+            document.querySelector('#registrationsTable').style.opacity = '1';
         }
+    };
 
-        function showToast(type, msg) {
-            const toast = document.createElement('div');
-            toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${
-                type === 'success' ? 'bg-green-600' :
-                type === 'error' ? 'bg-red-600' : 'bg-yellow-500'
-            }`;
-            toast.textContent = msg;
-            document.getElementById('toast-container').appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
-        /* =====================================================
-        Columns
-        ===================================================== */
-        const visibleColumns = [
-            'id',
-            'name',
-            'mbl_number',
-            'technology',
-            'internship_type',
-            'experience',
-            'status'
-        ];
+    function showToast(type, msg) {
+        const toast = document.createElement('div');
+        toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${
+            type === 'success' ? 'bg-green-600' :
+            type === 'error' ? 'bg-red-600' : 'bg-yellow-500'
+        }`;
+        toast.textContent = msg;
+        document.getElementById('toast-container').appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
 
-        const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at'];
+    /* =====================================================
+    Columns
+    ===================================================== */
+    const visibleColumns = [
+        'id',
+        'name',
+        'mbl_number',
+        'technology',
+        'internship_type',
+        'experience',
+        'status'
+    ];
 
-        const headerMap = {
-            id: 'ID',
-            name: 'Name',
-            email: 'Email',
-            mbl_number: 'Contact',
-            technology: 'Technology',
-            internship_type: 'Internship Type',
-            experience: 'Experience',
-            status: 'Status',
-            cnic: 'CNIC',
-            city: 'City',
-            country: 'Country',
-            created_at: 'Created At'
-        };
+    const expandableColumns = [
+        'email',
+        'cnic',
+        'city',
+        'country',
+        'created_at'
+    ];
 
-        /* =====================================================
-        Status Normalizer
-        ===================================================== */
-        function normalizeStatus(val) {
-            if (!val) return 'new';
-            return String(val).toLowerCase();
-        }
+    const headerMap = {
+        id: 'ID',
+        name: 'Name',
+        email: 'Email',
+        mbl_number: 'Contact',
+        technology: 'Technology',
+        internship_type: 'Internship Type',
+        experience: 'Experience',
+        status: 'Status',
+        cnic: 'CNIC',
+        city: 'City',
+        country: 'Country',
+        created_at: 'Created At'
+    };
 
-        /* =====================================================
-        Expand Row Template
-        ===================================================== */
-        function formatDetails(row) {
-            return `
+    /* =====================================================
+    Status Normalizer
+    ===================================================== */
+    function normalizeStatus(val) {
+        if (!val) return 'new';
+        return String(val).toLowerCase();
+    }
+
+    /* =====================================================
+    Expand Row Template
+    ===================================================== */
+    function formatDetails(row) {
+        return `
 <div class="expand-wrapper overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-h-0">
     <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
         <div class="grid grid-cols-2 gap-4 text-sm">
@@ -379,13 +385,13 @@ include_once "./include/headerLinks.php";
         </div>
     </div>
 </div>`;
-        }
+    }
 
-        /* =====================================================
-        Status Dropdown
-        ===================================================== */
-        function createStatusDropdown(currentStatus, id) {
-            return `
+    /* =====================================================
+    Status Dropdown
+    ===================================================== */
+    function createStatusDropdown(currentStatus, id) {
+        return `
 <select class="status-select px-2 py-1 border rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs w-20"
         data-id="${id}"
         data-current="${normalizeStatus(currentStatus)}">
@@ -394,13 +400,13 @@ include_once "./include/headerLinks.php";
     <option value="hire">Hire</option>
     <option value="rejected">Rejected</option>
 </select>`;
-        }
+    }
 
-        /* =====================================================
-        Actions Column
-        ===================================================== */
-        function renderActions(row) {
-            return `
+    /* =====================================================
+    Actions Column
+    ===================================================== */
+    function renderActions(row) {
+        return `
 <div class="flex items-center space-x-2">
     ${createStatusDropdown(row.status, row.id)}
     <button
@@ -410,344 +416,351 @@ include_once "./include/headerLinks.php";
     </button>
     <input type="hidden" class="current-status-value" value="${normalizeStatus(row.status)}">
 </div>`;
-        }
+    }
 
-        /* =====================================================
-        Animate Expand / Collapse
-        ===================================================== */
-        function animateExpand(el) {
-            el.style.maxHeight = el.scrollHeight + 'px';
-            el.style.opacity = '1';
-        }
+    /* =====================================================
+    Animate Expand / Collapse
+    ===================================================== */
+    function animateExpand(el) {
+        el.style.maxHeight = el.scrollHeight + 'px';
+        el.style.opacity = '1';
+    }
 
-        function animateCollapse(el) {
-            el.style.maxHeight = '0px';
-            el.style.opacity = '0';
-        }
+    function animateCollapse(el) {
+        el.style.maxHeight = '0px';
+        el.style.opacity = '0';
+    }
 
-        /* =====================================================
-        Load Registrations - OPTIMIZED with Caching
-        ===================================================== */
-        let dataTable = null;
-        let cache = {
-            data: null,
-            timestamp: null,
-            filter: '',
-            ttl: 30000 // 30 seconds cache
-        };
+    /* =====================================================
+    Load Registrations - OPTIMIZED with Caching
+    ===================================================== */
+    let dataTable = null;
+    let cache = {
+        data: null,
+        timestamp: null,
+        filter: '',
+        ttl: 30000 // 30 seconds cache
+    };
 
-        async function loadRegistrations(filter = '', forceRefresh = false) {
-            // Show loader
-            LoaderManager.showTable();
-            
-            // Check cache if not forcing refresh
-            const now = Date.now();
-            if (!forceRefresh && cache.data && cache.filter === filter && 
-                cache.timestamp && (now - cache.timestamp) < cache.ttl) {
-                // Use cached data
-                setTimeout(() => {
-                    renderTable(cache.data);
-                    LoaderManager.hideTable();
-                }, 300); // Small delay for better UX
-                return;
-            }
-
-            try {
-                // Build query parameters
-                const params = new URLSearchParams({
-                    action: 'get_registrations'
-                });
-                
-                if (filter) {
-                    params.append('status', filter);
-                }
-                
-                // Add timestamp to prevent caching
-                params.append('_', now);
-                
-                const res = await fetch('controller/registrations.php?' + params.toString());
-                
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                
-                const json = await res.json();
-                
-                if (!json.success) {
-                    showToast('error', 'Load failed: ' + json.message);
-                    LoaderManager.hideTable();
-                    return;
-                }
-                
-                // Cache the data
-                cache.data = json.data;
-                cache.timestamp = now;
-                cache.filter = filter;
-                
-                // Render table
-                renderTable(json.data);
-                
-            } catch (error) {
-                console.error('Error loading registrations:', error);
-                showToast('error', 'Failed to load registrations');
-                
-                // Clear table
-                $('#registrationsTable tbody').html('<tr><td colspan="8" class="text-center py-4 text-red-500">Failed to load data</td></tr>');
-            } finally {
+    async function loadRegistrations(filter = '', forceRefresh = false) {
+        // Show loader
+        LoaderManager.showTable();
+        
+        // Check cache if not forcing refresh
+        const now = Date.now();
+        if (!forceRefresh && cache.data && cache.filter === filter && 
+            cache.timestamp && (now - cache.timestamp) < cache.ttl) {
+            // Use cached data
+            setTimeout(() => {
+                renderTable(cache.data);
                 LoaderManager.hideTable();
-            }
+            }, 300);
+            return;
         }
 
-        /* =====================================================
-        Render Table Function
-        ===================================================== */
-        function renderTable(data) {
-            // Destroy existing DataTable if it exists
-            if (dataTable) {
-                dataTable.destroy();
-                $('#registrationsTable tbody').empty();
-            }
-            
-            // Build table header
-            $('#registrationsTable thead').html(`
-                <tr>
-                    <th></th>
-                    ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
-                    <th>Actions</th>
-                </tr>
-            `);
-            
-            // Build table body
-            let tbodyHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(row => {
-                    tbodyHTML += `<tr>
-                        <td class="details-control cursor-pointer text-center font-bold select-none">
-                            <span class="expand-icon">
-                                <span class="bar horizontal"></span>
-                                <span class="bar vertical"></span>
-                            </span>
-                        </td>
-                        ${visibleColumns.map(col => {
-                            let cellContent = '';
-                            if (col === 'status') {
-                                const s = normalizeStatus(row[col]);
-                                const map = {
-                                    new: ['NEW', 'bg-blue-600'],
-                                    contact: ['CONTACT', 'bg-yellow-500'],
-                                    hire: ['HIRE', 'bg-green-600'],
-                                    rejected: ['REJECTED', 'bg-red-600']
-                                };
-                                cellContent = `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
-                            } else {
-                                cellContent = escapeHTML(row[col] || '-');
-                            }
-                            return `<td>${cellContent}</td>`;
-                        }).join('')}
-                        <td>${renderActions(row)}</td>
-                    </tr>`;
-                });
-            } else {
-                tbodyHTML = `<tr><td colspan="${visibleColumns.length + 2}" class="text-center py-4">No records found</td></tr>`;
-            }
-            
-            $('#registrationsTable tbody').html(tbodyHTML);
-            
-            // Initialize DataTable with client-side pagination
-            dataTable = $('#registrationsTable').DataTable({
-                searching: true,
-                ordering: true,
-                paging: true,
-                pageLength: 10,
-                lengthMenu: [10, 25, 50, 100],
-                lengthChange: true,
-                info: true,
-                autoWidth: false,
-                order: [[1, 'desc']],
-                columnDefs: [
-                    { orderable: false, targets: [0, visibleColumns.length + 1] }
-                ],
-                language: {
-                    processing: '<div class="loader-small"></div> Processing...',
-                    emptyTable: 'No data available in table',
-                    zeroRecords: 'No matching records found'
-                },
-                initComplete: function() {
-                    // Set status dropdown values
-                    document.querySelectorAll('.status-select').forEach(select => {
-                        select.value = select.dataset.current;
-                    });
-                }
+        try {
+            // Build query parameters
+            const params = new URLSearchParams({
+                action: 'get_registrations'
             });
             
-            // Set up row expansion
-            $('#registrationsTable tbody').on('click', 'td.details-control', function() {
-                const tr = $(this).closest('tr');
-                const row = dataTable.row(tr);
-                const icon = this.querySelector('.expand-icon');
-                
-                if (row.child.isShown()) {
-                    const el = tr.next('tr').find('.expand-wrapper')[0];
-                    if (el) {
-                        animateCollapse(el);
-                        setTimeout(() => row.child.hide(), 300);
-                    }
-                    tr.removeClass('shown');
-                } else {
-                    // Get the row data
-                    const rowData = dataTable.row(tr).data();
+            if (filter) {
+                params.append('status', filter);
+            }
+            
+            // Add timestamp to prevent caching
+            params.append('_', now);
+            
+            const res = await fetch('controller/registrations.php?' + params.toString());
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const json = await res.json();
+            
+            if (!json.success) {
+                showToast('error', 'Load failed: ' + json.message);
+                LoaderManager.hideTable();
+                return;
+            }
+            
+            // Cache the data
+            cache.data = json.data;
+            cache.timestamp = now;
+            cache.filter = filter;
+            
+            // Render table
+            renderTable(json.data);
+            
+        } catch (error) {
+            console.error('Error loading registrations:', error);
+            showToast('error', 'Failed to load registrations');
+            
+            // Clear table
+            $('#registrationsTable tbody').html('<tr><td colspan="8" class="text-center py-4 text-red-500">Failed to load data</td></tr>');
+        } finally {
+            LoaderManager.hideTable();
+        }
+    }
+
+    /* =====================================================
+    Render Table Function - UPDATED
+    ===================================================== */
+    function renderTable(data) {
+        // Destroy existing DataTable if it exists
+        if (dataTable) {
+            dataTable.destroy();
+            $('#registrationsTable tbody').empty();
+        }
+        
+        // Build table header
+        $('#registrationsTable thead').html(`
+            <tr>
+                <th></th>
+                ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
+                <th>Actions</th>
+            </tr>
+        `);
+        
+        // Build table body
+        let tbodyHTML = '';
+        if (data && data.length > 0) {
+            data.forEach((row, index) => {
+                tbodyHTML += `<tr data-row-index="${index}">
+                    <td class="details-control cursor-pointer text-center font-bold select-none">
+                        <span class="expand-icon">
+                            <span class="bar horizontal"></span>
+                            <span class="bar vertical"></span>
+                        </span>
+                    </td>
+                    ${visibleColumns.map(col => {
+                        let cellContent = '';
+                        if (col === 'status') {
+                            const s = normalizeStatus(row[col]);
+                            const map = {
+                                new: ['NEW', 'bg-blue-600'],
+                                contact: ['CONTACT', 'bg-yellow-500'],
+                                hire: ['HIRE', 'bg-green-600'],
+                                rejected: ['REJECTED', 'bg-red-600']
+                            };
+                            cellContent = `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
+                        } else {
+                            cellContent = escapeHTML(row[col] || '-');
+                        }
+                        return `<td>${cellContent}</td>`;
+                    }).join('')}
+                    <td>${renderActions(row)}</td>
+                </tr>`;
+            });
+        } else {
+            tbodyHTML = `<tr><td colspan="${visibleColumns.length + 2}" class="text-center py-4">No records found</td></tr>`;
+        }
+        
+        $('#registrationsTable tbody').html(tbodyHTML);
+        
+        // Initialize DataTable with client-side pagination
+        dataTable = $('#registrationsTable').DataTable({
+            searching: true,
+            ordering: true,
+            paging: true,
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            lengthChange: true,
+            info: true,
+            autoWidth: false,
+            order: [[1, 'desc']],
+            columnDefs: [
+                { orderable: false, targets: [0, visibleColumns.length + 1] }
+            ],
+            language: {
+                processing: '<div class="loader-small"></div> Processing...',
+                emptyTable: 'No data available in table',
+                zeroRecords: 'No matching records found'
+            },
+            initComplete: function() {
+                // Set status dropdown values
+                document.querySelectorAll('.status-select').forEach(select => {
+                    select.value = select.dataset.current;
+                });
+            }
+        });
+        
+        // Set up row expansion - FIXED VERSION
+        $('#registrationsTable tbody').on('click', 'td.details-control', function() {
+            const tr = $(this).closest('tr');
+            const rowIndex = parseInt(tr.data('row-index'));
+            const row = dataTable.row(tr);
+            const icon = this.querySelector('.expand-icon');
+            
+            if (row.child.isShown()) {
+                const el = tr.next('tr').find('.expand-wrapper')[0];
+                if (el) {
+                    animateCollapse(el);
+                    setTimeout(() => row.child.hide(), 300);
+                }
+                tr.removeClass('shown');
+            } else {
+                // Get the full row data from our cached data array
+                if (cache.data && cache.data[rowIndex]) {
+                    const rowData = cache.data[rowIndex];
                     row.child(formatDetails(rowData)).show();
                     const el = tr.next('tr').find('.expand-wrapper')[0];
                     if (el) {
                         requestAnimationFrame(() => animateExpand(el));
                     }
                     tr.addClass('shown');
+                } else {
+                    showToast('error', 'Could not load details');
                 }
-            });
-        }
-
-        /* =====================================================
-        Searchable Select for Supervisor
-        ===================================================== */
-        function initSearchableSelect() {
-            const wrapper = document.querySelector('.searchable-wrapper');
-            if (!wrapper) return;
-
-            const originalSelect = wrapper.querySelector('.searchable-select');
-            const searchInput = wrapper.querySelector('.searchable-input');
-            const dropdown = wrapper.querySelector('.searchable-dropdown');
-
-            // Populate dropdown with options from original select
-            function populateDropdown() {
-                const options = Array.from(originalSelect.options);
-                dropdown.innerHTML = '';
-
-                options.forEach(option => {
-                    const li = document.createElement('li');
-                    li.className = 'px-3 py-2 cursor-pointer text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200';
-                    li.textContent = option.textContent;
-                    li.dataset.value = option.value;
-
-                    li.addEventListener('click', () => {
-                        originalSelect.value = option.value;
-                        searchInput.value = option.textContent;
-                        dropdown.classList.add('hidden');
-                    });
-
-                    dropdown.appendChild(li);
-                });
             }
+        });
+    }
 
-            // Filter dropdown based on search input
-            function filterDropdown(searchTerm) {
-                const items = dropdown.querySelectorAll('li');
-                items.forEach(item => {
-                    const text = item.textContent.toLowerCase();
-                    if (text.includes(searchTerm.toLowerCase())) {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            }
+    /* =====================================================
+    Searchable Select for Supervisor
+    ===================================================== */
+    function initSearchableSelect() {
+        const wrapper = document.querySelector('.searchable-wrapper');
+        if (!wrapper) return;
 
-            // Toggle dropdown
-            searchInput.addEventListener('click', (e) => {
-                e.stopPropagation();
-                populateDropdown();
-                dropdown.classList.toggle('hidden');
-            });
+        const originalSelect = wrapper.querySelector('.searchable-select');
+        const searchInput = wrapper.querySelector('.searchable-input');
+        const dropdown = wrapper.querySelector('.searchable-dropdown');
 
-            // Filter on input
-            searchInput.addEventListener('input', (e) => {
-                populateDropdown();
-                filterDropdown(e.target.value);
-                dropdown.classList.remove('hidden');
-            });
+        // Populate dropdown with options from original select
+        function populateDropdown() {
+            const options = Array.from(originalSelect.options);
+            dropdown.innerHTML = '';
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!wrapper.contains(e.target)) {
+            options.forEach(option => {
+                const li = document.createElement('li');
+                li.className = 'px-3 py-2 cursor-pointer text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200';
+                li.textContent = option.textContent;
+                li.dataset.value = option.value;
+
+                li.addEventListener('click', () => {
+                    originalSelect.value = option.value;
+                    searchInput.value = option.textContent;
                     dropdown.classList.add('hidden');
-                }
-            });
+                });
 
-            // Initialize with current value
-            const selectedOption = originalSelect.options[originalSelect.selectedIndex];
-            if (selectedOption) {
-                searchInput.value = selectedOption.textContent;
-            }
+                dropdown.appendChild(li);
+            });
         }
 
-        /* =====================================================
-        Update Counts Function
-        ===================================================== */
-        async function updateCounts(filter = '') {
-            try {
-                const res = await fetch(
-                    'controller/registrations.php?action=get_counts' +
-                    (filter ? '&status=' + encodeURIComponent(filter) : '') +
-                    '&_=' + Date.now()
-                );
-                const json = await res.json();
-
-                if (json.success) {
-                    document.getElementById('totalContact').textContent = json.total_contact || 0;
-                    document.getElementById('totalHire').textContent = json.total_hire || 0;
-                    document.getElementById('totalRejected').textContent = json.total_rejected || 0;
+        // Filter dropdown based on search input
+        function filterDropdown(searchTerm) {
+            const items = dropdown.querySelectorAll('li');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm.toLowerCase())) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
                 }
-            } catch (error) {
-                console.error('Failed to update counts:', error);
-            }
+            });
         }
 
+        // Toggle dropdown
+        searchInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+            populateDropdown();
+            dropdown.classList.toggle('hidden');
+        });
+
+        // Filter on input
+        searchInput.addEventListener('input', (e) => {
+            populateDropdown();
+            filterDropdown(e.target.value);
+            dropdown.classList.remove('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Initialize with current value
+        const selectedOption = originalSelect.options[originalSelect.selectedIndex];
+        if (selectedOption) {
+            searchInput.value = selectedOption.textContent;
+        }
+    }
+
+    /* =====================================================
+    Update Counts Function
+    ===================================================== */
+    async function updateCounts(filter = '') {
+        try {
+            const res = await fetch(
+                'controller/registrations.php?action=get_counts' +
+                (filter ? '&status=' + encodeURIComponent(filter) : '') +
+                '&_=' + Date.now()
+            );
+            const json = await res.json();
+
+            if (json.success) {
+                document.getElementById('totalContact').textContent = json.total_contact || 0;
+                document.getElementById('totalHire').textContent = json.total_hire || 0;
+                document.getElementById('totalRejected').textContent = json.total_rejected || 0;
+            }
+        } catch (error) {
+            console.error('Failed to update counts:', error);
+        }
+    }
+
+    /* =====================================================
+    Init
+    ===================================================== */
+    $(document).ready(function() {
+        // Load initial data
+        const status = new URLSearchParams(window.location.search).get('status') || '';
+        $('#statusFilter').val(status);
+        
+        // Set a timeout to load data after page is ready
+        setTimeout(() => {
+            loadRegistrations(status);
+            updateCounts(status);
+        }, 100);
+        
+        // Initialize searchable select
+        initSearchableSelect();
+
+        // Status filter change
+        $('#statusFilter').on('change', function() {
+            const filterValue = this.value;
+            loadRegistrations(filterValue, true);
+            updateCounts(filterValue);
+        });
+
         /* =====================================================
-        Init
+        Update Status Handler
         ===================================================== */
-        $(document).ready(function() {
-            // Load initial data
-            const status = new URLSearchParams(window.location.search).get('status') || '';
-            $('#statusFilter').val(status);
-            
-            // Set a timeout to load data after page is ready
-            setTimeout(() => {
-                loadRegistrations(status);
-                updateCounts(status);
-            }, 100);
-            
-            // Initialize searchable select
-            initSearchableSelect();
+        $(document).on('click', '.update-status-btn', async function(e) {
+            e.preventDefault();
 
-            // Status filter change
-            $('#statusFilter').on('change', function() {
-                const filterValue = this.value;
-                loadRegistrations(filterValue, true); // Force refresh on filter change
-                updateCounts(filterValue);
-            });
+            const btn = $(this);
+            const tr = btn.closest('tr');
+            const select = tr.find('.status-select');
+            const hidden = tr.find('.current-status-value');
+            const newStatus = normalizeStatus(select.val());
+            const oldStatus = normalizeStatus(hidden.val());
+            const id = btn.data('id');
 
-            /* =====================================================
-            Update Status Handler
-            ===================================================== */
-            $(document).on('click', '.update-status-btn', async function(e) {
-                e.preventDefault();
+            if (newStatus === oldStatus) {
+                showToast('info', 'Status already selected');
+                return;
+            }
 
-                const btn = $(this);
-                const tr = btn.closest('tr');
-                const select = tr.find('.status-select');
-                const hidden = tr.find('.current-status-value');
-                const newStatus = normalizeStatus(select.val());
-                const oldStatus = normalizeStatus(hidden.val());
-                const id = btn.data('id');
+            if (newStatus === 'hire') {
+                // Get row data from our cached data
+                const rowIndex = parseInt(tr.data('row-index'));
+                const rowData = cache.data && cache.data[rowIndex];
 
-                if (newStatus === oldStatus) {
-                    showToast('info', 'Status already selected');
-                    return;
-                }
-
-                if (newStatus === 'hire') {
-                    // Get row data from DataTable
-                    const rowData = dataTable.row(tr).data();
-
+                if (rowData) {
                     // Prefill modal inputs
                     $('#hireName').val(rowData.name || '');
                     $('#hireTechnology').val(rowData.technology || '');
@@ -760,61 +773,13 @@ include_once "./include/headerLinks.php";
 
                     // Show modal
                     $('#hireModal').removeClass('hidden');
-
                 } else {
-                    // For other statuses, confirm and update directly
-                    if (!confirm(`Change status to "${select.val()}"?`)) return;
-
-                    try {
-                        LoaderManager.showGlobal();
-                        
-                        const res = await fetch('controller/registrations.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: new URLSearchParams({
-                                action: 'update_status',
-                                id: id,
-                                status: select.val()
-                            })
-                        });
-
-                        const json = await res.json();
-                        showToast(json.success ? 'success' : 'error', json.message);
-
-                        if (json.success) {
-                            // Invalidate cache and reload
-                            cache.data = null;
-                            loadRegistrations($('#statusFilter').val(), true);
-                            updateCounts($('#statusFilter').val());
-                        }
-                    } catch (error) {
-                        showToast('error', 'Update failed: ' + error.message);
-                    } finally {
-                        LoaderManager.hideGlobal();
-                    }
-                }
-            });
-
-            // Cancel modal button handler
-            $('#hireCancelBtn').on('click', function() {
-                $('#hireModal').addClass('hidden');
-            });
-
-            // Modal form submission handler
-            $('#hireForm').on('submit', async function(e) {
-                e.preventDefault();
-
-                const id = $(this).data('id');
-                const trainer = $('#hireTrainer').val();
-
-                if (trainer === '') {
-                    alert('Please select a supervisor.');
-                    return;
+                    showToast('error', 'Could not load registration data');
                 }
 
-                if (!confirm('Submit hire details?')) return;
+            } else {
+                // For other statuses, confirm and update directly
+                if (!confirm(`Change status to "${select.val()}"?`)) return;
 
                 try {
                     LoaderManager.showGlobal();
@@ -825,9 +790,9 @@ include_once "./include/headerLinks.php";
                             'Content-Type': 'application/x-www-form-urlencoded'
                         },
                         body: new URLSearchParams({
-                            action: 'update_hire_status',
+                            action: 'update_status',
                             id: id,
-                            trainer: trainer
+                            status: select.val()
                         })
                     });
 
@@ -835,19 +800,70 @@ include_once "./include/headerLinks.php";
                     showToast(json.success ? 'success' : 'error', json.message);
 
                     if (json.success) {
-                        $('#hireModal').addClass('hidden');
                         // Invalidate cache and reload
                         cache.data = null;
                         loadRegistrations($('#statusFilter').val(), true);
                         updateCounts($('#statusFilter').val());
                     }
                 } catch (error) {
-                    showToast('error', 'Submission failed: ' + error.message);
+                    showToast('error', 'Update failed: ' + error.message);
                 } finally {
                     LoaderManager.hideGlobal();
                 }
-            });
+            }
         });
-    </script>
+
+        // Cancel modal button handler
+        $('#hireCancelBtn').on('click', function() {
+            $('#hireModal').addClass('hidden');
+        });
+
+        // Modal form submission handler
+        $('#hireForm').on('submit', async function(e) {
+            e.preventDefault();
+
+            const id = $(this).data('id');
+            const trainer = $('#hireTrainer').val();
+
+            if (trainer === '') {
+                alert('Please select a supervisor.');
+                return;
+            }
+
+            if (!confirm('Submit hire details?')) return;
+
+            try {
+                LoaderManager.showGlobal();
+                
+                const res = await fetch('controller/registrations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        action: 'update_hire_status',
+                        id: id,
+                        trainer: trainer
+                    })
+                });
+
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+
+                if (json.success) {
+                    $('#hireModal').addClass('hidden');
+                    // Invalidate cache and reload
+                    cache.data = null;
+                    loadRegistrations($('#statusFilter').val(), true);
+                    updateCounts($('#statusFilter').val());
+                }
+            } catch (error) {
+                showToast('error', 'Submission failed: ' + error.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
+        });
+    });
+</script>
 </body>
 </html>

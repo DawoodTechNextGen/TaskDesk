@@ -6,7 +6,7 @@ $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
     case 'get':
-        $stmt = $conn->query("SELECT * FROM technologies ORDER BY id DESC");
+        $stmt = $conn->query("SELECT id,name,status, created_at FROM technologies ORDER BY id DESC");
         $data = $stmt->fetch_all(MYSQLI_ASSOC);
         echo json_encode(['success' => true, 'data' => $data]);
         break;
@@ -22,8 +22,8 @@ switch ($action) {
     case 'update':
         $id = $_POST['id'];
         $name = trim($_POST['name']);
-        $stmt = $conn->prepare("UPDATE technologies SET name = ? WHERE id = ?");
-        $stmt->bind_param('si', $name, $id);
+        $stmt = $conn->prepare("UPDATE technologies SET name = ?, status = ? WHERE id = ?");
+        $stmt->bind_param('sii', $name, $_POST['status'], $id);
         $success = $stmt->execute();
         echo json_encode(['success' => $success, 'message' => $success ? 'Updated!' : 'Error']);
         break;

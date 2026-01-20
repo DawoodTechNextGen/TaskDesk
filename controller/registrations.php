@@ -20,90 +20,104 @@ if (
 
 switch ($action) {
     case 'get_registrations':
-        /* Join with technologies to get human-friendly technology name and map codes to labels */
-        $status = $_GET['status'] ?? $_POST['status'] ?? '';
+        $draw   = intval($_POST['draw'] ?? 1);
+        $start  = intval($_POST['start'] ?? 0);
+        $length = intval($_POST['length'] ?? 10);
+        $status = strtolower(trim($_POST['status'] ?? ''));
+
         $allowedStatus = ['new', 'contact', 'hire', 'rejected'];
 
-        $sql = "SELECT r.*, t.name AS technology_name FROM registrations r LEFT JOIN technologies t ON (t.id = r.technology_id)";
-        $params = [];
+        /* ---------------- TOTAL RECORDS ---------------- */
+        $totalQuery = $conn->query("SELECT COUNT(*) AS total FROM registrations");
+        $totalRecords = (int)$totalQuery->fetch_assoc()['total'];
 
-        if (!empty($status) && in_array(strtolower($status), $allowedStatus)) {
-            $sql .= " WHERE r.status = ?";
-            $params[] = strtolower($status);
+        /* ---------------- FILTERED QUERY ---------------- */
+        $where = '';
+        $params = [];
+        $types = '';
+
+        if ($status && in_array($status, $allowedStatus, true)) {
+            $where = " WHERE r.status = ?";
+            $params[] = $status;
+            $types .= 's';
         }
 
-        $sql .= " ORDER BY r.created_at DESC";
+        /* ---------------- FILTERED COUNT ---------------- */
+        $countSql = "SELECT COUNT(*) AS total
+             FROM registrations r
+             $where";
+        $countStmt = $conn->prepare($countSql);
+
+        if ($types) {
+            $countStmt->bind_param($types, ...$params);
+        }
+
+        $countStmt->execute();
+        $filteredRecords = (int)$countStmt->get_result()->fetch_assoc()['total'];
+
+        /* ---------------- MAIN DATA QUERY ---------------- */
+        $sql = "
+    SELECT
+        r.id,
+        r.name,
+        r.email,
+        r.mbl_number,
+        r.status,
+        r.internship_type,
+        r.experience,
+        r.city,
+        r.country,
+        r.cnic,
+        DATE(r.created_at) AS created_at,
+        t.name AS technology
+    FROM registrations r
+    LEFT JOIN technologies t ON t.id = r.technology_id
+    $where
+    ORDER BY r.created_at DESC
+    LIMIT ?, ?
+    ";
 
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            echo json_encode(['success' => false, 'message' => 'Query prepare failed']);
-            exit;
-        }
 
-        if (count($params) === 1) {
-            $stmt->bind_param('s', $params[0]);
+        // Add pagination parameters to the params array
+        $params[] = $start;
+        $params[] = $length;
+
+        if ($types) {
+            $stmt->bind_param($types . 'ii', ...$params);
+        } else {
+            $stmt->bind_param('ii', $start, $length);
         }
 
         $stmt->execute();
         $result = $stmt->get_result();
-        $rows = $result->fetch_all(MYSQLI_ASSOC);
 
-        // Mapping constants
-        $internshipMap = [
-            0 => 'Internship Only',
-            1 => 'Full Training + Internship'
-        ];
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['internship_type'] = [
+                'Internship Only',
+                'Full Training + Internship'
+            ][$row['internship_type']] ?? $row['internship_type'];
 
-        $experienceMap = [
-            0 => "I don't have any Experience",
-            1 => '6 Months',
-            2 => '1 Year',
-            3 => '2 Years',
-            4 => 'More than 2 Years'
-        ];
+            $row['experience'] = [
+                "I don't have any Experience",
+                '6 Months',
+                '1 Year',
+                '2 Years',
+                'More than 2 Years'
+            ][$row['experience']] ?? $row['experience'];
 
-        foreach ($rows as &$r) {
-            // Ensure technology_id is populated from possible column names
-            if (isset($r['tech_id']) && !isset($r['technology_id'])) {
-                $r['technology_id'] = $r['tech_id'];
-            }
-
-            // Technology fallback (human-friendly name)
-            $r['technology'] = $r['technology_name'] ?? '';
-            // remove raw technology_name to avoid duplicate column (we keep `technology`)
-            if (isset($r['technology_name'])) unset($r['technology_name']);
-
-            // Normalize and map internship_type
-            if (isset($r['internship_type'])) {
-                if (is_numeric($r['internship_type'])) {
-                    $r['internship_type'] = $internshipMap[(int)$r['internship_type']] ?? $r['internship_type'];
-                } else {
-                    // If stored as string label, leave it as-is
-                    $r['internship_type'] = (string)$r['internship_type'];
-                }
-            }
-
-            // Normalize and map experience
-            if (isset($r['experience'])) {
-                if (is_numeric($r['experience'])) {
-                    $r['experience'] = $experienceMap[(int)$r['experience']] ?? $r['experience'];
-                } else {
-                    $r['experience'] = (string)$r['experience'];
-                }
-            }
-
-            // Format created_at to date-only for readability (if present)
-            if (!empty($r['created_at'])) {
-                $dt = strtotime($r['created_at']);
-                if ($dt !== false) {
-                    $r['created_at'] = date('Y-m-d', $dt);
-                }
-            }
+            $rows[] = $row;
         }
 
-        echo json_encode(['success' => true, 'data' => $rows]);
-        break;
-
+        echo json_encode([
+            "success"          => true,
+            "draw"            => $draw,
+            "recordsTotal"    => $totalRecords,
+            "recordsFiltered" => $filteredRecords,
+            "data"            => $rows
+        ]);
+        exit;
     case 'update_status':
         $id = (int)($_POST['id'] ?? 0);
         $newStatus = strtolower(trim($_POST['status'] ?? ''));
@@ -175,6 +189,34 @@ switch ($action) {
             echo json_encode(['success' => false, 'message' => 'Update failed']);
         }
         break;
+    // In controller/registrations.php
+
+    case 'get_counts':
+        // Build where clause if filter is provided
+        $whereClause = "";
+        if (isset($_GET['status']) && !empty($_GET['status'])) {
+            $status = mysqli_real_escape_string($conn, $_GET['status']);
+            $whereClause = " WHERE status = '$status'";
+        }
+
+        // Fetch counts
+        $countQuery = "SELECT 
+        SUM(CASE WHEN status = 'contact' THEN 1 ELSE 0 END) as total_contact,
+        SUM(CASE WHEN status = 'hire' THEN 1 ELSE 0 END) as total_hire,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as total_rejected
+    FROM registrations" . $whereClause;
+
+        $countResult = mysqli_query($conn, $countQuery);
+        $counts = mysqli_fetch_assoc($countResult);
+
+        echo json_encode([
+            'success' => true,
+            'total_contact' => $counts['total_contact'] ?? 0,
+            'total_hire' => $counts['total_hire'] ?? 0,
+            'total_rejected' => $counts['total_rejected'] ?? 0
+        ]);
+        break;
+
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;

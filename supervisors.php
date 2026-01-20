@@ -86,7 +86,7 @@ include_once "./include/headerLinks.php"; ?>
                             name="tech_id">
                             <option value="">Select Technology</option>
                             <?php
-                            $techQuery = "SELECT id, name FROM technologies ORDER BY name ASC";
+                            $techQuery = "SELECT id, name FROM technologies WHERE status = 1 ORDER BY name ASC";
                             $techResult = mysqli_query($conn, $techQuery);
                             while ($tech = mysqli_fetch_assoc($techResult)) {
                                 echo "<option value=\"{$tech['id']}\">{$tech['name']}</option>";
@@ -114,7 +114,7 @@ include_once "./include/headerLinks.php"; ?>
                         </div>
 
                         <!-- dropdown -->
-                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-60 overflow-y-auto"></ul>
+                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-40 overflow-y-auto"></ul>
 
                     </div>
                 </div>

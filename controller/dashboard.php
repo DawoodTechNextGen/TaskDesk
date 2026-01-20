@@ -349,3 +349,239 @@ LIMIT 5");
         'tasks' => $tasks
     ]);
 }
+// dashboard.php میں existing actions کے بعد اضافہ کریں
+
+if ($action === 'manager_registration_stats') {
+    // Get registration status distribution
+    $stmt = $conn->query("SELECT status, COUNT(*) as count FROM registrations GROUP BY status");
+    $reg_stats = [];
+    $labels = [];
+    $values = [];
+
+    $status_names = [
+        'new' => 'New',
+        'contact' => 'Contacted',
+        'hire' => 'Hired',
+        'rejected' => 'Rejected'
+    ];
+
+    // Initialize all statuses with 0
+    foreach ($status_names as $key => $name) {
+        $labels[] = $name;
+        $values[$key] = 0;
+    }
+
+    // Fill actual values
+    while ($row = $stmt->fetch_assoc()) {
+        if (isset($status_names[$row['status']])) {
+            $values[$row['status']] = $row['count'];
+        }
+    }
+
+    // Reorder values according to labels
+    $ordered_values = [
+        $values['new'],
+        $values['contact'],
+        $values['hire'],
+        $values['rejected']
+    ];
+
+    echo json_encode([
+        'success' => true,
+        'labels' => $labels,
+        'values' => $ordered_values,
+        'raw_values' => $values
+    ]);
+}
+
+if ($action === 'manager_monthly_registrations') {
+    // Get monthly registration trends for the last 6 months
+    $stmt = $conn->query("SELECT
+        DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH), '%b') AS month,
+        COALESCE(r.reg_count, 0) AS reg_count
+    FROM
+        (
+            SELECT 0 AS month_offset UNION ALL
+            SELECT 1 UNION ALL
+            SELECT 2 UNION ALL
+            SELECT 3 UNION ALL
+            SELECT 4 UNION ALL
+            SELECT 5
+        ) AS seq
+    LEFT JOIN
+        (
+            SELECT 
+                YEAR(created_at) AS year,
+                MONTH(created_at) AS month,
+                COUNT(*) AS reg_count
+            FROM registrations
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+            GROUP BY YEAR(created_at), MONTH(created_at)
+        ) AS r
+        ON YEAR(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)) = r.year
+        AND MONTH(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)) = r.month
+    ORDER BY
+        YEAR(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)),
+        MONTH(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH));");
+
+    $months = [];
+    $registrations = [];
+
+    while ($row = $stmt->fetch_assoc()) {
+        $months[] = $row['month'];
+        $registrations[] = $row['reg_count'];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'months' => $months,
+        'registrations' => $registrations
+    ]);
+}
+
+if ($action === 'manager_tech_registrations') {
+    // Get technology-wise registration distribution
+    $stmt = $conn->query("SELECT 
+        t.name as tech_name,
+        COUNT(r.id) as reg_count
+    FROM registrations r
+    LEFT JOIN technologies t ON r.technology_id = t.id
+    GROUP BY t.id, t.name
+    ORDER BY reg_count DESC
+    LIMIT 5");
+
+    $technologies = [];
+    $registrations = [];
+
+    while ($row = $stmt->fetch_assoc()) {
+        $technologies[] = $row['tech_name'] ?? 'Not Specified';
+        $registrations[] = $row['reg_count'];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'technologies' => $technologies,
+        'registrations' => $registrations
+    ]);
+}
+
+if ($action === 'manager_internship_type_stats') {
+    // Get internship type distribution
+    $stmt = $conn->query("SELECT 
+        internship_type,
+        COUNT(*) as count
+    FROM registrations
+    GROUP BY internship_type");
+
+    $labels = ['Internship Only', 'Full Training + Internship'];
+    $values = [0, 0];
+
+    while ($row = $stmt->fetch_assoc()) {
+        $index = (int)$row['internship_type'];
+        if ($index >= 0 && $index <= 1) {
+            $values[$index] = $row['count'];
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'labels' => $labels,
+        'values' => $values
+    ]);
+}
+
+if ($action === 'manager_recent_registrations') {
+    // Get recent registrations
+    $stmt = $conn->query("SELECT 
+        r.name,
+        r.email,
+        r.status,
+        DATE(r.created_at) as created_at,
+        t.name as technology
+    FROM registrations r
+    LEFT JOIN technologies t ON r.technology_id = t.id
+    ORDER BY r.created_at DESC
+    LIMIT 6");
+
+    $registrations = [];
+    while ($row = $stmt->fetch_assoc()) {
+        $registrations[] = $row;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'registrations' => $registrations
+    ]);
+}
+
+if ($action === 'manager_overview_stats') {
+    // Get overview statistics
+    $today = date('Y-m-d');
+    $week_start = date('Y-m-d', strtotime('monday this week'));
+    $month_start = date('Y-m-01');
+    
+    // Today's registrations
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM registrations WHERE DATE(created_at) = ?");
+    $stmt->bind_param("s", $today);
+    $stmt->execute();
+    $today_result = $stmt->get_result()->fetch_assoc();
+    
+    // This week's registrations
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM registrations WHERE DATE(created_at) >= ?");
+    $stmt->bind_param("s", $week_start);
+    $stmt->execute();
+    $week_result = $stmt->get_result()->fetch_assoc();
+    
+    // This month's registrations
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM registrations WHERE DATE(created_at) >= ?");
+    $stmt->bind_param("s", $month_start);
+    $stmt->execute();
+    $month_result = $stmt->get_result()->fetch_assoc();
+    
+    // Total registrations and hired
+    $stmt = $conn->query("SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'hire' THEN 1 ELSE 0 END) as hired
+    FROM registrations");
+    $total_result = $stmt->fetch_assoc();
+    
+    $hiring_rate = $total_result['total'] > 0 ? 
+        round(($total_result['hired'] / $total_result['total']) * 100) : 0;
+
+    echo json_encode([
+        'success' => true,
+        'today' => $today_result['count'],
+        'week' => $week_result['count'],
+        'month' => $month_result['count'],
+        'total' => $total_result['total'],
+        'hired' => $total_result['hired'],
+        'hiring_rate' => $hiring_rate
+    ]);
+}
+
+if ($action === 'manager_registration_counts') {
+    // Get all registration counts by status
+    $stmt = $conn->query("SELECT 
+        status,
+        COUNT(*) as count
+    FROM registrations
+    GROUP BY status");
+    
+    $counts = [
+        'new' => 0,
+        'contact' => 0,
+        'hire' => 0,
+        'rejected' => 0,
+        'total' => 0
+    ];
+    
+    while ($row = $stmt->fetch_assoc()) {
+        $counts[$row['status']] = $row['count'];
+        $counts['total'] += $row['count'];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'counts' => $counts
+    ]);
+}

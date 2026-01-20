@@ -23,20 +23,17 @@ include_once "./include/headerLinks.php"; ?>
 
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Manage Internees</h2>
-                    <?php
-                    if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) {
-                    ?>
-                        <button class="open-modal bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium"
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Active Interns</h2>
+                    
+                        <!-- <button class="open-modal bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium"
                             data-modal="add-internee-modal">
                             Add Internee
-                        </button>
-                    <?php } ?>
+                        </button> -->
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Internees</h2>
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Interns</h2>
                     </div>
                     <div class="overflow-x-auto p-4">
                         <table id="interneesTable" class="min-w-full">

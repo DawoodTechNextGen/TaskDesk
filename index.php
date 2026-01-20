@@ -896,6 +896,319 @@ include_once "./include/headerLinks.php"; ?>
                         </div>
                     </div>
                 <?php endif; ?>
+                <?php if ($user_role == 4): ?>
+                <!-- ==================== MANAGER DASHBOARD ==================== -->
+                <div class="mb-8">
+                    <!-- Manager Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <!-- Total Registrations -->
+                        <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                            <div class="relative">
+                                <p class="text-blue-500 dark:text-blue-100 text-sm font-medium mb-2">Total Registrations</p>
+                                <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="totalRegistrations">0</h3>
+                                <p class="text-blue-500 dark:text-blue-100 text-sm">All time registrations</p>
+                            </div>
+                            <div class="absolute top-4 right-4">
+                                <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl text-white">
+                                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="12" cy="6" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                        <path d="M18 9C19.6569 9 21 7.88071 21 6.5C21 5.11929 19.6569 4 18 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        <path d="M6 9C4.34315 9 3 7.88071 3 6.5C3 5.11929 4.34315 4 6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        <path d="M17.1973 15C17.7078 15.5883 18 16.2714 18 17C18 19.2091 15.3137 21 12 21C8.68629 21 6 19.2091 6 17C6 14.7909 8.68629 13 12 13C12.3407 13 12.6748 13.0189 13 13.0553" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        <path d="M20 19C21.7542 18.6153 23 17.6411 23 16.5C23 15.3589 21.7542 14.3847 20 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        <path d="M4 19C2.24575 18.6153 1 17.6411 1 16.5C1 15.3589 2.24575 14.3847 4 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                        </div>
+
+                        <!-- New Registrations -->
+                        <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                            <a href="registrations.php?status=new" class="block">
+                                <div class="relative">
+                                    <p class="text-green-500 dark:text-green-100 text-sm font-medium mb-2">New</p>
+                                    <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="newRegistrations">0</h3>
+                                    <p class="text-green-500 dark:text-green-100 text-sm">Pending review</p>
+                                </div>
+                            </a>
+                            <div class="absolute top-4 right-4">
+                                <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                        </div>
+
+                        <!-- Contacted -->
+                        <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                            <a href="registrations.php?status=contact" class="block">
+                                <div class="relative">
+                                    <p class="text-yellow-500 dark:text-yellow-100 text-sm font-medium mb-2">Contacted</p>
+                                    <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="contactedRegistrations">0</h3>
+                                    <p class="text-yellow-500 dark:text-yellow-100 text-sm">In contact process</p>
+                                </div>
+                            </a>
+                            <div class="absolute top-4 right-4">
+                                <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                        </div>
+
+                        <!-- Hired -->
+                        <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                            <a href="registrations.php?status=hire" class="block">
+                                <div class="relative">
+                                    <p class="text-teal-500 dark:text-teal-100 text-sm font-medium mb-2">Hired</p>
+                                    <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="hiredRegistrations">0</h3>
+                                    <p class="text-teal-500 dark:text-teal-100 text-sm">Successfully hired</p>
+                                </div>
+                            </a>
+                            <div class="absolute top-4 right-4">
+                                <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                        </div>
+                    </div>
+
+                    <!-- Registration Status Overview Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-blue-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Total</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="totalRegistrationsCount">0</h3>
+                                </div>
+                                <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
+                                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-yellow-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">New</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="newRegistrationsCount">0</h3>
+                                </div>
+                                <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-lg">
+                                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-green-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Contacted</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="contactedCount">0</h3>
+                                </div>
+                                <div class="bg-green-100 dark:bg-green-900 p-2 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-red-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Rejected</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="rejectedCount">0</h3>
+                                </div>
+                                <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg">
+                                    <svg class="w-5 h-5 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modern Charts Section -->
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+                        <!-- Registration Status Distribution -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Registration Status Distribution</h3>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Real-time</span>
+                            </div>
+                            <div class="h-80 relative">
+                                <canvas id="registrationStatusChart"></canvas>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-4" id="registrationStatusLegend">
+                                <!-- Legend will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Monthly Registration Trends -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Monthly Registration Trends</h3>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Last 6 months</span>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="monthlyRegistrationsChart"></canvas>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4" id="monthlyTrendsStats">
+                                <!-- Stats will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Technology-wise Registrations -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Registrations by Technology</h3>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Top 5</span>
+                            </div>
+                            <div class="h-80 relative">
+                                <canvas id="techRegistrationChart"></canvas>
+                            </div>
+                            <div class="mt-4 flex justify-center space-x-6" id="techRegistrationLegend">
+                                <!-- Legend will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Internship Type Distribution -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Internship Type Distribution</h3>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">All time</span>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="internshipTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Registrations & Quick Actions -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Recent Registrations -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:col-span-2">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Recent Registrations</h3>
+                                <a href="registrations.php" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">View All</a>
+                            </div>
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                                            <th class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-300">Name</th>
+                                            <th class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-300">Email</th>
+                                            <th class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-300">Technology</th>
+                                            <th class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-300">Status</th>
+                                            <th class="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-300">Registered</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentRegistrationsTable">
+                                        <!-- Data will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="space-y-6">
+                            <!-- Quick Actions -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
+                                <div class="space-y-3">
+                                    <a href="registrations.php?status=new" class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-700 dark:text-blue-300 rounded-xl hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 transition-all duration-200">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3 text-white">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium">Review New</span>
+                                        </div>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+                                    <a href="registrations.php?status=contact" class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 text-green-700 dark:text-green-300 rounded-xl hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/50 dark:hover:to-green-700/50 transition-all duration-200">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium">Contacted List</span>
+                                        </div>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+                                    <a href="registrations.php?status=hire" class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-700 dark:text-purple-300 rounded-xl hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/50 dark:hover:to-purple-700/50 transition-all duration-200">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium">Hired Interns</span>
+                                        </div>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+                                    <a href="registrations.php?status=rejected" class="flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 text-red-700 dark:text-red-300 rounded-xl hover:from-red-100 hover:to-red-200 dark:hover:from-red-800/50 dark:hover:to-red-700/50 transition-all duration-200">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center mr-3">
+                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium">Rejected List</span>
+                                        </div>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- System Overview -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Registration Overview</h3>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">Today's Registrations</span>
+                                        <span class="text-sm font-medium text-gray-800 dark:text-white" id="todayRegistrations">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">This Week</span>
+                                        <span class="text-sm font-medium text-gray-800 dark:text-white" id="weekRegistrations">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">This Month</span>
+                                        <span class="text-sm font-medium text-gray-800 dark:text-white" id="monthRegistrations">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">Hiring Rate</span>
+                                        <span class="text-sm font-medium text-green-600 dark:text-green-400" id="hiringRate">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
             </main>
             <?php if ($_SESSION['user_role'] == 3): ?>
                 <!-- Create Task Modal -->
@@ -943,7 +1256,7 @@ include_once "./include/headerLinks.php"; ?>
                                         <div class="relative">
                                             <input type="text"
                                                 class="searchable-input w-full px-3 py-2 pr-10 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
-                                                placeholder="Select Supervisor"
+                                                placeholder="Select Intern"
                                                 autocomplete="off">
 
                                             <!-- dropdown arrow -->
@@ -1039,7 +1352,6 @@ include_once "./include/headerLinks.php"; ?>
                     </div>
                 </div>
             <?php endif; ?>
-
             <!-- View Task Modal -->
             <div id="view-task-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
                 <div
@@ -1099,7 +1411,9 @@ include_once "./include/headerLinks.php"; ?>
     <?php elseif ($user_role == 3): ?>
         <script src="./assets/js/dashboard/supervisor-dashboard.js"></script>
     <?php endif; ?>
-
+    <?php if ($user_role == 4): ?>
+        <script src="./assets/js/dashboard/manager-dashboard.js"></script>
+    <?php endif; ?>
     <script>
         // Modern chart initialization with enhanced styling
         document.addEventListener('DOMContentLoaded', function() {
@@ -1113,6 +1427,8 @@ include_once "./include/headerLinks.php"; ?>
             } else if (userRole === 3) {
                 initializeSupervisorCharts();
                 loadSupervisorStats();
+            } else if (userRole === 4) {
+                initializeManagerCharts();
             }
         });
     </script>

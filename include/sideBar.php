@@ -78,8 +78,8 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
-                            <li>
+                        <?php if($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) {?> 
+                        <li>
                                 <a href="registrations.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'registrations.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
@@ -96,6 +96,8 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
                                 </a>
                             </li>
+                        <?php } ?>
+                        <?php if ($_SESSION['user_role'] == 1) { ?>
                             <li>
                                 <a href="tech.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -164,7 +166,7 @@
                             </li>
                             <?php
                         } ?>
-                        <?php if ($_SESSION['user_role'] != 2) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
                             <li>
                                 <a href="internees.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -181,7 +183,7 @@
                                             </g>
                                         </svg>
                                     </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Internees</span>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Active Interns</span>
                                 </a>
                             </li>
                         <?php } ?>

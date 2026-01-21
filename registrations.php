@@ -157,8 +157,8 @@ include_once "./include/headerLinks.php";
 
                     <!-- Hire Card -->
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
-                        <h3 class="text-sm font-semibold text-blue-500 dark:text-blue-400 mb-2">Total Hire</h3>
-                        <p class="text-3xl font-bold text-blue-600 dark:text-blue-200" id="totalHire">
+                        <h3 class="text-sm font-semibold text-green-500 dark:text-green-400 mb-2">Total Hire</h3>
+                        <p class="text-3xl font-bold text-green-600 dark:text-green-200" id="totalHire">
                             <?php echo $total_hire; ?>
                         </p>
                     </div>
@@ -434,164 +434,83 @@ include_once "./include/headerLinks.php";
     /* =====================================================
     Load Registrations - OPTIMIZED with Caching
     ===================================================== */
+    /* =====================================================
+    Render Table Function - SERVER SIDE
+    ===================================================== */
     let dataTable = null;
-    let cache = {
-        data: null,
-        timestamp: null,
-        filter: '',
-        ttl: 30000 // 30 seconds cache
-    };
 
-    async function loadRegistrations(filter = '', forceRefresh = false) {
-        // Show loader
-        LoaderManager.showTable();
-        
-        // Check cache if not forcing refresh
-        const now = Date.now();
-        if (!forceRefresh && cache.data && cache.filter === filter && 
-            cache.timestamp && (now - cache.timestamp) < cache.ttl) {
-            // Use cached data
-            setTimeout(() => {
-                renderTable(cache.data);
-                LoaderManager.hideTable();
-            }, 300);
+    function initDataTable() {
+        if (dataTable) {
+            dataTable.ajax.reload();
             return;
         }
 
-        try {
-            // Build query parameters
-            const params = new URLSearchParams({
-                action: 'get_registrations'
-            });
-            
-            if (filter) {
-                params.append('status', filter);
-            }
-            
-            // Add timestamp to prevent caching
-            params.append('_', now);
-            
-            const res = await fetch('controller/registrations.php?' + params.toString());
-            
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            
-            const json = await res.json();
-            
-            if (!json.success) {
-                showToast('error', 'Load failed: ' + json.message);
-                LoaderManager.hideTable();
-                return;
-            }
-            
-            // Cache the data
-            cache.data = json.data;
-            cache.timestamp = now;
-            cache.filter = filter;
-            
-            // Render table
-            renderTable(json.data);
-            
-        } catch (error) {
-            console.error('Error loading registrations:', error);
-            showToast('error', 'Failed to load registrations');
-            
-            // Clear table
-            $('#registrationsTable tbody').html('<tr><td colspan="8" class="text-center py-4 text-red-500">Failed to load data</td></tr>');
-        } finally {
-            LoaderManager.hideTable();
-        }
-    }
-
-    /* =====================================================
-    Render Table Function - UPDATED
-    ===================================================== */
-    function renderTable(data) {
-        // Destroy existing DataTable if it exists
-        if (dataTable) {
-            dataTable.destroy();
-            $('#registrationsTable tbody').empty();
-        }
-        
-        // Build table header
-        $('#registrationsTable thead').html(`
-            <tr>
-                <th></th>
-                ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
-                <th>Actions</th>
-            </tr>
-        `);
-        
-        // Build table body
-        let tbodyHTML = '';
-        if (data && data.length > 0) {
-            data.forEach((row, index) => {
-                tbodyHTML += `<tr data-row-index="${index}">
-                    <td class="details-control cursor-pointer text-center font-bold select-none">
-                        <span class="expand-icon">
-                            <span class="bar horizontal"></span>
-                            <span class="bar vertical"></span>
-                        </span>
-                    </td>
-                    ${visibleColumns.map(col => {
-                        let cellContent = '';
-                        if (col === 'status') {
-                            const s = normalizeStatus(row[col]);
-                            const map = {
-                                new: ['NEW', 'bg-blue-600'],
-                                contact: ['CONTACT', 'bg-yellow-500'],
-                                hire: ['HIRE', 'bg-green-600'],
-                                rejected: ['REJECTED', 'bg-red-600']
-                            };
-                            cellContent = `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
-                        } else {
-                            cellContent = escapeHTML(row[col] || '-');
-                        }
-                        return `<td>${cellContent}</td>`;
-                    }).join('')}
-                    <td>${renderActions(row)}</td>
-                </tr>`;
-            });
-        } else {
-            tbodyHTML = `<tr><td colspan="${visibleColumns.length + 2}" class="text-center py-4">No records found</td></tr>`;
-        }
-        
-        $('#registrationsTable tbody').html(tbodyHTML);
-        
-        // Initialize DataTable with client-side pagination
         dataTable = $('#registrationsTable').DataTable({
-            searching: true,
-            ordering: true,
-            paging: true,
-            pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
-            lengthChange: true,
-            info: true,
-            autoWidth: false,
-            order: [[1, 'desc']],
-            columnDefs: [
-                { orderable: false, targets: [0, visibleColumns.length + 1] }
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: 'controller/registrations.php',
+                type: 'GET',
+                data: function(d) {
+                    d.action = 'get_registrations';
+                    d.status = $('#statusFilter').val();
+                }
+            },
+            columns: [
+                {
+                    class: 'details-control cursor-pointer text-center font-bold select-none',
+                    orderable: false,
+                    data: null,
+                    defaultContent: '<span class="expand-icon"><span class="bar horizontal"></span><span class="bar vertical"></span></span>'
+                },
+                { data: 'id' },
+                { data: 'name' },
+                { data: 'mbl_number' },
+                { data: 'technology' },
+                { data: 'internship_type' },
+                { data: 'experience' },
+                {
+                    data: 'status',
+                    render: function(data, type, row) {
+                        const s = normalizeStatus(data);
+                        const map = {
+                            new: ['NEW', 'bg-blue-600'],
+                            contact: ['CONTACT', 'bg-yellow-500'],
+                            hire: ['HIRE', 'bg-green-600'],
+                            rejected: ['REJECTED', 'bg-red-600']
+                        };
+                        return `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return renderActions(row);
+                    }
+                }
             ],
+            order: [[1, 'desc']], // Order by ID desc by default
             language: {
                 processing: '<div class="loader-small"></div> Processing...',
                 emptyTable: 'No data available in table',
                 zeroRecords: 'No matching records found'
             },
-            initComplete: function() {
-                // Set status dropdown values
-                document.querySelectorAll('.status-select').forEach(select => {
+            createdRow: function(row, data, dataIndex) {
+                 $(row).attr('data-row-index', dataIndex);
+            },
+            drawCallback: function(settings) {
+                 // Re-initialize status dropdowns if needed
+                 document.querySelectorAll('.status-select').forEach(select => {
                     select.value = select.dataset.current;
                 });
             }
         });
-        
-        // Set up row expansion - FIXED VERSION
+
+        // Set up row expansion
         $('#registrationsTable tbody').on('click', 'td.details-control', function() {
             const tr = $(this).closest('tr');
-            const rowIndex = parseInt(tr.data('row-index'));
             const row = dataTable.row(tr);
-            const icon = this.querySelector('.expand-icon');
             
             if (row.child.isShown()) {
                 const el = tr.next('tr').find('.expand-wrapper')[0];
@@ -601,92 +520,107 @@ include_once "./include/headerLinks.php";
                 }
                 tr.removeClass('shown');
             } else {
-                // Get the full row data from our cached data array
-                if (cache.data && cache.data[rowIndex]) {
-                    const rowData = cache.data[rowIndex];
+                // Row data is already available in 'row.data()' for server-side
+                const rowData = row.data();
+                if (rowData) {
                     row.child(formatDetails(rowData)).show();
                     const el = tr.next('tr').find('.expand-wrapper')[0];
                     if (el) {
                         requestAnimationFrame(() => animateExpand(el));
                     }
                     tr.addClass('shown');
-                } else {
-                    showToast('error', 'Could not load details');
                 }
             }
         });
     }
 
     /* =====================================================
+    Render Table Function - UPDATED
+    ===================================================== */
+
+
+    /* =====================================================
     Searchable Select for Supervisor
     ===================================================== */
+    /* =====================================================
+    Searchable Select for Supervisor (jQuery Version)
+    ===================================================== */
     function initSearchableSelect() {
-        const wrapper = document.querySelector('.searchable-wrapper');
-        if (!wrapper) return;
+        const $wrapper = $('.searchable-wrapper');
+        if (!$wrapper.length) return;
 
-        const originalSelect = wrapper.querySelector('.searchable-select');
-        const searchInput = wrapper.querySelector('.searchable-input');
-        const dropdown = wrapper.querySelector('.searchable-dropdown');
+        const $originalSelect = $wrapper.find('.searchable-select');
+        const $searchInput = $wrapper.find('.searchable-input');
+        const $dropdown = $wrapper.find('.searchable-dropdown');
 
-        // Populate dropdown with options from original select
+        // Unbind existing events to prevent duplicates
+        $searchInput.off('click.search input.search');
+        $(document).off('click.searchableSelect');
+        $dropdown.off('click', 'li');
+
+        // Populate dropdown
         function populateDropdown() {
-            const options = Array.from(originalSelect.options);
-            dropdown.innerHTML = '';
+            const options = $originalSelect.find('option').toArray();
+            $dropdown.empty();
 
             options.forEach(option => {
-                const li = document.createElement('li');
-                li.className = 'px-3 py-2 cursor-pointer text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200';
-                li.textContent = option.textContent;
-                li.dataset.value = option.value;
-
-                li.addEventListener('click', () => {
-                    originalSelect.value = option.value;
-                    searchInput.value = option.textContent;
-                    dropdown.classList.add('hidden');
-                });
-
-                dropdown.appendChild(li);
+                const $li = $('<li>')
+                    .addClass('px-3 py-2 cursor-pointer text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200')
+                    .text(option.textContent)
+                    .attr('data-value', option.value)
+                    .on('click', function() {
+                         $originalSelect.val(option.value);
+                         $searchInput.val(option.textContent);
+                         $dropdown.addClass('hidden');
+                    });
+                
+                $dropdown.append($li);
             });
         }
 
-        // Filter dropdown based on search input
-        function filterDropdown(searchTerm) {
-            const items = dropdown.querySelectorAll('li');
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(searchTerm.toLowerCase())) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // Toggle dropdown
-        searchInput.addEventListener('click', (e) => {
+        // Toggle dropdown on input click
+        $searchInput.on('click.search', function(e) {
+            e.preventDefault();
             e.stopPropagation();
+            
             populateDropdown();
-            dropdown.classList.toggle('hidden');
+            
+            if ($dropdown.hasClass('hidden')) {
+                $dropdown.removeClass('hidden');
+                // Filter immediately if there is text? 
+                // Normally we want to show all options on open
+                filterDropdown($(this).val()); 
+            } else {
+                $dropdown.addClass('hidden');
+            }
         });
 
         // Filter on input
-        searchInput.addEventListener('input', (e) => {
+        $searchInput.on('input.search', function(e) {
             populateDropdown();
-            filterDropdown(e.target.value);
-            dropdown.classList.remove('hidden');
+            filterDropdown($(this).val());
+            $dropdown.removeClass('hidden');
         });
 
+        function filterDropdown(searchTerm) {
+            const term = searchTerm.toLowerCase();
+            $dropdown.find('li').each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(term) > -1);
+            });
+        }
+
         // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!wrapper.contains(e.target)) {
-                dropdown.classList.add('hidden');
+        $(document).on('click.searchableSelect', function(e) {
+            if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                $dropdown.addClass('hidden');
             }
         });
 
         // Initialize with current value
-        const selectedOption = originalSelect.options[originalSelect.selectedIndex];
-        if (selectedOption) {
-            searchInput.value = selectedOption.textContent;
+        const $selected = $originalSelect.find('option:selected');
+        if ($selected.length && $selected.val()) {
+            $searchInput.val($selected.text());
         }
     }
 
@@ -716,15 +650,24 @@ include_once "./include/headerLinks.php";
     Init
     ===================================================== */
     $(document).ready(function() {
+        // Build table header first
+        $('#registrationsTable thead').html(`
+            <tr>
+                <th></th>
+                ${visibleColumns.map(c => `<th>${headerMap[c]}</th>`).join('')}
+                <th>Actions</th>
+            </tr>
+        `);
+
         // Load initial data
         const status = new URLSearchParams(window.location.search).get('status') || '';
         $('#statusFilter').val(status);
         
-        // Set a timeout to load data after page is ready
-        setTimeout(() => {
-            loadRegistrations(status);
-            updateCounts(status);
-        }, 100);
+        // Initialize DataTables
+        initDataTable();
+        
+        // Update counts
+        updateCounts(status);
         
         // Initialize searchable select
         initSearchableSelect();
@@ -732,7 +675,10 @@ include_once "./include/headerLinks.php";
         // Status filter change
         $('#statusFilter').on('change', function() {
             const filterValue = this.value;
-            loadRegistrations(filterValue, true);
+            // Reload DataTable
+            if (dataTable) {
+                dataTable.ajax.reload();
+            }
             updateCounts(filterValue);
         });
 
@@ -756,9 +702,8 @@ include_once "./include/headerLinks.php";
             }
 
             if (newStatus === 'hire') {
-                // Get row data from our cached data
-                const rowIndex = parseInt(tr.data('row-index'));
-                const rowData = cache.data && cache.data[rowIndex];
+                // Get row data from DataTable
+                const rowData = dataTable.row(tr).data();
 
                 if (rowData) {
                     // Prefill modal inputs
@@ -800,9 +745,10 @@ include_once "./include/headerLinks.php";
                     showToast(json.success ? 'success' : 'error', json.message);
 
                     if (json.success) {
-                        // Invalidate cache and reload
-                        cache.data = null;
-                        loadRegistrations($('#statusFilter').val(), true);
+                        // Reload DataTable
+                        if (dataTable) {
+                            dataTable.ajax.reload();
+                        }
                         updateCounts($('#statusFilter').val());
                     }
                 } catch (error) {
@@ -852,9 +798,10 @@ include_once "./include/headerLinks.php";
 
                 if (json.success) {
                     $('#hireModal').addClass('hidden');
-                    // Invalidate cache and reload
-                    cache.data = null;
-                    loadRegistrations($('#statusFilter').val(), true);
+                    // Reload DataTable
+                    if (dataTable) {
+                        dataTable.ajax.reload();
+                    }
                     updateCounts($('#statusFilter').val());
                 }
             } catch (error) {

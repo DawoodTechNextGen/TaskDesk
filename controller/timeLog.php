@@ -2,9 +2,8 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
-
 $data = json_decode(file_get_contents("php://input"), true);
-
+date_default_timezone_set('Asia/Karachi');
 if (!$data || !isset($data['action'])) {
     echo json_encode(["success" => false, "message" => "Invalid request"]);
     exit;

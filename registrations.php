@@ -13,19 +13,10 @@ if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] != 1 && $_SESSION[
 
 include_once './include/connection.php';
 
-// Fetch counts from database
-$countQuery = "SELECT 
-    SUM(CASE WHEN status = 'contact' THEN 1 ELSE 0 END) as total_contact,
-    SUM(CASE WHEN status = 'hire' THEN 1 ELSE 0 END) as total_hire,
-    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as total_rejected
-    FROM registrations";
-$countResult = mysqli_query($conn, $countQuery);
-$counts = mysqli_fetch_assoc($countResult);
-
-// Set default values if no data
-$total_contact = $counts['total_contact'] ?? 0;
-$total_hire = $counts['total_hire'] ?? 0;
-$total_rejected = $counts['total_rejected'] ?? 0;
+// Initial counts will be loaded via AJAX to improve page load speed
+$total_contact = '-';
+$total_hire = '-';
+$total_rejected = '-';
 ?>
 
 <!DOCTYPE html>

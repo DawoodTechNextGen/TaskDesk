@@ -10,7 +10,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use Dompdf\Dompdf;
 use Dompdf\Options;
-
+global $email_from; 
 // Include your functions
 function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
 {
@@ -209,7 +209,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
                         <h3>Your Login Credentials</h3>
                         <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
                         <p><strong>Password:</strong> ' . htmlspecialchars($password) . '</p>
-                        <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access Your Dashboard</a>
+                        <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access TaskDesk</a>
                         <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
                     </div>
 
@@ -264,6 +264,173 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
     }
 }
 
+function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $tech_name)
+{
+    $mail = new PHPMailer(true);
+
+    try {
+
+        // ---------------------------
+        // SMTP Settings (from .env)
+        // ---------------------------
+        $mail->isSMTP();
+        $mail->Host       = GMAIL_MAIL_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = GMAIL_MAIL_USERNAME;
+        $mail->Password   = GMAIL_MAIL_PASSWORD;
+        $mail->SMTPSecure = GMAIL_MAIL_ENCRYPTION;
+        $mail->Port       = GMAIL_MAIL_PORT;
+
+        // Sender / Receiver
+        $mail->setFrom(GMAIL_MAIL_USERNAME, MAIL_FROM_NAME);
+        $mail->addAddress($toEmail, $name);
+
+        // Email Format
+        $mail->isHTML(true);
+        $mail->Subject = 'Welcome to DawoodTech NextGen - Your Internship Offer Letter & Login Credentials';
+
+        // ---------------------------
+        // Internship dates
+        // ---------------------------
+        $startDate = date('Y-m-d');
+        $endDate   = date('Y-m-d', strtotime('+2 months'));
+
+        $loginUrl = 'https://dawoodtechnextgen.org/taskdesk/login.php';
+
+        // ---------------------------
+        // Email Template
+        // ---------------------------
+        $mailContent = '
+        <!DOCTYPE html>
+        <html>
+
+        <head>
+            <style>
+                body {
+                    font-family: "Segoe UI", Tahoma;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 800px;
+                    margin: auto;
+                }
+
+                .header {
+                    background: linear-gradient(135deg, #deeafc, #c8dcfa);
+                    padding: 40px;
+                    text-align: center;
+                    border-radius: 10px 10px 0 0;
+                }
+                .header p {
+                    margin: 0;
+                }
+                .content {
+                    padding: 40px;
+                    background: #f9f9f9;
+                }
+
+                .card {
+                    background: white;
+                    padding: 30px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+
+                .credentials {
+                    background: #f0f7ff;
+                    border-left: 4px solid #3B81F6;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #3B81F6, #2563EB);
+                    color: white !important;
+                    padding: 14px 28px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin-top: 10px;
+                }
+
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    margin-top: 20px;
+                    color: #666;
+                    font-size: 14px;
+                }
+            </style>
+        </head>
+
+        <body>
+
+            <div class="header">
+                <img src="' . BASE_URL . 'assets/images/logo.png" alt="DawoodTech NextGen" style="max-width:150px;margin-bottom:20px;">
+                <p>Your Journey Begins Here</p>
+            </div>
+
+            <div class="content">
+                <div class="card">
+
+                    <h2 style="color:#3B81F6;">Dear ' . htmlspecialchars($name) . ',</h2>
+                    <p>We are thrilled to welcome you to the DawoodTech NextGen family! You have been selected for our <strong>' . htmlspecialchars($tech_name) . '</strong> internship program.</p>
+
+                    <div class="card credentials">
+                        <h3>Your Login Credentials</h3>
+                        <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
+                        <p><strong>Password:</strong> ' . htmlspecialchars($password) . '</p>
+                        <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access TaskDesk</a>
+                        <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
+                    </div>
+
+                    <h3>Internship Details</h3>
+                    <ul>
+                        <li><strong>Duration:</strong> ' . $startDate . ' to ' . $endDate . ' (2 months)</li>
+                        <li><strong>Technology:</strong> ' . htmlspecialchars($tech_name) . '</li>
+                        <li><strong>Reporting Date:</strong> ' . $startDate . '</li>
+                    </ul>
+
+                    <h3>What to Expect</h3>
+                    <ul>
+                        <li>Real-world project experience</li>
+                        <li>Mentorship from industry experts</li>
+                        <li>Weekly workshops and activities</li>
+                        <li>Certificate upon completion</li>
+                    </ul>
+
+                    <p>Your official offer letter is attached to this email.</p>
+
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Need help? Email us at support@dawoodtechnextgen.org</p>
+                <p>© ' . date('Y') . ' DawoodTech NextGen</p>
+            </div>
+
+        </body>
+
+        </html>
+        ';
+
+        $mail->Body = $mailContent;
+
+        // ---------------------------
+        // Attach PDF - Offer Letter
+        // ---------------------------
+        $pdfContent = generateOfferLetterPDF($name, $startDate, $endDate, $tech_name);
+
+        if ($pdfContent) {
+            $fileName = 'Offer_Letter_' . preg_replace('/\s+/', '_', $name) . '.pdf';
+            $mail->addStringAttachment($pdfContent, $fileName, 'base64', 'application/pdf');
+        }
+
+        // Send Email
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Email failed: " . $mail->ErrorInfo);
+        return false;
+    }
+}
 
 // Process up to 20 emails per run
 $stmt = $conn->prepare("
@@ -287,16 +454,28 @@ while ($job = $result->fetch_assoc()) {
     );
 
     if ($success) {
+        $email_from = 'From Server mailer';
         $update = $conn->prepare("DELETE FROM email_queue WHERE id = ?");
         $update->bind_param('i', $job['id']);
         $update->execute();
         $processed++;
     } else {
-        $attempts = $job['attempts'] + 1;
-        $update = $conn->prepare("UPDATE email_queue SET attempts = ?, status = 'failed', error = 'SMTP Error' WHERE id = ?");
-        $update->bind_param('ii', $attempts, $job['id']);
+        $success = sendWelcomeEmailWithOfferLetterwithGmail(
+            $data['email'],
+            $data['name'],
+            $data['password'],
+            $data['tech_name']
+        );
+    }
+    if ($success) {
+        $email_from = 'From Gmail mailer';
+        $update = $conn->prepare("DELETE FROM email_queue WHERE id = ?");
+        $update->bind_param('i', $job['id']);
         $update->execute();
+        $processed++;
+    } else {
+        echo "Failed to send email to: " . $data['email'] . "\n";
     }
 }
 
-echo "Email queue processed: $processed emails sent.\n";
+echo "Email queue processed: $processed emails sent. from $email_from\n";

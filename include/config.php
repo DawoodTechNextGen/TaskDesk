@@ -53,6 +53,12 @@ define('MAIL_ENCRYPTION', getenv('MAIL_ENCRYPTION'));
 define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL'));
 define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME'));
 
+define('GMAIL_MAIL_HOST', getenv('GMAIL_MAIL_HOST'));
+define('GMAIL_MAIL_PORT', getenv('GMAIL_MAIL_PORT'));
+define('GMAIL_MAIL_USERNAME', getenv('GMAIL_MAIL_USERNAME'));
+define('GMAIL_MAIL_PASSWORD', getenv('GMAIL_MAIL_PASSWORD'));
+define('GMAIL_MAIL_ENCRYPTION', getenv('GMAIL_MAIL_ENCRYPTION'));
+
 // Application Configuration
 define('APP_DEBUG', filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN));
 define('APP_TIMEZONE', getenv('APP_TIMEZONE') ?: 'UTC');

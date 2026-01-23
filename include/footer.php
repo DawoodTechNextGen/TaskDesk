@@ -54,7 +54,7 @@
          processEmailQueue();
 
          // Then process every 2 minutes
-         queueInterval = setInterval(processEmailQueue, 120000);
+         queueInterval = setInterval(processEmailQueue, 300000);
 
         //  console.log('Email queue processor started. Will run every 2 minutes.');
      }

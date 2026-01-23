@@ -25,7 +25,12 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
         $options->set('isRemoteEnabled', true);
         $dompdf = new Dompdf($options);
 
-        $bgImage = BASE_URL . "assets/images/offerletter.png";
+        // Use local path for performance (avoids HTTP loopback)
+        $bgImage = dirname(__DIR__) . "/assets/images/offerletter.png"; 
+        // fallback if local file not found, though uncommon
+        if (!file_exists($bgImage)) {
+             $bgImage = BASE_URL . "assets/images/offerletter.png";
+        }
 
         $html = '
         <!DOCTYPE html>
@@ -437,18 +442,22 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
     }
 }
 
-// Process up to 20 emails per run
+// Process 1 email per run to prevent timeout
 $stmt = $conn->prepare("
     SELECT * FROM email_queue 
     WHERE status = 'pending' AND attempts < 5 
     ORDER BY created_at ASC 
-    LIMIT 3
+    LIMIT 1
 ");
 $stmt->execute();
 $result = $stmt->get_result();
 
 $processed = 0;
 while ($job = $result->fetch_assoc()) {
+    $startTime = microtime(true);
+    echo "Processing Job ID: " . $job['id'] . "...\n";
+    flush();
+
     $data = json_decode($job['data'], true);
     $jobId = $job['id'];
     $sent = false;
@@ -482,8 +491,10 @@ while ($job = $result->fetch_assoc()) {
         $updateStmt->close();
     }
     
-    // Create a small delay to prevent CPU spinning if needed, logic processing intensive
-    // flush();
+    // Log duration
+    $duration = microtime(true) - $startTime;
+    echo "Job ID: $jobId completed in " . number_format($duration, 2) . " seconds.\n";
+    flush();
 }
 
 echo "Email queue processed: $processed emails sent. from $email_from\n";

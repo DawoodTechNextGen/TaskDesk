@@ -462,16 +462,24 @@ while ($job = $result->fetch_assoc()) {
     $jobId = $job['id'];
     $sent = false;
 
+    echo "  - Starting Process...\n"; flush();
+
     // 1. Try Primary Mailer
+    echo "  - Attempting Primary Mailer...\n"; flush();
     if (sendWelcomeEmailWithOfferLetter($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
         $sent = true;
         $email_from = 'From Server mailer';
+        echo "  - Primary Mailer Success.\n"; flush();
     } 
     // 2. If Primary failed, try Gmail Mailer (Fallback)
     else {
+        echo "  - Primary Failed. Attempting Gmail Mailer...\n"; flush();
         if (sendWelcomeEmailWithOfferLetterwithGmail($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
             $sent = true;
             $email_from = 'From Gmail mailer';
+            echo "  - Gmail Mailer Success.\n"; flush();
+        } else {
+            echo "  - All Mailers Failed.\n"; flush();
         }
     }
 

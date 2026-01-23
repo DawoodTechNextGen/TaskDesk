@@ -450,37 +450,40 @@ $result = $stmt->get_result();
 $processed = 0;
 while ($job = $result->fetch_assoc()) {
     $data = json_decode($job['data'], true);
+    $jobId = $job['id'];
+    $sent = false;
 
-    $success = sendWelcomeEmailWithOfferLetter(
-        $data['email'],
-        $data['name'],
-        $data['password'],
-        $data['tech_name']
-    );
-
-    if ($success) {
+    // 1. Try Primary Mailer
+    if (sendWelcomeEmailWithOfferLetter($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
+        $sent = true;
         $email_from = 'From Server mailer';
-        $update = $conn->prepare("DELETE FROM email_queue WHERE id = ?");
-        $update->bind_param('i', $job['id']);
-        $update->execute();
+    } 
+    // 2. If Primary failed, try Gmail Mailer (Fallback)
+    else {
+        if (sendWelcomeEmailWithOfferLetterwithGmail($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
+            $sent = true;
+            $email_from = 'From Gmail mailer';
+        }
+    }
+
+    if ($sent) {
+        // Success: Remove from queue
+        $deleteStmt = $conn->prepare("DELETE FROM email_queue WHERE id = ?");
+        $deleteStmt->bind_param('i', $jobId);
+        $deleteStmt->execute();
+        $deleteStmt->close();
         $processed++;
     } else {
-        $success = sendWelcomeEmailWithOfferLetterwithGmail(
-            $data['email'],
-            $data['name'],
-            $data['password'],
-            $data['tech_name']
-        );
+        // Failure: Increment attempts so we don't loop forever
+        echo "Failed to send email to: " . $data['email'] . ". Incrementing attempts.\n";
+        $updateStmt = $conn->prepare("UPDATE email_queue SET attempts = attempts + 1 WHERE id = ?");
+        $updateStmt->bind_param('i', $jobId);
+        $updateStmt->execute();
+        $updateStmt->close();
     }
-    if ($success) {
-        $email_from = 'From Gmail mailer';
-        $update = $conn->prepare("DELETE FROM email_queue WHERE id = ?");
-        $update->bind_param('i', $job['id']);
-        $update->execute();
-        $processed++;
-    } else {
-        echo "Failed to send email to: " . $data['email'] . "\n";
-    }
+    
+    // Create a small delay to prevent CPU spinning if needed, logic processing intensive
+    // flush();
 }
 
 echo "Email queue processed: $processed emails sent. from $email_from\n";

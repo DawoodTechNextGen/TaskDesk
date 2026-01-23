@@ -442,12 +442,12 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
     }
 }
 
-// Process 1 email per run to prevent timeout
+// Process batch of emails (Cron mode)
 $stmt = $conn->prepare("
     SELECT * FROM email_queue 
     WHERE status = 'pending' AND attempts < 5 
     ORDER BY created_at ASC 
-    LIMIT 1
+    LIMIT 50
 ");
 $stmt->execute();
 $result = $stmt->get_result();

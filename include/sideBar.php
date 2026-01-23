@@ -80,21 +80,43 @@
                         </li>
                         <?php if($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) {?> 
                         <li>
-                                <a href="registrations.php" onclick="window.location=this.href"
-                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
-                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'registrations.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
-                                    <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
-                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                            <g id="SVGRepo_iconCarrier">
-                                                <path d="M20 7H4C3.44772 7 3 7.44772 3 8V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V8C21 7.44772 20.5523 7 20 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                <path d="M3 8L12 13L21 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </g>
-                                        </svg>
+                                <?php 
+                                    $currentPage = basename($_SERVER['SCRIPT_NAME']);
+                                    // List of all registration-related pages to keep parent active
+                                    $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_interview.php', 'registrations_rejected.php'];
+                                    $isRegistrationsActive = in_array($currentPage, $registrationPages);
+                                ?>
+                                <button type="button" onclick="document.getElementById('registrations-submenu').classList.toggle('hidden'); document.getElementById('registrations-arrow').classList.toggle('rotate-180');"
+                                    class="w-full flex items-center justify-between p-2 rounded-lg sidebar-link <?php echo $isRegistrationsActive ? 'active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                <g id="SVGRepo_iconCarrier">
+                                                    <path d="M20 7H4C3.44772 7 3 7.44772 3 8V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V8C21 7.44772 20.5523 7 20 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M3 8L12 13L21 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </g>
+                                            </svg>
+                                        </div>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
                                     </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
-                                </a>
+                                    <svg id="registrations-arrow" class="w-4 h-4 transition-transform duration-200 <?php echo $isRegistrationsActive ? 'rotate-180' : '' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <ul id="registrations-submenu" class="<?php echo $isRegistrationsActive ? '' : 'hidden' ?> py-2 space-y-2">
+                                    <li>
+                                        <a href="registrations_new.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_new.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">New</a>
+                                    </li>
+                                    <li>
+                                        <a href="registrations_contact.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_contact.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Contact</a>
+                                    </li>
+                                    <li>
+                                        <a href="registrations_interview.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_interview.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Interview</a>
+                                    </li>
+                                    <li>
+                                        <a href="registrations_rejected.php" class="flex items-center w-full p-2 text-red-600 dark:text-red-400 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_rejected.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Reject</a>
+                                    </li>
+                                </ul>
                             </li>
                         <?php } ?>
                         <?php if ($_SESSION['user_role'] == 1) { ?>

@@ -5,6 +5,11 @@ require '../include/connection.php';
 require '../vendor/autoload.php';
 // require '/home2/dawoodte/public_html/taskdesk/include/connection.php';
 // require '/home2/dawoodte/public_html/taskdesk/vendor/autoload.php';
+ignore_user_abort(true);
+set_time_limit(0);
+
+ini_set('max_execution_time', 0);
+ini_set('memory_limit', '512M');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -76,7 +81,7 @@ function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
                     <strong>Sincerely,</strong><br>
                     Qamar Naveed<br>
                     Founder<br>
-                    <strong?>DawoodTech NextGen</strong><br><br>
+                    <strong>DawoodTech NextGen</strong><br><br>
                     <strong>Contact Information:</strong><br>
                     <strong>Phone: </strong>+92-311-7305346<br>
                     <strong>Email: </strong>info@dawoodtechnextgen.org<br>
@@ -437,7 +442,7 @@ $stmt = $conn->prepare("
     SELECT * FROM email_queue 
     WHERE status = 'pending' AND attempts < 5 
     ORDER BY created_at ASC 
-    LIMIT 20
+    LIMIT 3
 ");
 $stmt->execute();
 $result = $stmt->get_result();

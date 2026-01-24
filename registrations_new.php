@@ -21,6 +21,7 @@ $page_title = 'New Registrations - TaskDesk';
 include_once "./include/headerLinks.php";
 ?>
 
+
 <style>
     /* ... (Same styles as registrations.php) ... */
     .expand-icon { width: 10px; height: 10px; display: inline-block; position: relative; cursor: pointer; transition: transform 300ms ease; }
@@ -34,6 +35,11 @@ include_once "./include/headerLinks.php";
     .table-loader { display: none; text-align: center; padding: 20px; }
     .table-loader.active { display: block; }
     .table-container { position: relative; min-height: 200px; }
+    
+    .details-wrapper {
+        display: none;
+        overflow: hidden;
+    }
 </style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -104,7 +110,7 @@ include_once "./include/headerLinks.php";
     const headerMap = { id: 'ID', name: 'Name', email: 'Email', mbl_number: 'Contact', technology: 'Technology', internship_type: 'Internship Type', experience: 'Experience', cnic: 'CNIC', city: 'City', country: 'Country', created_at: 'Created At' };
 
     function formatDetails(row) {
-        return `<div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg grid grid-cols-2 gap-4 text-sm">${expandableColumns.map(k => `<div><span class="font-semibold">${headerMap[k]}:</span> <span>${escapeHTML(row[k] ?? '-')}</span></div>`).join('')}</div>`;
+        return `<div class="details-wrapper"><div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg grid grid-cols-2 gap-4 text-sm">${expandableColumns.map(k => `<div><span class="font-semibold">${headerMap[k]}:</span> <span>${escapeHTML(row[k] ?? '-')}</span></div>`).join('')}</div></div>`;
     }
 
 $(document).ready(function() {
@@ -116,7 +122,8 @@ $(document).ready(function() {
             <th>Name</th>
             <th>Contact</th>
             <th>Technology</th>
-            <th>Exp</th>
+            <th>Internship Type</th>
+            <th>Experience</th>
             <th>Actions</th>
         </tr>
     `);
@@ -146,7 +153,8 @@ $(document).ready(function() {
             { data: 'name' },
             { data: 'mbl_number' },
             { data: 'technology' },
-            { data: 'experience' },
+            { data: 'internship_type_text' },
+            { data: 'experience_text' },
             {
                 data: null,
                 orderable: false,
@@ -155,7 +163,7 @@ $(document).ready(function() {
                     <div class="flex items-center space-x-2">
                         <select class="status-select px-2 py-1 border rounded bg-white dark:bg-gray-700 text-xs w-24">
                             <option value="new" selected>New</option>
-                            <option value="contact">Contact Only</option>
+                            <option value="contact">Contact </option>
                         </select>
                         <button class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs update-btn"
                             data-id="${row.id}">
@@ -173,17 +181,20 @@ $(document).ready(function() {
         }
     });
 
-    // Expand row
+    // Expand row with animation
     $('#newRegistrationsTable tbody').on('click', 'td.details-control', function() {
         const tr = $(this).closest('tr');
         const row = table.row(tr);
 
         if (row.child.isShown()) {
-            row.child.hide();
-            tr.removeClass('shown');
+            $(row.child()).find('.details-wrapper').slideUp(300, function() {
+                row.child.hide();
+                tr.removeClass('shown');
+            });
         } else {
             row.child(formatDetails(row.data())).show();
             tr.addClass('shown');
+            $(row.child()).find('.details-wrapper').slideDown(300);
         }
     });
 

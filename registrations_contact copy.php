@@ -105,11 +105,6 @@ include_once "./include/headerLinks.php";
         position: relative;
         min-height: 200px;
     }
-
-    .details-wrapper {
-        display: none;
-        overflow: hidden;
-    }
 </style>
 <style>
     /* Add these styles for conflict highlighting */
@@ -482,32 +477,11 @@ include_once "./include/headerLinks.php";
     let table; // DataTable instance
     let currentCandidateId = null; // Store current candidate ID
 
-    // Get Pakistan time (Asia/Karachi)
-    function getPakistanTime() {
-        return new Date().toLocaleString("en-US", {timeZone: "Asia/Karachi"});
-    }
-
-    // Get today's date in Pakistan timezone
-    function getTodayPakistanDate() {
-        const now = new Date();
-        const pakistanTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        return new Date(pakistanTime.getFullYear(), pakistanTime.getMonth(), pakistanTime.getDate());
-    }
-
-    // Format date to YYYY-MM-DD in Pakistan timezone
-    function formatPakistanDate(date) {
-        const pakistanDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        const year = pakistanDate.getFullYear();
-        const month = String(pakistanDate.getMonth() + 1).padStart(2, '0');
-        const day = String(pakistanDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
     // Initialize when modal opens
     function initializeModal() {
         currentStep = 1;
         selectedDate = null;
-        currentDate = getTodayPakistanDate();
+        currentDate = new Date();
         updateProgress();
         updateStepDisplay();
         initCalendar();
@@ -661,8 +635,8 @@ include_once "./include/headerLinks.php";
         
         // Validate duration (minimum 15 minutes)
         if (startTime && endTime) {
-            const start = new Date(`2000-01-01T${startTime}:00`);
-            const end = new Date(`2000-01-01T${endTime}:00`);
+            const start = new Date(`2000-01-01 ${startTime}`);
+            const end = new Date(`2000-01-01 ${endTime}`);
             const duration = (end - start) / (1000 * 60);
             
             if (duration < 15) {
@@ -684,19 +658,20 @@ include_once "./include/headerLinks.php";
                     durationText += `${minutes} minute${minutes > 1 ? 's' : ''}`;
                 }
                 document.getElementById('durationText').textContent = durationText.trim();
-                formData.duration = duration;
             }
         }
         
-        if (isValid && selectedDate) {
-            // Format date in YYYY-MM-DD
-            const dateStr = formatPakistanDate(selectedDate);
-            
+        if (isValid) {
             formData.date = selectedDate;
-            formData.dateStr = dateStr;
             formData.startTime = startTime;
             formData.endTime = endTime;
             formData.dateText = document.getElementById('displayDate').textContent;
+            
+            // Calculate duration for display
+            const start = new Date(`2000-01-01 ${startTime}`);
+            const end = new Date(`2000-01-01 ${endTime}`);
+            const duration = (end - start) / (1000 * 60);
+            formData.duration = duration;
         }
         
         return isValid;
@@ -709,16 +684,14 @@ include_once "./include/headerLinks.php";
         document.getElementById('confirmPlatform').textContent = formData.platform;
         document.getElementById('confirmTech').textContent = formData.technologyText;
         
-        // Format date and time in Pakistan timezone
+        // Format date and time
+        const date = new Date(selectedDate);
         const options = { 
             weekday: 'short', 
             year: 'numeric', 
             month: 'short', 
-            day: 'numeric',
-            timeZone: 'Asia/Karachi'
+            day: 'numeric' 
         };
-        
-        const date = new Date(selectedDate);
         const dateStr = date.toLocaleDateString('en-US', options);
         document.getElementById('confirmDateTime').textContent = `${dateStr} | ${formData.startTime} - ${formData.endTime}`;
         
@@ -768,7 +741,8 @@ include_once "./include/headerLinks.php";
         }
 
         // Add days of the month
-        const today = getTodayPakistanDate();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         for (let day = 1; day <= totalDays; day++) {
             const dayCell = document.createElement('button');
@@ -776,7 +750,6 @@ include_once "./include/headerLinks.php";
             dayCell.className = 'h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-colors';
 
             const cellDate = new Date(year, month, day);
-            cellDate.setHours(0, 0, 0, 0);
 
             // Check if it's today
             if (cellDate.getTime() === today.getTime()) {
@@ -790,16 +763,14 @@ include_once "./include/headerLinks.php";
                 dayCell.classList.add('hover:bg-gray-200', 'dark:hover:bg-gray-600', 'text-gray-800', 'dark:text-gray-200');
             }
 
-            // Disable past dates (compare in Pakistan time)
+            // Disable past dates
             if (cellDate < today) {
                 dayCell.classList.add('opacity-50', 'cursor-not-allowed');
                 dayCell.disabled = true;
             }
 
             dayCell.textContent = day;
-            // Store date in YYYY-MM-DD format
-            const dateStr = formatPakistanDate(cellDate);
-            dayCell.dataset.date = dateStr;
+            dayCell.dataset.date = cellDate.toISOString().split('T')[0];
 
             dayCell.addEventListener('click', () => selectDate(cellDate));
             calendarDays.appendChild(dayCell);
@@ -808,24 +779,21 @@ include_once "./include/headerLinks.php";
 
     async function selectDate(date) {
         selectedDate = date;
+        const dateStr = date.toISOString().split('T')[0];
         
-        // Format date in Pakistan timezone
+        // Update display
         const options = {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric',
-            timeZone: 'Asia/Karachi'
+            day: 'numeric'
         };
-        
-        const pakistanDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        document.getElementById('displayDate').textContent = pakistanDate.toLocaleDateString('en-US', options);
+        document.getElementById('displayDate').textContent = date.toLocaleDateString('en-US', options);
         
         // Hide date error if shown
         document.getElementById('dateError').classList.add('hidden');
         
-        // Fetch and display booked slots using Pakistan date
-        const dateStr = formatPakistanDate(date);
+        // Fetch and display booked slots
         await updateTimeSlotDisplay(dateStr);
         
         // Clear any time conflict indicators
@@ -837,25 +805,16 @@ include_once "./include/headerLinks.php";
         renderCalendar(currentDate);
     }
 
-    // Set default times (Pakistan time)
+    // Set default times
     function setDefaultTimes() {
-        // Get current Pakistan time
         const now = new Date();
-        const pakistanTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        
-        // Set default start time to next hour (rounded to nearest 15 minutes)
-        pakistanTime.setHours(pakistanTime.getHours() + 1);
-        pakistanTime.setMinutes(Math.ceil(pakistanTime.getMinutes() / 15) * 15);
-        pakistanTime.setSeconds(0);
-        
-        const startTime = pakistanTime.toTimeString().slice(0, 5);
-        $('#intFromTime').val(startTime);
-        
-        // Set default end time to 1 hour after start time
-        const endTimeObj = new Date(pakistanTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
-        const endTime = endTimeObj.toTimeString().slice(0, 5);
-        $('#intToTime').val(endTime);
+        now.setHours(0, 0, 0, 0);
+        document.getElementById('intFromTime').value = now.toTimeString().slice(0, 5);
 
+        now.setHours(0, 0, 0, 0);
+        document.getElementById('intToTime').value = now.toTimeString().slice(0, 5);
+        
+        // Update duration display
         updateDurationDisplay();
     }
 
@@ -865,8 +824,8 @@ include_once "./include/headerLinks.php";
         const endTime = document.getElementById('intToTime').value;
         
         if (startTime && endTime) {
-            const start = new Date(`2000-01-01T${startTime}:00`);
-            const end = new Date(`2000-01-01T${endTime}:00`);
+            const start = new Date(`2000-01-01 ${startTime}`);
+            const end = new Date(`2000-01-01 ${endTime}`);
             const duration = (end - start) / (1000 * 60);
             
             if (duration > 0) {
@@ -904,8 +863,8 @@ include_once "./include/headerLinks.php";
         }
         
         // Check duration (minimum 15 minutes)
-        const start = new Date(`2000-01-01T${startTime}:00`);
-        const end = new Date(`2000-01-01T${endTime}:00`);
+        const start = new Date(`2000-01-01 ${startTime}`);
+        const end = new Date(`2000-01-01 ${endTime}`);
         const duration = (end - start) / (1000 * 60);
         
         if (duration < 15) {
@@ -922,7 +881,7 @@ include_once "./include/headerLinks.php";
         document.getElementById('intToTime').classList.remove('border-red-500');
         
         // Check for time slot conflicts
-        const selectedDateStr = formatPakistanDate(selectedDate);
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
         const conflictCheck = await checkTimeSlotConflict(selectedDateStr, startTime, endTime, currentCandidateId);
         
         if (conflictCheck.hasConflict) {
@@ -1067,11 +1026,7 @@ include_once "./include/headerLinks.php";
 
     // Main form submission
     async function submitInterviewForm() {
-        if (!selectedDate) {
-            showToast('error', 'Please select a date');
-            return;
-        }
-        
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
         const startTime = document.getElementById('intFromTime').value;
         const endTime = document.getElementById('intToTime').value;
         const candidateId = document.getElementById('intId').value;
@@ -1082,7 +1037,6 @@ include_once "./include/headerLinks.php";
         }
         
         // Check for conflicts one more time
-        const selectedDateStr = formatPakistanDate(selectedDate);
         const conflictCheck = await checkTimeSlotConflict(selectedDateStr, startTime, endTime, candidateId);
         if (conflictCheck.hasConflict) {
             showAlert('Time Slot Conflict', conflictCheck.message || 'This time slot is already booked. Please choose a different time.');
@@ -1141,7 +1095,7 @@ include_once "./include/headerLinks.php";
         // Initialize modal (DO NOT reset form values)
         currentStep = 1;
         selectedDate = null;
-        currentDate = getTodayPakistanDate();
+        currentDate = new Date();
         updateProgress();
         updateStepDisplay();
         initCalendar();
@@ -1172,7 +1126,7 @@ include_once "./include/headerLinks.php";
         document.getElementById('interviewModal').classList.remove('hidden');
         
         // Set today's date
-        selectedDate = getTodayPakistanDate();
+        selectedDate = new Date();
         selectDate(selectedDate);
     }
 
@@ -1218,7 +1172,7 @@ include_once "./include/headerLinks.php";
             } else if (currentStep === 2) {
                 if (validateStep2()) {
                     // Check for time slot conflicts before proceeding
-                    const selectedDateStr = selectedDate ? formatPakistanDate(selectedDate) : '';
+                    const selectedDateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
                     const startTime = document.getElementById('intFromTime').value;
                     const endTime = document.getElementById('intToTime').value;
                     
@@ -1332,7 +1286,7 @@ include_once "./include/headerLinks.php";
         };
 
         function formatDetails(row) {
-            return `<div class="details-wrapper"><div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg grid grid-cols-2 gap-4 text-sm">${expandableColumns.map(k => `<div><span class="font-semibold">${headerMap[k]}:</span> <span>${escapeHTML(row[k] ?? '-')}</span></div>`).join('')}</div></div>`;
+            return `<div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg grid grid-cols-2 gap-4 text-sm">${expandableColumns.map(k => `<div><span class="font-semibold">${headerMap[k]}:</span> <span>${escapeHTML(row[k] ?? '-')}</span></div>`).join('')}</div>`;
         }
 
         // Build table header
@@ -1398,14 +1352,11 @@ include_once "./include/headerLinks.php";
             var tr = $(this).closest('tr');
             var row = table.row(tr);
             if (row.child.isShown()) {
-                $(row.child()).find('.details-wrapper').slideUp(300, function() {
-                    row.child.hide();
-                    tr.removeClass('shown');
-                });
+                row.child.hide();
+                tr.removeClass('shown');
             } else {
                 row.child(formatDetails(row.data())).show();
                 tr.addClass('shown');
-                $(row.child()).find('.details-wrapper').slideDown(300);
             }
         });
 

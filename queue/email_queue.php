@@ -122,6 +122,10 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         $mail->Password   = MAIL_PASSWORD;
         $mail->SMTPSecure = MAIL_ENCRYPTION;
         $mail->Port       = MAIL_PORT;
+        
+        // Timeout Settings
+        $mail->Timeout  = 10; // Timeout for SMTP connection (seconds)
+        $mail->Timelimit = 10; // Timelimit for data transfer
 
         // Sender / Receiver
         $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
@@ -290,8 +294,13 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
         $mail->Password   = GMAIL_MAIL_PASSWORD;
         $mail->SMTPSecure = GMAIL_MAIL_ENCRYPTION;
         $mail->Port       = GMAIL_MAIL_PORT;
+        
+        // Timeout Settings
+        $mail->Timeout  = 10;
+        $mail->Timelimit = 10;
 
         // Sender / Receiver
+        // Use a valid email for 'From'
         $mail->setFrom(GMAIL_MAIL_USERNAME, MAIL_FROM_NAME);
         $mail->addAddress($toEmail, $name);
 
@@ -480,6 +489,18 @@ while ($job = $result->fetch_assoc()) {
             echo "  - Gmail Mailer Success.\n"; flush();
         } else {
             echo "  - All Mailers Failed.\n"; flush();
+        }
+    }
+
+    // ---------------------------------------------------
+    // CHECK DB CONNECTION before writing (Fixes "MySQL Gone Away")
+    // ---------------------------------------------------
+    if (!$conn->ping()) {
+        echo "  - MySQL connection lost. Reconnecting...\n"; flush();
+        $conn->close();
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
         }
     }
 

@@ -16,119 +16,130 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], [1, 4], 
 
 switch ($action) {
     case 'get_registrations':
-        // Start measuring execution time
-        $startTime = microtime(true);
+        // DataTables parameters
+        $start = isset($_GET['start']) ? (int)$_GET['start'] : 0;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : 10;
+        $searchValue = isset($_GET['search']['value']) ? trim($_GET['search']['value']) : '';
+        $orderColumnIndex = isset($_GET['order'][0]['column']) ? (int)$_GET['order'][0]['column'] : 1;
+        $orderDir = isset($_GET['order'][0]['dir']) ? $_GET['order'][0]['dir'] : 'desc';
+        $status = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : '';
         
-        $status = strtolower(trim($_GET['status'] ?? $_POST['status'] ?? ''));
-        $allowedStatus = ['new', 'contact', 'hire', 'rejected'];
+        // Allowed columns map for sorting
+        // 0: empty, 1: id, 2: name, 3: mbl_number, 4: technology, 
+        // 5: internship_type, 6: experience, 7: status, 8: actions
+        $columns = [
+            1 => 'r.id',
+            2 => 'r.name',
+            3 => 'r.mbl_number',
+            4 => 't.name', 
+            5 => 'r.internship_type',
+            6 => 'r.experience',
+            7 => 'r.status',
+            8 => 'r.created_at' // Default sort if needed
+        ];
         
-        // Prepare query with optimizations
-        $where = '';
+        $orderBy = $columns[$orderColumnIndex] ?? 'r.created_at';
+        $orderDir = strtolower($orderDir) === 'asc' ? 'ASC' : 'DESC';
+        
+        // Base query
+        $sqlBase = "FROM registrations r LEFT JOIN technologies t ON t.id = r.technology_id";
+        
+        // Filtering
+        $where = [];
         $params = [];
-        $types = '';
+        $types = "";
         
-        if ($status && in_array($status, $allowedStatus, true)) {
-            $where = " WHERE r.status = ?";
+        // Status filter
+        if ($status && in_array($status, ['new', 'contact', 'hire', 'rejected'])) {
+            $where[] = "r.status = ?";
             $params[] = $status;
-            $types .= 's';
+            $types .= "s";
         }
         
-        // Only select needed columns
-        $sql = "
-            SELECT
-                r.id,
-                r.name,
-                r.email,
-                r.mbl_number,
-                r.status,
-                r.internship_type,
-                r.experience,
-                r.city,
-                r.country,
-                r.cnic,
-                DATE(r.created_at) AS created_at,
-                t.name AS technology
-            FROM registrations r
-            LEFT JOIN technologies t ON t.id = r.technology_id
-            $where
-            ORDER BY r.created_at DESC
-        ";
+        // Global search
+        if (!empty($searchValue)) {
+            $searchQuery = "(r.name LIKE ? OR r.email LIKE ? OR r.mbl_number LIKE ? OR r.cnic LIKE ? OR t.name LIKE ?)";
+            $where[] = $searchQuery;
+            $searchParam = "%{$searchValue}%";
+            for ($i = 0; $i < 5; $i++) {
+                $params[] = $searchParam;
+                $types .= "s";
+            }
+        }
+        
+        $whereClause = !empty($where) ? " WHERE " . implode(" AND ", $where) : "";
+        
+        // Count total records (without filtering)
+        $totalSql = "SELECT COUNT(*) as total FROM registrations r";
+        $totalResult = $conn->query($totalSql);
+        $totalRecords = $totalResult->fetch_assoc()['total'];
+        
+        // Count filtered records
+        $filteredSql = "SELECT COUNT(*) as total $sqlBase $whereClause";
+        if (!empty($params)) {
+            $stmt = $conn->prepare($filteredSql);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $filteredResult = $stmt->get_result();
+            $recordsFiltered = $filteredResult->fetch_assoc()['total'];
+            $stmt->close();
+        } else {
+            $filteredResult = $conn->query($filteredSql);
+            $recordsFiltered = $filteredResult->fetch_assoc()['total'];
+        }
+        
+        // Fetch data
+        $sql = "SELECT r.id, r.name, r.email, r.mbl_number, r.status, r.internship_type, r.experience, r.city, r.country, r.cnic, DATE(r.created_at) AS created_at, t.name AS technology $sqlBase $whereClause ORDER BY $orderBy $orderDir LIMIT ?, ?";
+        
+        $params[] = $start;
+        $params[] = $length;
+        $types .= "ii";
         
         $stmt = $conn->prepare($sql);
-        
-        if ($types) {
-            $stmt->bind_param($types, ...$params);
-        }
-        
-        if (!$stmt->execute()) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Database query failed",
-                "error" => $stmt->error
-            ]);
-            exit;
-        }
-        
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
         $result = $stmt->get_result();
         
-        // Predefine arrays to avoid repetitive processing
+        // Formatter helpers
         $internshipTypes = [
-            'Internship Only',
-            'Full Training + Internship'
+            0 => 'Only Internship',
+            1 => 'Supervised Internship'
         ];
         
         $experiences = [
-            "I don't have any Experience",
-            '6 Months',
-            '1 Year',
-            '2 Years',
-            'More than 2 Years'
+            0 => "No Experience",
+            1 => '6 Months',
+            2 => '1 Year', // User specified "2 means 1 year"
+            3 => 'More than 2 Years'
         ];
         
-        $rows = [];
-        $rowCount = 0;
-        
+        $data = [];
         while ($row = $result->fetch_assoc()) {
-            // Format data efficiently
+            // Format data as needed
+              // Format data efficiently
             if (isset($row['internship_type']) && isset($internshipTypes[$row['internship_type']])) {
                 $row['internship_type'] = $internshipTypes[$row['internship_type']];
             }
             
-            if (isset($row['experience']) && isset($experiences[$row['experience']])) {
-                $row['experience'] = $experiences[$row['experience']];
+            if (isset($row['experience'])) {
+                // Handle potential multi-mapping or strictly follow schema
+                if (isset($experiences[$row['experience']])) {
+                     $row['experience'] = $experiences[$row['experience']];
+                } else if ($row['experience'] == 2) {
+                     // Fallback if 2 means 2 years was intended separately but index duplicated
+                     $row['experience'] = '1 Year';
+                }
             }
-            
-            $rows[] = $row;
-            $rowCount++;
-            
-            // Break early if processing too many rows (for performance)
-            if ($rowCount > 1000) {
-                // Log warning or implement pagination
-                break;
-            }
+            $data[] = $row;
         }
-        
         $stmt->close();
         
-        $endTime = microtime(true);
-        $executionTime = round(($endTime - $startTime) * 1000, 2); // in milliseconds
-        
-        // Add performance info to response (for debugging)
-        $response = [
-            "success" => true,
-            "data" => $rows,
-            "meta" => [
-                "count" => $rowCount,
-                "execution_time_ms" => $executionTime
-            ]
-        ];
-        
-        // If we have many records, suggest pagination
-        if ($rowCount > 500) {
-            $response['meta']['warning'] = 'Large dataset detected. Consider implementing server-side pagination.';
-        }
-        
-        echo json_encode($response);
+        echo json_encode([
+            "draw" => isset($_GET['draw']) ? (int)$_GET['draw'] : 0,
+            "recordsTotal" => $totalRecords,
+            "recordsFiltered" => $recordsFiltered,
+            "data" => $data
+        ]);
         exit;
         
     case 'update_status':

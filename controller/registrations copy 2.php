@@ -91,7 +91,7 @@ switch ($action) {
         $dataSql = "
         SELECT r.id, r.name, r.email, r.mbl_number, r.status,
                r.internship_type, r.experience, r.city, r.country,
-               r.cnic, DATE(r.created_at) created_at, r.remarks,
+               r.cnic, DATE(r.created_at) created_at,
                t.name technology
         $sqlBase
         $whereClause
@@ -141,21 +141,6 @@ switch ($action) {
                 }
             }
 
-            // Format remarks for tooltip
-            if (isset($row['remarks'])) {
-                $remarks = trim($row['remarks']);
-                if (empty($remarks)) {
-                    $row['remarks_text'] = 'No remarks';
-                    $row['has_remarks'] = false;
-                } else {
-                    $row['remarks_text'] = htmlspecialchars($remarks);
-                    $row['has_remarks'] = true;
-                }
-            } else {
-                $row['remarks_text'] = 'No remarks';
-                $row['has_remarks'] = false;
-            }
-
             $data[] = $row;
         }
         $stmt->close();
@@ -167,10 +152,9 @@ switch ($action) {
             'data' => $data
         ]);
         exit;
-
-    // ===============================
-    // SCHEDULE INTERVIEW WITH CONFLICT CHECK
-    // ===============================
+        // ===============================
+        // SCHEDULE INTERVIEW WITH CONFLICT CHECK
+        // ===============================
     case 'check_conflict':
         // Get form data
         $candidate_id = (int)$_POST['id'];
@@ -332,8 +316,8 @@ switch ($action) {
             'slots' => $slots
         ]);
         break;
-
     case 'schedule_interview':
+
         // Get form data
         $candidate_id = (int)$_POST['id'];
         $interview_start = $_POST['interview_start'];
@@ -371,6 +355,7 @@ switch ($action) {
         }
 
         // Check for scheduling conflicts
+        // Check for scheduling conflicts - SIMPLIFIED VERSION
         $conflict_sql = "SELECT r.id, r.name, r.interview_start, r.interview_end 
                      FROM registrations r 
                      WHERE r.status = 'interview' 
@@ -450,6 +435,55 @@ switch ($action) {
             ]);
         }
         $stmt->close();
+        break; // ===============================
+    // GET BOOKED TIME SLOTS
+    // ===============================
+    case 'get_booked_slots':
+
+        $date = $_GET['date'] ?? date('Y-m-d');
+
+        // Validate date format
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid date format']);
+            exit;
+        }
+
+        // Get all interviews for the selected date
+        $sql = "SELECT id, name, 
+            TIME(interview_start) as start_time, 
+            TIME(interview_end) as end_time,
+            DATE_FORMAT(interview_start, '%h:%i %p') as formatted_start,
+            DATE_FORMAT(interview_end, '%h:%i %p') as formatted_end
+            FROM registrations 
+            WHERE status = 'interview' 
+            AND DATE(interview_start) = ?
+            ORDER BY interview_start";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('s', $date);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $slots = [];
+        while ($row = $result->fetch_assoc()) {
+            $slots[] = [
+                'id' => $row['id'],
+                'name' => $row['name'],
+                'start' => $row['start_time'],
+                'end' => $row['end_time'],
+                'formatted_start' => $row['formatted_start'],
+                'formatted_end' => $row['formatted_end'],
+                'display' => "{$row['name']} ({$row['formatted_start']} - {$row['formatted_end']})"
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'date' => $date,
+            'slots' => $slots
+        ]);
+        $stmt->close();
+        exit;
         break;
 
     // ===============================
@@ -604,7 +638,7 @@ switch ($action) {
         break;
 
     case 'reschedule_interview':
-        $registration_id = (int)$_POST['id'];
+        $registration_id = (int)$_POST['id']; // Match parameter name
         $interview_start = $_POST['interview_start'];
         $interview_end = $_POST['interview_end'];
         $platform = $_POST['platform'];
@@ -627,7 +661,7 @@ switch ($action) {
             exit;
         }
 
-        // Check for conflicts
+        // Check for conflicts (Standard Overlap Check)
         $conflict_sql = "SELECT id, name, interview_start, interview_end 
                      FROM registrations 
                      WHERE status = 'interview' 
@@ -651,12 +685,22 @@ switch ($action) {
         }
         $conflict_stmt->close();
 
+        // Get old interview time for logging
+        $old_time_sql = "SELECT interview_start, interview_end FROM registrations WHERE id = ?";
+        $old_time_stmt = $conn->prepare($old_time_sql);
+        $old_time_stmt->bind_param('i', $registration_id);
+        $old_time_stmt->execute();
+        $old_time_result = $old_time_stmt->get_result();
+        $old_interview = $old_time_result->fetch_assoc();
+        $old_time_stmt->close();
+
         // Update interview time and details
         $update_sql = "UPDATE registrations 
                    SET interview_start = ?, interview_end = ?, platform = ?,
                        status = 'interview' 
                    WHERE id = ?";
 
+        $rescheduled_by = $_SESSION['user_id'];
         $update_stmt = $conn->prepare($update_sql);
         $update_stmt->bind_param('sssi', $interview_start, $interview_end, $platform, $registration_id);
 
@@ -764,11 +808,12 @@ switch ($action) {
         $notes = $_POST['notes'] ?? '';
 
         $sql = "UPDATE registrations 
-            SET status = 'rejected', remarks = ?
+            SET status = 'rejected'
             WHERE id = ?";
 
+        $rejected_by = $_SESSION['user_id'];
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param('si', $notes, $id);
+        $stmt->bind_param('i', $id);
 
         if ($stmt->execute()) {
             echo json_encode(['success' => true, 'message' => 'Candidate rejected']);
@@ -777,7 +822,6 @@ switch ($action) {
         }
         $stmt->close();
         break;
-
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;

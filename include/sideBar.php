@@ -1,3 +1,13 @@
+    <style>
+        #registrations-arrow {
+  color: #4B5563; /* Tailwind gray-700 hex */
+}
+
+.dark #registrations-arrow {
+  color: #E5E7EB; /* Tailwind gray-200 hex */
+}
+
+    </style>
     <aside id="sidebar"
         class="sidebar-expanded sidebar-transition bg-white dark:bg-gray-800 shadow-lg flex flex-col border-r border-gray-200 dark:border-gray-700">
         <!-- Sidebar Header with Logo and Toggle -->
@@ -78,43 +88,115 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
-                        <?php if($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) {?> 
-                        <li>
-                                <?php 
-                                    $currentPage = basename($_SERVER['SCRIPT_NAME']);
-                                    // List of all registration-related pages to keep parent active
-                                    $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_interview.php', 'registrations_rejected.php'];
-                                    $isRegistrationsActive = in_array($currentPage, $registrationPages);
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                            <li>
+                                <?php
+                                $currentPage = basename($_SERVER['SCRIPT_NAME']);
+                                // List of all registration-related pages to keep parent active
+                                $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_interview.php', 'registrations_rejected.php'];
+                                $isRegistrationsActive = in_array($currentPage, $registrationPages);
                                 ?>
                                 <button type="button" onclick="document.getElementById('registrations-submenu').classList.toggle('hidden'); document.getElementById('registrations-arrow').classList.toggle('rotate-180');"
                                     class="w-full flex items-center justify-between p-2 rounded-lg sidebar-link <?php echo $isRegistrationsActive ? 'active-sidebar-link' : 'sidebar-link-border' ?>">
                                     <div class="flex items-center space-x-2">
                                         <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
-                                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                                                 <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
                                                 <g id="SVGRepo_iconCarrier">
-                                                    <path d="M20 7H4C3.44772 7 3 7.44772 3 8V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V8C21 7.44772 20.5523 7 20 7Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M3 8L12 13L21 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M2 12C2 15.7712 2 17.6569 3.17157 18.8284C4.34315 20 6.22876 20 10 20H14C17.7712 20 19.6569 20 20.8284 18.8284C22 17.6569 22 15.7712 22 12C22 11.0542 22.0185 10.7271 22 10M13 4H10C6.22876 4 4.34315 4 3.17157 5.17157C2.51839 5.82475 2.22937 6.69989 2.10149 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M6 8L7.66438 9.38699M15.8411 9.79908C14.0045 11.3296 13.0861 12.0949 12 12.0949C11.3507 12.0949 10.7614 11.8214 10 11.2744" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <circle cx="19" cy="5" r="3" stroke="currentColor" stroke-width="1.5"></circle>
                                                 </g>
                                             </svg>
                                         </div>
                                         <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
                                     </div>
-                                    <svg id="registrations-arrow" class="w-4 h-4 transition-transform duration-200 <?php echo $isRegistrationsActive ? 'rotate-180' : '' ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <svg
+        id="registrations-arrow"
+        class="w-4 h-4 transition-transform duration-200 <?php echo $isRegistrationsActive ? 'rotate-180' : '' ?>"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
                                 </button>
                                 <ul id="registrations-submenu" class="<?php echo $isRegistrationsActive ? '' : 'hidden' ?> py-2 space-y-2">
                                     <li>
-                                        <a href="registrations_new.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_new.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">New</a>
+                                        <a href="registrations_new.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_new.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M12 6L12 8M12 8L12 10M12 8H9.99998M12 8L14 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M8 14H9M16 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M9 18H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M3 14V10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157C20.4816 3.82476 20.7706 4.69989 20.8985 6M21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3.51839 20.1752 3.22937 19.3001 3.10149 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <span
+                                                class="sidebar-item text-gray-700 dark:text-gray-200">New</span>
+                                        </a>
                                     </li>
                                     <li>
-                                        <a href="registrations_contact.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_contact.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Contact</a>
+                                        <a href="registrations_contact.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_contact.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M4.00655 7.93309C3.93421 9.84122 4.41713 13.0817 7.6677 16.3323C8.45191 17.1165 9.23553 17.7396 10 18.2327M5.53781 4.93723C6.93076 3.54428 9.15317 3.73144 10.0376 5.31617L10.6866 6.4791C11.2723 7.52858 11.0372 8.90532 10.1147 9.8278C10.1147 9.8278 10.1147 9.8278 10.1147 9.8278C10.1146 9.82792 8.99588 10.9468 11.0245 12.9755C13.0525 15.0035 14.1714 13.8861 14.1722 13.8853C14.1722 13.8853 14.1722 13.8853 14.1722 13.8853C15.0947 12.9628 16.4714 12.7277 17.5209 13.3134L18.6838 13.9624C20.2686 14.8468 20.4557 17.0692 19.0628 18.4622C18.2258 19.2992 17.2004 19.9505 16.0669 19.9934C15.2529 20.0243 14.1963 19.9541 13 19.6111" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <span
+                                                class="sidebar-item text-gray-700 dark:text-gray-200">Contact</span>
+                                        </a>
                                     </li>
                                     <li>
-                                        <a href="registrations_interview.php" class="flex items-center w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_interview.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Interview</a>
+                                        <a href="registrations_interview.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_interview.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M14 22H10C6.22876 22 4.34315 22 3.17157 20.8284C2 19.6569 2 17.7712 2 14V12C2 8.22876 2 6.34315 3.17157 5.17157C4.34315 4 6.22876 4 10 4H14C17.7712 4 19.6569 4 20.8284 5.17157C22 6.34315 22 8.22876 22 12V14C22 17.7712 22 19.6569 20.8284 20.8284C20.1752 21.4816 19.3001 21.7706 18 21.8985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M7 4V2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M17 4V2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M21.5 9H16.625H10.75M2 9H5.875" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M18 17C18 17.5523 17.5523 18 17 18C16.4477 18 16 17.5523 16 17C16 16.4477 16.4477 16 17 16C17.5523 16 18 16.4477 18 17Z" fill="currentColor"></path>
+                                                        <path d="M18 13C18 13.5523 17.5523 14 17 14C16.4477 14 16 13.5523 16 13C16 12.4477 16.4477 12 17 12C17.5523 12 18 12.4477 18 13Z" fill="currentColor"></path>
+                                                        <path d="M13 17C13 17.5523 12.5523 18 12 18C11.4477 18 11 17.5523 11 17C11 16.4477 11.4477 16 12 16C12.5523 16 13 16.4477 13 17Z" fill="currentColor"></path>
+                                                        <path d="M13 13C13 13.5523 12.5523 14 12 14C11.4477 14 11 13.5523 11 13C11 12.4477 11.4477 12 12 12C12.5523 12 13 12.4477 13 13Z" fill="currentColor"></path>
+                                                        <path d="M8 17C8 17.5523 7.55228 18 7 18C6.44772 18 6 17.5523 6 17C6 16.4477 6.44772 16 7 16C7.55228 16 8 16.4477 8 17Z" fill="currentColor"></path>
+                                                        <path d="M8 13C8 13.5523 7.55228 14 7 14C6.44772 14 6 13.5523 6 13C6 12.4477 6.44772 12 7 12C7.55228 12 8 12.4477 8 13Z" fill="currentColor"></path>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Interview</span>
+                                        </a>
                                     </li>
                                     <li>
-                                        <a href="registrations_rejected.php" class="flex items-center w-full p-2 text-red-600 dark:text-red-400 transition duration-75 rounded-lg pl-11 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_rejected.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">Reject</a>
+                                        <a href="registrations_rejected.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_rejected.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M20.5001 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M9.5 11L10 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M14.5 11L14 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+                                                        <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Rejected</span>
+                                        </a>
                                     </li>
                                 </ul>
                             </li>
@@ -165,8 +247,8 @@
                             </li>
                         <?php }
                         if ($_SESSION['user_role'] == 1) {
-                            ?>
-                            
+                        ?>
+
                             <li>
                                 <a href="managers.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -186,7 +268,7 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Managers</span>
                                 </a>
                             </li>
-                            <?php
+                        <?php
                         } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
                             <li>

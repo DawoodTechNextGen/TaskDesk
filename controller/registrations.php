@@ -9,10 +9,10 @@ header('Content-Type: application/json');
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Only Admin (1) and Manager (4) can access registrations
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], [1, 4], true)) {
+if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
     echo json_encode([
         'success' => false,
-        'message' => 'Unauthorized'
+        'message' => 'Unauthorized access for role: ' . ($_SESSION['user_role'] ?? 'none')
     ]);
     exit;
 }
@@ -165,7 +165,7 @@ switch ($action) {
 
         echo json_encode([
             'draw' => (int)($_GET['draw'] ?? 0),
-            'recordsTotal' => count($data),
+            'recordsTotal' => $recordsFiltered,
             'recordsFiltered' => $recordsFiltered,
             'data' => $data
         ]);
@@ -638,10 +638,14 @@ switch ($action) {
 
         $stmt->close();
 
+        // For interview case, we use specific count
+        $countRes = $conn->query($countSql);
+        $totalRecords = $countRes ? $countRes->fetch_assoc()['total'] : count($data);
+
         echo json_encode([
             'draw' => intval($_GET['draw'] ?? 1),
-            'recordsTotal' => count($data),
-            'recordsFiltered' => count($data),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords, // Simplified for now
             'data' => $data,
         ]);
         break;

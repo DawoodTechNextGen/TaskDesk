@@ -1326,24 +1326,6 @@ include_once "./include/headerLinks.php";
         // Don't reset form values - they'll be set when modal opens
     }
 
-    // Utility functions (from your existing code)
-    const LoaderManager = {
-        showGlobal: function() {
-            document.getElementById('globalLoader').classList.remove('hidden');
-        },
-        hideGlobal: function() {
-            document.getElementById('globalLoader').classList.add('hidden');
-        }
-    };
-
-    function showToast(type, msg) {
-        const toast = document.createElement('div');
-        toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-        toast.textContent = msg;
-        document.getElementById('toast-container').appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
-
     function escapeHTML(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1536,6 +1518,10 @@ include_once "./include/headerLinks.php";
                 processing: 'Processing...',
                 emptyTable: 'No contacts found',
                 zeroRecords: 'No contacts found'
+            },
+            error: function (xhr, error, thrown) {
+                console.error('DataTables Error:', error, thrown);
+                showToast('error', 'Failed to load contacts. Please try again.');
             }
         });
 

@@ -771,15 +771,15 @@ switch ($action) {
 
             // WhatsApp Notification with Offer Letter
             $whatsappMsg = "Assalam-o-Alaikum " . $registration['name'] . ",\n\n"
-                . "🎉 *Congratulations!* You have been hired as a *MERN Stack Intern* at DawoodTech NextGen.\n\n"
-                . "🔐 *Your Login Credentials:*\n"
-                . "📧 *Email:* " . $registration['email'] . "\n"
-                . "🔑 *Password:* " . $password . "\n"
-                . "🌐 *TaskDesk:* https://dawoodtechnextgen.org/taskdesk/\n\n"
-                . "Your official offer letter is following this message. Please change your password after your first login.\n\n"
-                . "Best regards,\n"
-                . "HR Department\n"
-                . "*DawoodTech NextGen*";
+            . "🎉 *Congratulations!* You have been hired as a *MERN Stack Intern* at DawoodTech NextGen.\n\n"
+            . "🔐 *Your Login Credentials:*\n\n"  // Notice double line break
+            . "📧 *Email:* " . $registration['email'] . "\n\n"
+            . "🔑 *Password:* " . $password . "\n\n"
+            . "🌐 *TaskDesk:* https://dawoodtechnextgen.org/taskdesk/\n\n"
+            . "Your official offer letter is following this message. Please change your password after your first login.\n\n"
+            . "Best regards,\n"
+            . "HR Department\n"
+            . "*DawoodTech NextGen*";
 
             // Generate and send Offer Letter via WhatsApp
             $startDate = date('d-M-Y');

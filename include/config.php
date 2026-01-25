@@ -52,12 +52,16 @@ define('MAIL_PASSWORD', getenv('MAIL_PASSWORD'));
 define('MAIL_ENCRYPTION', getenv('MAIL_ENCRYPTION'));
 define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL'));
 define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME'));
-
+// gmail
 define('GMAIL_MAIL_HOST', getenv('GMAIL_MAIL_HOST'));
 define('GMAIL_MAIL_PORT', getenv('GMAIL_MAIL_PORT'));
 define('GMAIL_MAIL_USERNAME', getenv('GMAIL_MAIL_USERNAME'));
 define('GMAIL_MAIL_PASSWORD', getenv('GMAIL_MAIL_PASSWORD'));
 define('GMAIL_MAIL_ENCRYPTION', getenv('GMAIL_MAIL_ENCRYPTION'));
+// whatsapp
+define('WHATSAPP_INSTANCE_ID', getenv('WHATSAPP_INSTANCE_ID'));
+define('WHATSAPP_ACCESS_TOKEN', getenv('WHATSAPP_ACCESS_TOKEN'));
+define('WHATSAPP_API_URL', getenv('WHATSAPP_API_URL'));
 
 // Application Configuration
 define('APP_DEBUG', filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN));

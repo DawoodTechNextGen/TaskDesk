@@ -1075,6 +1075,7 @@ include_once "./include/headerLinks.php";
         const startTime = document.getElementById('intFromTime').value;
         const endTime = document.getElementById('intToTime').value;
         const candidateId = document.getElementById('intId').value;
+
         
         // Final validation
         if (!validateStep2()) {
@@ -1095,6 +1096,8 @@ include_once "./include/headerLinks.php";
             formDataObj.append('id', candidateId);
             formDataObj.append('platform', document.getElementById('intPlatform').value);
             formDataObj.append('technology_id', document.getElementById('intTech').value);
+            formDataObj.append('name', formData.name);
+            formDataObj.append('contact', formData.contact);
             formDataObj.append('interview_start', `${selectedDateStr} ${startTime}:00`);
             formDataObj.append('interview_end', `${selectedDateStr} ${endTime}:00`);
             formDataObj.append('action', 'schedule_interview');

@@ -16,96 +16,8 @@ use PHPMailer\PHPMailer\Exception;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 global $email_from; 
-// Include your functions
-function generateOfferLetterPDF($name, $startDate, $endDate, $tech_name)
-{
-    try {
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-        $dompdf = new Dompdf($options);
+require_once dirname(__DIR__) . '/include/pdf_helper.php';
 
-        // Use local path for performance (avoids HTTP loopback)
-        $bgImage = dirname(__DIR__) . "/assets/images/offerletter.png"; 
-        // fallback if local file not found, though uncommon
-        if (!file_exists($bgImage)) {
-             $bgImage = BASE_URL . "assets/images/offerletter.png";
-        }
-
-        $html = '
-        <!DOCTYPE html>
-        <html>
-        <head>
-    <style>
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-    }
-    body {
-        font-family: Arial, sans-serif;
-        background-image: url(' . $bgImage . ');
-        background-size: 100% 100%;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-    .content-box {
-        margin: 200px 40px 40px 40px;
-        padding: 40px 40px;
-        height: 720px;
-        background: transparent;
-        font-size: 16px;
-    }
-    </style>
-
-        </head>
-        <body>
-            <div class="content-box">
-                <div class="section" style="text-align:right;">
-                    <strong>Date:</strong> ' . htmlspecialchars($startDate) . '
-                </div>
-                <div class="section">
-                    <strong>To:</strong><br>
-                    ' . htmlspecialchars($name) . '<br>
-                    <strong>Designation:</strong> Intern – ' . htmlspecialchars($tech_name) . '<br>
-                    DawoodTech NextGen
-                </div>
-                <div class="section title">
-                    Internship Offer – ' . htmlspecialchars($tech_name) . '
-                </div>
-                <div class="section">
-                    <p>Dear ' . htmlspecialchars($name) . ',</p>
-                    <p>We are pleased to offer you an internship opportunity from 
-                    <strong>' . $startDate . '</strong> to <br> <strong>' . $endDate . '</strong> at <strong>DawoodTech NextGen</strong> as a 
-                    <strong>' . htmlspecialchars($tech_name) . ' Intern</strong>.</p>
-                    <pThis internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
-                    <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>
-                    <p>We value our professional relationship and look forward to your continued support. Should you have any questions or require further details, please do not hesitate to contact us.</p>
-                </div>
-                <div class="signature">
-                    <strong>Sincerely,</strong><br>
-                    Qamar Naveed<br>
-                    Founder<br>
-                    <strong>DawoodTech NextGen</strong><br><br>
-                    <strong>Contact Information:</strong><br>
-                    <strong>Phone: </strong>+92-311-7305346<br>
-                    <strong>Email: </strong>info@dawoodtechnextgen.org<br>
-                    <strong>Website: </strong>https://dawoodtechnextgen.org
-                </div>
-            </div>
-        </body>
-        </html>';
-
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        return $dompdf->output();
-    } catch (Exception $e) {
-        error_log("PDF generation error: " . $e->getMessage());
-        return null;
-    }
-}
 function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
 {
     $mail = new PHPMailer(true);
@@ -262,7 +174,7 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         // ---------------------------
         // Attach PDF - Offer Letter
         // ---------------------------
-        $pdfContent = generateOfferLetterPDF($name, $startDate, $endDate, $tech_name);
+        $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
 
         if ($pdfContent) {
             $fileName = 'Offer_Letter_' . preg_replace('/\s+/', '_', $name) . '.pdf';
@@ -435,7 +347,7 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
         // ---------------------------
         // Attach PDF - Offer Letter
         // ---------------------------
-        $pdfContent = generateOfferLetterPDF($name, $startDate, $endDate, $tech_name);
+        $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
 
         if ($pdfContent) {
             $fileName = 'Offer_Letter_' . preg_replace('/\s+/', '_', $name) . '.pdf';

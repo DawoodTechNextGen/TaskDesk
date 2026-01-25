@@ -1,6 +1,8 @@
 <?php
 session_start();
+include '../include/config.php';
 include '../include/connection.php';
+require_once '../include/pdf_helper.php';
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -168,9 +170,9 @@ switch ($action) {
         ]);
         exit;
 
-    // ===============================
-    // SCHEDULE INTERVIEW WITH CONFLICT CHECK
-    // ===============================
+        // ===============================
+        // SCHEDULE INTERVIEW WITH CONFLICT CHECK
+        // ===============================
     case 'check_conflict':
         // Get form data
         $candidate_id = (int)$_POST['id'];
@@ -339,7 +341,8 @@ switch ($action) {
         $interview_start = $_POST['interview_start'];
         $interview_end = $_POST['interview_end'];
         $platform = $_POST['platform'];
-
+        $mbl_number = $_POST['contact'];
+        $name = $_POST['name'];
         // Validate required fields
         if (empty($candidate_id) || empty($interview_start) || empty($interview_end)) {
             echo json_encode([
@@ -437,8 +440,25 @@ switch ($action) {
 
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('sssi', $interview_start, $interview_end, $platform, $candidate_id);
+        $message = "Assalam-o-Alaikum $name,\n\n"
+            . "📋 *Interview Scheduled - Dawood Tech NextGen*\n\n"
+            . "🎯 *Position:* Internship\n"
+            . "📅 *Date:* " . date('d M, Y', strtotime($interview_start)) . "\n"
+            . "⏰ *Time:* " . date('h:i A', strtotime($interview_start)) . " to " . date('h:i A', strtotime($interview_end)) . "\n"
+            . "🌐 *Platform:* $platform\n\n"
+            . "📌 *Instructions:*\n"
+            . "• We sent meeting Link 5 minutes before the scheduled time\n"
+            . "• Ensure stable internet connection\n"
+            . "• Prepare to discuss your skills and experience\n\n"
+            . "If you have any questions or need to reschedule, please contact us \n\n"
+            . "We wish you the best of luck!\n\n"
+            . "Best regards,\n"
+            . "HR Department\n"
+            . "*Dawood Tech NextGen*\n"
+            . "🚀 Kickstart Your Tech Career with DawoodTech";
 
-        if ($stmt->execute()) {
+            if ($stmt->execute()) {
+            $whatsapp_result = whatsappApi($mbl_number, $message);
             echo json_encode([
                 'success' => true,
                 'message' => 'Interview scheduled successfully'
@@ -610,8 +630,10 @@ switch ($action) {
         $platform = $_POST['platform'];
 
         // Validate datetime
-        if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $interview_start) || 
-            !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $interview_end)) {
+        if (
+            !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $interview_start) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $interview_end)
+        ) {
             echo json_encode(['success' => false, 'message' => 'Invalid datetime format']);
             exit;
         }
@@ -676,61 +698,61 @@ switch ($action) {
         $userRole = 2;
         $status = 1;
         $newStatus = 'hire';
-        
+
         if ($id <= 0) {
             echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
             break;
         }
-        
+
         // Start transaction
         $conn->begin_transaction();
-        
+
         try {
             // Update registration status
             $u = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
             $u->bind_param('si', $newStatus, $id);
-            
+
             if (!$u->execute()) {
                 throw new Exception('Failed to update registration status');
             }
             $u->close();
-            
+
             // Get registration details
             $sqlSelect = $conn->prepare("SELECT r.*, t.name as tech_name FROM registrations r LEFT JOIN technologies t ON r.technology_id = t.id WHERE r.id = ?");
             $sqlSelect->bind_param('i', $id);
-            
+
             if (!$sqlSelect->execute()) {
                 throw new Exception('Failed to fetch registration details');
             }
-            
+
             $result = $sqlSelect->get_result();
             $registration = $result->fetch_assoc();
             $sqlSelect->close();
-            
+
             if (!$registration) {
                 throw new Exception('Registration not found');
             }
-            
+
             // Create user record
             $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $insertHire->bind_param('ssssiiii', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer);
-            
+
             if (!$insertHire->execute()) {
                 throw new Exception('Failed to create user');
             }
-            
+
             $tech_id = $conn->insert_id;
             $insertHire->close();
-            
+
             // Create certificate record
             $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
             $stmt->bind_param('i', $tech_id);
-            
+
             if (!$stmt->execute()) {
                 throw new Exception('Failed to create certificate');
             }
             $stmt->close();
-            
+
             // Add to email queue
             $data = json_encode([
                 'name' => $registration['name'],
@@ -738,20 +760,48 @@ switch ($action) {
                 'password' => $password,
                 'tech_name' => $registration['tech_name']
             ]);
-            
+
             $queueStmt = $conn->prepare("INSERT INTO email_queue (to_email, to_name, template, data) VALUES (?, ?, 'welcome_offer', ?)");
             $queueStmt->bind_param('sss', $registration['email'], $registration['name'], $data);
-            
+
             if (!$queueStmt->execute()) {
                 throw new Exception('Failed to add to email queue');
             }
             $queueStmt->close();
-            
+
+            // WhatsApp Notification
+            $whatsappMsg = "Assalam-o-Alaikum " . $registration['name'] . ",\n\n"
+                . "🎉 *Congratulations!* You have been hired as a *" . $registration['tech_name'] . " Intern* at DawoodTech NextGen.\n\n"
+                . "🔐 *Your Login Credentials:*\n"
+                . "📧 *Email:* " . $registration['email'] . "\n"
+                . "🔑 *Password:* " . $password . "\n"
+                . "🌐 *Login here:* https://dawoodtechnextgen.org/taskdesk/login.php\n\n"
+                . "Your official offer letter is following this message. Please change your password after your first login.\n\n"
+                . "Best regards,\n"
+                . "HR Department\n"
+                . "*DawoodTech NextGen*";
+
+            $whatsapp_sent = whatsappApi($registration['mbl_number'], $whatsappMsg);
+
+            // Generate and send Offer Letter via WhatsApp
+            $startDate = date('d-M-Y');
+            $endDate = date('d-M-Y', strtotime('+2 months'));
+            $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
+
+            if ($pdfContent) {
+                $tempFile = '../temp/Offer_Letter_' . $id . '_' . time() . '.pdf';
+                if (!is_dir('../temp')) mkdir('../temp', 0777, true);
+                file_put_contents($tempFile, $pdfContent);
+
+                // Use public URL for WhatsApp API to fetch the file
+                $publicFileUrl = BASE_URL . 'temp/' . basename($tempFile);
+                whatsappFileApi($registration['mbl_number'], $publicFileUrl, 'Offer_Letter.pdf', "Here is your official Offer Letter!");
+            }
+
             // Commit transaction
             $conn->commit();
-            
+
             echo json_encode(['success' => true, 'message' => 'Hired successfully!']);
-            
         } catch (Exception $e) {
             // Rollback transaction on error
             $conn->rollback();
@@ -812,4 +862,226 @@ function generateStrictPassword($length = 12)
 // Close database connection
 if (isset($conn)) {
     mysqli_close($conn);
+}
+function checkWhatsAppResponse($response)
+{
+    // Check if response is empty
+    if (empty($response)) {
+        return [
+            'success' => false,
+            'message' => 'Empty response from WhatsApp API',
+            'raw' => $response
+        ];
+    }
+
+    // If response is JSON string, decode it
+    if (is_string($response)) {
+        $data = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Try to see if it's HTML/other format
+            if (str_contains($response, '<html') || str_contains($response, '<!DOCTYPE')) {
+                return [
+                    'success' => false,
+                    'message' => 'Received HTML instead of JSON (possible server error)',
+                    'raw' => substr($response, 0, 200) . '...'
+                ];
+            }
+            return [
+                'success' => false,
+                'message' => 'Invalid JSON response: ' . json_last_error_msg(),
+                'error' => json_last_error_msg(),
+                'raw' => substr($response, 0, 200) . '...'
+            ];
+        }
+    } else {
+        $data = $response;
+    }
+
+    // Check for error response
+    if (isset($data['code'])) {
+        return [
+            'success' => false,
+            'message' => $data['message'] ?? 'Unknown error',
+            'error_code' => $data['code'],
+            'status_code' => $data['data']['status'] ?? 500,
+            'details' => $data['data']['details'] ?? [],
+            'full_response' => $data
+        ];
+    }
+
+    // Check for specific WhatsApp API error patterns
+    if (isset($data['error'])) {
+        return [
+            'success' => false,
+            'message' => $data['error'] . (isset($data['message']) ? ': ' . $data['message'] : ''),
+            'error_code' => $data['error'] ?? 'unknown',
+            'full_response' => $data
+        ];
+    }
+
+    // Check for success response
+    if (isset($data['id']) && strpos($data['id'], 'true_') === 0) {
+        $result = [
+            'success' => true,
+            'message' => 'Message processed successfully',
+            'message_id' => $data['id']
+        ];
+
+        // Add more details if available
+        if (isset($data['_data'])) {
+            $result['timestamp'] = $data['_data']['Info']['Timestamp'] ?? null;
+            $result['chat'] = $data['_data']['Info']['Chat'] ?? null;
+            $result['is_from_me'] = $data['_data']['Info']['IsFromMe'] ?? null;
+            $result['data'] = $data['_data'];
+        }
+
+        $result['full_response'] = $data;
+
+        return $result;
+    }
+
+    // Check for alternative success format (some APIs use different structure)
+    if (isset($data['sent']) && $data['sent'] === true) {
+        return [
+            'success' => true,
+            'message' => 'Message sent successfully',
+            'message_id' => $data['id'] ?? $data['messageId'] ?? null,
+            'full_response' => $data
+        ];
+    }
+
+    // Unknown response format
+    return [
+        'success' => false,
+        'message' => 'Unexpected response format from WhatsApp API',
+        'raw_response' => $data
+    ];
+}
+function whatsappApi($chatId, $message)
+{
+    // Format chat ID properly (remove spaces, ensure 92 format)
+    $chatId = preg_replace('/[^0-9]/', '', $chatId);
+    if (!str_starts_with($chatId, '92')) {
+        $chatId = '92' . ltrim($chatId, '0');
+    }
+
+    $params = [
+        'instance_id'   => WHATSAPP_INSTANCE_ID,
+        'access_token'  => WHATSAPP_ACCESS_TOKEN,
+        'chatId'        => $chatId,
+        'message'       => $message,
+    ];
+
+    $url = WHATSAPP_API_URL . '?' . http_build_query($params);
+
+    // Log the request for debugging
+    error_log("WhatsApp API Request: " . json_encode([
+        'url' => $url,
+        'chatId' => $chatId,
+        'message_length' => strlen($message)
+    ]));
+
+    $curl = curl_init();
+
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => false, // For testing, remove in production
+        CURLOPT_SSL_VERIFYHOST => false, // For testing, remove in production
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ]
+    ]);
+
+    $response = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
+
+    curl_close($curl);
+
+    // Log raw response for debugging
+    error_log("WhatsApp API Raw Response (HTTP $httpCode): " . $response);
+    if ($error) {
+        error_log("WhatsApp API cURL Error: " . $error);
+    }
+
+    $check = checkWhatsAppResponse($response);
+
+    if ($check['success']) {
+        error_log("WhatsApp Message Sent Successfully - ID: " . $check['message_id']);
+        return [
+            'success' => true,
+            'message' => 'Message sent successfully',
+            'message_id' => $check['message_id'],
+            'http_code' => $httpCode
+        ];
+    } else {
+        error_log("WhatsApp API Error: " . $check['message'] . " (Code: " . ($check['error_code'] ?? 'N/A') . ")");
+        return [
+            'success' => false,
+            'message' => "Error: " . $check['message'],
+            'error_code' => $check['error_code'] ?? null,
+            'http_code' => $httpCode,
+            'response' => $response // Return raw response for debugging
+        ];
+    }
+}
+
+function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "")
+{
+    $chatId = preg_replace('/[^0-9]/', '', $chatId);
+    if (!str_starts_with($chatId, '92')) {
+        $chatId = '92' . ltrim($chatId, '0');
+    }
+
+    $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+    $mimetype = ($ext == 'pdf') ? 'application/pdf' : 'application/octet-stream';
+
+    $params = [
+        'instance_id'  => WHATSAPP_INSTANCE_ID,
+        'access_token' => WHATSAPP_ACCESS_TOKEN,
+        'chatId'       => $chatId,
+        'file' => [
+            'url'      => $fileUrl,
+            'filename' => $fileName,
+            'mimetype' => $mimetype
+        ],
+        'caption'      => $caption
+    ];
+
+    $apiUrl = str_replace('/send', '/sendFile', WHATSAPP_API_URL);
+    $url = $apiUrl . '?' . http_build_query($params);
+
+    // Log the request for debugging
+    error_log("WhatsApp File API Request: " . $url);
+
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER     => ['Accept: application/json']
+    ]);
+
+    $response = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
+    curl_close($curl);
+
+    // Log response
+    error_log("WhatsApp File API Response (HTTP $httpCode): " . $response);
+    if ($error) {
+        error_log("WhatsApp File API cURL Error: " . $error);
+    }
+
+    return [
+        'success' => ($httpCode == 200),
+        'response' => $response,
+        'http_code' => $httpCode
+    ];
 }

@@ -69,6 +69,7 @@ function whatsappApi($chatId, $message) {
     ];
 
     $url = WHATSAPP_API_URL . '?' . http_build_query($params);
+    error_log("WhatsApp API Request URL: " . $url);
 
     $curl = curl_init();
     curl_setopt_array($curl, [
@@ -77,12 +78,19 @@ function whatsappApi($chatId, $message) {
         CURLOPT_CUSTOMREQUEST  => 'POST',
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json']
     ]);
 
     $response = curl_exec($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
     curl_close($curl);
+
+    if ($error) {
+        error_log("WhatsApp API cURL Error: " . $error);
+    }
+    error_log("WhatsApp API Response (HTTP $httpCode): " . $response);
 
     $check = checkWhatsAppResponse($response);
     if ($check['success']) {
@@ -115,9 +123,8 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         ],
         'caption'      => $caption
     ];
-
-    $apiUrl = str_replace('/send', '/sendFile', WHATSAPP_API_URL);
-    $url = $apiUrl . '?' . http_build_query($params);
+    $url = WHATSAPP_API_FILEURL . '?' . http_build_query($params);
+    error_log("WhatsApp File API Request URL: " . $url);
 
     $curl = curl_init();
     curl_setopt_array($curl, [
@@ -126,16 +133,44 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         CURLOPT_CUSTOMREQUEST  => 'POST',
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_HTTPHEADER     => ['Accept: application/json']
     ]);
 
     $response = curl_exec($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
     curl_close($curl);
 
-    return [
-        'success' => ($httpCode == 200),
-        'response' => $response,
-        'http_code' => $httpCode
-    ];
+    if ($error) {
+        error_log("WhatsApp File API cURL Error: " . $error);
+    }
+    error_log("WhatsApp File API Response (HTTP $httpCode): " . $response);
+
+    $check = checkWhatsAppResponse($response);
+    if ($check['success']) {
+        return [
+            'success' => true,
+            'message' => 'File sent successfully',
+            'message_id' => $check['message_id'] ?? null,
+            'http_code' => $httpCode
+        ];
+    } else {
+        // If httpCode is 200 but check failed, it might be a format checkWhatsAppResponse doesn't know.
+        // For files, we might want to be more lenient if httpCode is 200.
+        if ($httpCode == 200) {
+            return [
+                'success' => true,
+                'message' => 'File sent (HTTP 200)',
+                'http_code' => $httpCode,
+                'response' => $response
+            ];
+        }
+        return [
+            'success' => false,
+            'message' => "Error: " . $check['message'],
+            'http_code' => $httpCode,
+            'response' => $response
+        ];
+    }
 }

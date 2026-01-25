@@ -36,26 +36,38 @@ function sendNotificationFallback($params) {
     if (!empty($toMbl)) {
         $results['whatsapp']['attempted'] = true;
         if ($pdfContent) {
-            // WhatsApp with file requires a public URL or local path depending on API
-            // For now, we use the logic from email_queue.php: save to temp
+            // WhatsApp with file requires a public URL
             $tempDir = dirname(__DIR__) . '/temp';
-            if (!is_dir($tempDir)) mkdir($tempDir, 0777, true);
-            $tempFile = $tempDir . '/tmp_' . time() . '_' . uniqid() . '.pdf';
-            file_put_contents($tempFile, $pdfContent);
+            if (!is_dir($tempDir)) {
+                if (!mkdir($tempDir, 0777, true)) {
+                     $results['error_logs'][] = "Failed to create temp directory: $tempDir";
+                }
+            }
             
-            $publicFileUrl = BASE_URL . 'temp/' . basename($tempFile);
-            $res = whatsappFileApi($toMbl, $publicFileUrl, $pdfFileName, $whatsappMsg);
+            $tempFileName = 'tmp_' . time() . '_' . uniqid() . '.pdf';
+            $tempFile = $tempDir . '/' . $tempFileName;
             
-            // Cleanup temp file after a short delay or immediately if API is synchronous
-            // Note: If API is async, it might need the file to persist. 
-            // But usually, curl_exec waits for response.
-            if (file_exists($tempFile)) unlink($tempFile);
+            if (file_put_contents($tempFile, $pdfContent)) {
+                // Ensure BASE_URL has trailing slash
+                $baseUrlNormalized = rtrim(BASE_URL, '/') . '/';
+                $publicFileUrl = $baseUrlNormalized . 'temp/' . $tempFileName;
+                
+                error_log("Attempting WhatsApp File. BASE_URL: " . BASE_URL . " | Normalized: " . $baseUrlNormalized);
+                error_log("Public File URL: " . $publicFileUrl);
+                
+                $res = whatsappFileApi($toMbl, $publicFileUrl, $pdfFileName, $whatsappMsg);
+                
+                // Cleanup (Disabled for debugging)
+                // if (file_exists($tempFile)) unlink($tempFile);
 
-            if ($res['success']) {
-                $results['whatsapp']['success'] = true;
-                $results['final_success'] = true;
+                if ($res['success']) {
+                    $results['whatsapp']['success'] = true;
+                    $results['final_success'] = true;
+                } else {
+                    $results['error_logs'][] = "WhatsApp File failed: " . ($res['message'] ?? 'Unknown error');
+                }
             } else {
-                $results['error_logs'][] = "WhatsApp File failed: " . ($res['response'] ?? 'Unknown error');
+                $results['error_logs'][] = "Failed to write temp file: $tempFile";
             }
         } else {
             $res = whatsappApi($toMbl, $whatsappMsg);
@@ -71,22 +83,24 @@ function sendNotificationFallback($params) {
     // 2. Fallback to Primary Email
     if (!$results['final_success']) {
         $results['primary_email']['attempted'] = true;
+        error_log("Attempting Primary Email Fallback to: $toEmail");
         if (sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, 'primary')) {
             $results['primary_email']['success'] = true;
             $results['final_success'] = true;
         } else {
-            $results['error_logs'][] = "Primary Email failed.";
+            $results['error_logs'][] = "Primary Email failed. Check error_log for SMTP details.";
         }
     }
 
     // 3. Fallback to Gmail
     if (!$results['final_success']) {
         $results['gmail_email']['attempted'] = true;
+        error_log("Attempting Gmail Email Fallback to: $toEmail");
         if (sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, 'gmail')) {
             $results['gmail_email']['success'] = true;
             $results['final_success'] = true;
         } else {
-            $results['error_logs'][] = "Gmail Fallback failed.";
+            $results['error_logs'][] = "Gmail Fallback failed. Check error_log for SMTP details.";
         }
     }
 
@@ -100,6 +114,9 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
+        // $mail->SMTPDebug = 2; // Enable for deep debugging if needed
+        // $mail->Debugoutput = function($str, $level) { error_log("SMTP DEBUG: $str"); };
+
         if ($type === 'primary') {
             $mail->Host       = MAIL_HOST;
             $mail->SMTPAuth   = true;
@@ -118,7 +135,7 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
             $mail->setFrom(GMAIL_MAIL_USERNAME, MAIL_FROM_NAME);
         }
 
-        $mail->Timeout  = 10;
+        $mail->Timeout  = 30; // Increased timeout
         $mail->addAddress($toEmail, $toName);
         $mail->isHTML(true);
         $mail->Subject = $subject;
@@ -130,7 +147,7 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
 
         return $mail->send();
     } catch (Exception $e) {
-        error_log("$type Email Error: " . $mail->ErrorInfo);
+        error_log("$type Email PHPMailer Error: " . $mail->ErrorInfo);
         return false;
     }
 }

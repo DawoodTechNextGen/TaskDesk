@@ -62,6 +62,7 @@ define('GMAIL_MAIL_ENCRYPTION', getenv('GMAIL_MAIL_ENCRYPTION'));
 define('WHATSAPP_INSTANCE_ID', getenv('WHATSAPP_INSTANCE_ID'));
 define('WHATSAPP_ACCESS_TOKEN', getenv('WHATSAPP_ACCESS_TOKEN'));
 define('WHATSAPP_API_URL', getenv('WHATSAPP_API_URL'));
+define('WHATSAPP_API_FILEURL', getenv('WHATSAPP_API_FILEURL'));
 
 // Application Configuration
 define('APP_DEBUG', filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN));

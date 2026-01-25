@@ -1,4 +1,4 @@
-    <?php
+<?php
     include_once "./include/connection.php";
 
     // Stop all tasks where status = 'working'

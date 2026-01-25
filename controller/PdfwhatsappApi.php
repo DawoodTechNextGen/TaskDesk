@@ -1,6 +1,56 @@
 <?php
-include_once '../include/config.php';
-include_once '../include/connection.php';
+include_once __DIR__ . '/../include/config.php';
+include_once __DIR__ . '/../include/connection.php';
+
+/**
+ * Checks the response from WhatsApp API
+ */
+function checkWhatsAppResponse($response)
+{
+    if (empty($response)) {
+        return ['success' => false, 'message' => 'Empty response from WhatsApp API', 'raw' => $response];
+    }
+    
+    if (is_string($response)) {
+        $data = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            if (str_contains($response, '<html') || str_contains($response, '<!DOCTYPE')) {
+                return ['success' => false, 'message' => 'Received HTML instead of JSON', 'raw' => substr($response, 0, 200) . '...'];
+            }
+            return ['success' => false, 'message' => 'Invalid JSON response: ' . json_last_error_msg(), 'raw' => substr($response, 0, 200) . '...'];
+        }
+    } else {
+        $data = $response;
+    }
+    
+    if (isset($data['code'])) {
+        return [
+            'success' => false,
+            'message' => $data['message'] ?? 'Unknown error',
+            'error_code' => $data['code'],
+            'status_code' => $data['data']['status'] ?? 500,
+            'details' => $data['data']['details'] ?? []
+        ];
+    }
+    
+    if (isset($data['error'])) {
+        return [
+            'success' => false,
+            'message' => $data['error'] . (isset($data['message']) ? ': ' . $data['message'] : ''),
+            'error_code' => $data['error'] ?? 'unknown'
+        ];
+    }
+    
+    if (isset($data['id']) && strpos($data['id'], 'true_') === 0) {
+        return ['success' => true, 'message' => 'Message processed successfully', 'message_id' => $data['id']];
+    }
+    
+    if (isset($data['sent']) && $data['sent'] === true) {
+        return ['success' => true, 'message' => 'Message sent successfully', 'message_id' => $data['id'] ?? $data['messageId'] ?? null];
+    }
+    
+    return ['success' => false, 'message' => 'Unexpected response format from WhatsApp API', 'raw_response' => $data];
+}
 
 /**
  * Sends a message via WhatsApp API
@@ -27,18 +77,19 @@ function whatsappApi($chatId, $message) {
         CURLOPT_CUSTOMREQUEST  => 'POST',
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json']
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json']
     ]);
 
     $response = curl_exec($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
 
-    return [
-        'success' => ($httpCode == 200),
-        'response' => $response,
-        'http_code' => $httpCode
-    ];
+    $check = checkWhatsAppResponse($response);
+    if ($check['success']) {
+        return ['success' => true, 'message' => 'Message sent successfully', 'message_id' => $check['message_id'], 'http_code' => $httpCode];
+    } else {
+        return ['success' => false, 'message' => "Error: " . $check['message'], 'http_code' => $httpCode, 'response' => $response];
+    }
 }
 
 /**
@@ -50,7 +101,6 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         $chatId = '92' . ltrim($chatId, '0');
     }
 
-    // Determine mimetype based on extension
     $ext = pathinfo($fileName, PATHINFO_EXTENSION);
     $mimetype = ($ext == 'pdf') ? 'application/pdf' : 'application/octet-stream';
 
@@ -66,8 +116,6 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         'caption'      => $caption
     ];
 
-    // The sendFile endpoint is usually different or handled via query params in some versions
-    // Based on user snippet: https://wawp.net/wp-json/awp/v1/sendFile
     $apiUrl = str_replace('/send', '/sendFile', WHATSAPP_API_URL);
     $url = $apiUrl . '?' . http_build_query($params);
 

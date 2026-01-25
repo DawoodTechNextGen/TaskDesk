@@ -17,7 +17,7 @@ function sendNotificationFallback($params) {
     $toEmail = $params['email'] ?? '';
     $toName = $params['name'] ?? '';
     $toMbl = $params['mbl_number'] ?? '';
-    $subject = $params['subject'] ?? 'Notification from DawoodTech NextGen';
+    $subject = $params['subject'] ?? 'DawoodTech NextGen';
     $message = $params['message'] ?? '';
     $htmlContent = $params['html_content'] ?? '';
     $pdfContent = $params['pdf_content'] ?? null;
@@ -65,9 +65,21 @@ function sendNotificationFallback($params) {
                     $results['final_success'] = true;
                 } else {
                     $results['error_logs'][] = "WhatsApp File failed: " . ($res['message'] ?? 'Unknown error');
+                    // Fallback to text WhatsApp if file API fails
+                    $resText = whatsappApi($toMbl, $whatsappMsg);
+                    if ($resText['success']) {
+                        $results['whatsapp']['success'] = true;
+                        $results['final_success'] = true;
+                    }
                 }
             } else {
                 $results['error_logs'][] = "Failed to write temp file: $tempFile";
+                // Fallback to text WhatsApp if file writing fails
+                $resText = whatsappApi($toMbl, $whatsappMsg);
+                if ($resText['success']) {
+                    $results['whatsapp']['success'] = true;
+                    $results['final_success'] = true;
+                }
             }
         } else {
             $res = whatsappApi($toMbl, $whatsappMsg);

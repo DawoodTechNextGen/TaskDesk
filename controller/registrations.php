@@ -793,7 +793,7 @@ switch ($action) {
             $stmt->close();
 
             // Create login credentials for notification
-            $loginUrl = BASE_URL . 'login';
+            $loginUrl = BASE_URL;
             $whatsappMsg = "Assalam-o-Alaikum *" . $registration['name'] . "*,\n\n"
                 . "🎉 *Congratulations! You have been hired at Dawood Tech NextGen!*\n\n"
                 . "📄 Your official *Offer Letter* is attached to this message.\n\n"

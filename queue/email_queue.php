@@ -17,16 +17,14 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 global $email_from; 
 require_once dirname(__DIR__) . '/include/pdf_helper.php';
+require_once dirname(__DIR__) . '/controller/PdfwhatsappApi.php';
 
-function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
+function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name, $pdfContent = null)
 {
     $mail = new PHPMailer(true);
 
     try {
-
-        // ---------------------------
-        // SMTP Settings (from .env)
-        // ---------------------------
+        // ... SMTP Settings ...
         $mail->isSMTP();
         $mail->Host       = MAIL_HOST;
         $mail->SMTPAuth   = true;
@@ -35,102 +33,42 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
         $mail->SMTPSecure = MAIL_ENCRYPTION;
         $mail->Port       = MAIL_PORT;
         
-        // Timeout Settings
-        $mail->Timeout  = 10; // Timeout for SMTP connection (seconds)
-        $mail->Timelimit = 10; // Timelimit for data transfer
+        $mail->Timeout  = 10;
+        $mail->Timelimit = 10;
 
-        // Sender / Receiver
         $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
         $mail->addAddress($toEmail, $name);
 
-        // Email Format
         $mail->isHTML(true);
         $mail->Subject = 'Welcome to DawoodTech NextGen - Your Internship Offer Letter & Login Credentials';
 
-        // ---------------------------
-        // Internship dates
-        // ---------------------------
         $startDate = date('Y-m-d');
         $endDate   = date('Y-m-d', strtotime('+2 months'));
-
         $loginUrl = 'https://dawoodtechnextgen.org/taskdesk/login.php';
 
-        // ---------------------------
-        // Email Template
-        // ---------------------------
         $mailContent = '
         <!DOCTYPE html>
         <html>
-
         <head>
             <style>
-                body {
-                    font-family: "Segoe UI", Tahoma;
-                    line-height: 1.6;
-                    color: #333;
-                    max-width: 800px;
-                    margin: auto;
-                }
-
-                .header {
-                    background: linear-gradient(135deg, #deeafc, #c8dcfa);
-                    padding: 40px;
-                    text-align: center;
-                    border-radius: 10px 10px 0 0;
-                }
-                .header p {
-                    margin: 0;
-                }
-                .content {
-                    padding: 40px;
-                    background: #f9f9f9;
-                }
-
-                .card {
-                    background: white;
-                    padding: 30px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                }
-
-                .credentials {
-                    background: #f0f7ff;
-                    border-left: 4px solid #3B81F6;
-                }
-
-                .btn-primary {
-                    background: linear-gradient(135deg, #3B81F6, #2563EB);
-                    color: white !important;
-                    padding: 14px 28px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    display: inline-block;
-                    margin-top: 10px;
-                }
-
-                .footer {
-                    text-align: center;
-                    padding: 20px;
-                    margin-top: 20px;
-                    color: #666;
-                    font-size: 14px;
-                }
+                body { font-family: "Segoe UI", Tahoma; line-height: 1.6; color: #333; max-width: 800px; margin: auto; }
+                .header { background: linear-gradient(135deg, #deeafc, #c8dcfa); padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { padding: 40px; background: #f9f9f9; }
+                .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+                .credentials { background: #f0f7ff; border-left: 4px solid #3B81F6; }
+                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color: white !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 10px; }
+                .footer { text-align: center; padding: 20px; margin-top: 20px; color: #666; font-size: 14px; }
             </style>
         </head>
-
         <body>
-
             <div class="header">
                 <img src="' . BASE_URL . 'assets/images/logo.png" alt="DawoodTech NextGen" style="max-width:150px;margin-bottom:20px;">
                 <p>Your Journey Begins Here</p>
             </div>
-
             <div class="content">
                 <div class="card">
-
                     <h2 style="color:#3B81F6;">Dear ' . htmlspecialchars($name) . ',</h2>
                     <p>We are thrilled to welcome you to the DawoodTech NextGen family! You have been selected for our <strong>' . htmlspecialchars($tech_name) . '</strong> internship program.</p>
-
                     <div class="card credentials">
                         <h3>Your Login Credentials</h3>
                         <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
@@ -138,14 +76,12 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
                         <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access TaskDesk</a>
                         <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
                     </div>
-
                     <h3>Internship Details</h3>
                     <ul>
                         <li><strong>Duration:</strong> ' . $startDate . ' to ' . $endDate . ' (2 months)</li>
                         <li><strong>Technology:</strong> ' . htmlspecialchars($tech_name) . '</li>
                         <li><strong>Reporting Date:</strong> ' . $startDate . '</li>
                     </ul>
-
                     <h3>What to Expect</h3>
                     <ul>
                         <li>Real-world project experience</li>
@@ -153,52 +89,40 @@ function sendWelcomeEmailWithOfferLetter($toEmail, $name, $password, $tech_name)
                         <li>Weekly workshops and activities</li>
                         <li>Certificate upon completion</li>
                     </ul>
-
                     <p>Your official offer letter is attached to this email.</p>
-
                 </div>
             </div>
-
             <div class="footer">
                 <p>Need help? Email us at support@dawoodtechnextgen.org</p>
                 <p>© ' . date('Y') . ' DawoodTech NextGen</p>
             </div>
-
         </body>
-
-        </html>
-        ';
+        </html>';
 
         $mail->Body = $mailContent;
 
-        // ---------------------------
-        // Attach PDF - Offer Letter
-        // ---------------------------
-        $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
+        if (!$pdfContent) {
+            $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
+        }
 
         if ($pdfContent) {
             $fileName = 'Offer_Letter_' . preg_replace('/\s+/', '_', $name) . '.pdf';
             $mail->addStringAttachment($pdfContent, $fileName, 'base64', 'application/pdf');
         }
 
-        // Send Email
         $mail->send();
         return true;
     } catch (Exception $e) {
-        error_log("Email failed: " . $mail->ErrorInfo);
+        error_log("Primary Email failed: " . $mail->ErrorInfo);
         return false;
     }
 }
 
-function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $tech_name)
+function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $tech_name, $pdfContent = null)
 {
     $mail = new PHPMailer(true);
 
     try {
-
-        // ---------------------------
-        // SMTP Settings (from .env)
-        // ---------------------------
         $mail->isSMTP();
         $mail->Host       = GMAIL_MAIL_HOST;
         $mail->SMTPAuth   = true;
@@ -207,103 +131,42 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
         $mail->SMTPSecure = GMAIL_MAIL_ENCRYPTION;
         $mail->Port       = GMAIL_MAIL_PORT;
         
-        // Timeout Settings
         $mail->Timeout  = 10;
         $mail->Timelimit = 10;
 
-        // Sender / Receiver
-        // Use a valid email for 'From'
         $mail->setFrom(GMAIL_MAIL_USERNAME, MAIL_FROM_NAME);
         $mail->addAddress($toEmail, $name);
 
-        // Email Format
         $mail->isHTML(true);
         $mail->Subject = 'Welcome to DawoodTech NextGen - Your Internship Offer Letter & Login Credentials';
 
-        // ---------------------------
-        // Internship dates
-        // ---------------------------
         $startDate = date('Y-m-d');
         $endDate   = date('Y-m-d', strtotime('+2 months'));
-
         $loginUrl = 'https://dawoodtechnextgen.org/taskdesk/login.php';
 
-        // ---------------------------
-        // Email Template
-        // ---------------------------
         $mailContent = '
         <!DOCTYPE html>
         <html>
-
         <head>
             <style>
-                body {
-                    font-family: "Segoe UI", Tahoma;
-                    line-height: 1.6;
-                    color: #333;
-                    max-width: 800px;
-                    margin: auto;
-                }
-
-                .header {
-                    background: linear-gradient(135deg, #deeafc, #c8dcfa);
-                    padding: 40px;
-                    text-align: center;
-                    border-radius: 10px 10px 0 0;
-                }
-                .header p {
-                    margin: 0;
-                }
-                .content {
-                    padding: 40px;
-                    background: #f9f9f9;
-                }
-
-                .card {
-                    background: white;
-                    padding: 30px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                }
-
-                .credentials {
-                    background: #f0f7ff;
-                    border-left: 4px solid #3B81F6;
-                }
-
-                .btn-primary {
-                    background: linear-gradient(135deg, #3B81F6, #2563EB);
-                    color: white !important;
-                    padding: 14px 28px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    display: inline-block;
-                    margin-top: 10px;
-                }
-
-                .footer {
-                    text-align: center;
-                    padding: 20px;
-                    margin-top: 20px;
-                    color: #666;
-                    font-size: 14px;
-                }
+                body { font-family: "Segoe UI", Tahoma; line-height: 1.6; color: #333; max-width: 800px; margin: auto; }
+                .header { background: linear-gradient(135deg, #deeafc, #c8dcfa); padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { padding: 40px; background: #f9f9f9; }
+                .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+                .credentials { background: #f0f7ff; border-left: 4px solid #3B81F6; }
+                .btn-primary { background: linear-gradient(135deg, #3B81F6, #2563EB); color: white !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block; margin-top: 10px; }
+                .footer { text-align: center; padding: 20px; margin-top: 20px; color: #666; font-size: 14px; }
             </style>
         </head>
-
         <body>
-
             <div class="header">
                 <img src="' . BASE_URL . 'assets/images/logo.png" alt="DawoodTech NextGen" style="max-width:150px;margin-bottom:20px;">
                 <p>Your Journey Begins Here</p>
             </div>
-
             <div class="content">
                 <div class="card">
-
                     <h2 style="color:#3B81F6;">Dear ' . htmlspecialchars($name) . ',</h2>
                     <p>We are thrilled to welcome you to the DawoodTech NextGen family! You have been selected for our <strong>' . htmlspecialchars($tech_name) . '</strong> internship program.</p>
-
                     <div class="card credentials">
                         <h3>Your Login Credentials</h3>
                         <p><strong>Email:</strong> ' . htmlspecialchars($toEmail) . '</p>
@@ -311,14 +174,12 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
                         <a style="text-decoration:none !important; color:white !important;" href="' . $loginUrl . '" class="btn-primary">Access TaskDesk</a>
                         <p style="font-size:14px;color:#777;">Please change your password after first login.</p>
                     </div>
-
                     <h3>Internship Details</h3>
                     <ul>
                         <li><strong>Duration:</strong> ' . $startDate . ' to ' . $endDate . ' (2 months)</li>
                         <li><strong>Technology:</strong> ' . htmlspecialchars($tech_name) . '</li>
                         <li><strong>Reporting Date:</strong> ' . $startDate . '</li>
                     </ul>
-
                     <h3>What to Expect</h3>
                     <ul>
                         <li>Real-world project experience</li>
@@ -326,39 +187,31 @@ function sendWelcomeEmailWithOfferLetterwithGmail($toEmail, $name, $password, $t
                         <li>Weekly workshops and activities</li>
                         <li>Certificate upon completion</li>
                     </ul>
-
                     <p>Your official offer letter is attached to this email.</p>
-
                 </div>
             </div>
-
             <div class="footer">
                 <p>Need help? Email us at support@dawoodtechnextgen.org</p>
                 <p>© ' . date('Y') . ' DawoodTech NextGen</p>
             </div>
-
         </body>
-
-        </html>
-        ';
+        </html>';
 
         $mail->Body = $mailContent;
 
-        // ---------------------------
-        // Attach PDF - Offer Letter
-        // ---------------------------
-        $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
+        if (!$pdfContent) {
+            $pdfContent = generateOfferLetterHelper($name, $startDate, $endDate, $tech_name);
+        }
 
         if ($pdfContent) {
             $fileName = 'Offer_Letter_' . preg_replace('/\s+/', '_', $name) . '.pdf';
             $mail->addStringAttachment($pdfContent, $fileName, 'base64', 'application/pdf');
         }
 
-        // Send Email
         $mail->send();
         return true;
     } catch (Exception $e) {
-        error_log("Email failed: " . $mail->ErrorInfo);
+        error_log("Gmail fallback failed: " . $mail->ErrorInfo);
         return false;
     }
 }
@@ -382,26 +235,72 @@ while ($job = $result->fetch_assoc()) {
     $data = json_decode($job['data'], true);
     $jobId = $job['id'];
     $sent = false;
+    $tempFile = null;
 
     echo "  - Starting Process...\n"; flush();
 
-    // 1. Try Primary Mailer
-    echo "  - Attempting Primary Mailer...\n"; flush();
-    if (sendWelcomeEmailWithOfferLetter($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
-        $sent = true;
-        $email_from = 'From Server mailer';
-        echo "  - Primary Mailer Success.\n"; flush();
-    } 
-    // 2. If Primary failed, try Gmail Mailer (Fallback)
-    else {
-        echo "  - Primary Failed. Attempting Gmail Mailer...\n"; flush();
-        if (sendWelcomeEmailWithOfferLetterwithGmail($data['email'], $data['name'], $data['password'], $data['tech_name'])) {
+    // 0. Generate PDF once for all methods
+    $startDate = date('Y-m-d');
+    $endDate   = date('Y-m-d', strtotime('+2 months'));
+    $pdfContent = generateOfferLetterHelper($data['name'], $startDate, $endDate, $data['tech_name']);
+
+    // 1. Try WhatsApp first
+    if (!empty($data['mbl_number']) && $pdfContent) {
+        echo "  - Attempting WhatsApp API...\n"; flush();
+        
+        // Save PDF to temp for WhatsApp API to fetch
+        $tempDir = dirname(__DIR__) . '/temp';
+        if (!is_dir($tempDir)) mkdir($tempDir, 0777, true);
+        $tempFile = $tempDir . '/Offer_Letter_' . $jobId . '_' . time() . '.pdf';
+        file_put_contents($tempFile, $pdfContent);
+        
+        $publicFileUrl = BASE_URL . 'temp/' . basename($tempFile);
+        $whatsappMsg = "Assalam-o-Alaikum " . $data['name'] . ",\n\n"
+            . "🎉 *Congratulations!* You have been hired as a " . $data['tech_name'] . " Intern at DawoodTech NextGen.\n\n"
+            . "🔐 *Your Login Credentials:*\n"
+            . "📧 *Email:* " . $data['email'] . "\n"
+            . "🔑 *Password:* " . $data['password'] . "\n"
+            . "🌐 *TaskDesk:* https://dawoodtechnextgen.org/taskdesk/\n\n"
+            . "Your official offer letter is following this message. Please change your password after your first login.\n\n"
+            . "Best regards,\n"
+            . "HR Department\n"
+            . "*DawoodTech NextGen*";
+
+        $res = whatsappFileApi($data['mbl_number'], $publicFileUrl, 'Offer_Letter.pdf', $whatsappMsg);
+        if ($res['success']) {
             $sent = true;
-            $email_from = 'From Gmail mailer';
-            echo "  - Gmail Mailer Success.\n"; flush();
+            $email_from = 'From WhatsApp API';
+            echo "  - WhatsApp Success.\n"; flush();
         } else {
-            echo "  - All Mailers Failed.\n"; flush();
+            echo "  - WhatsApp Failed.\n"; flush();
         }
+    }
+
+    // 2. If WhatsApp failed or skipped, try Primary Mailer
+    if (!$sent) {
+        echo "  - Attempting Primary Mailer...\n"; flush();
+        if (sendWelcomeEmailWithOfferLetter($data['email'], $data['name'], $data['password'], $data['tech_name'], $pdfContent)) {
+            $sent = true;
+            $email_from = 'From Server mailer';
+            echo "  - Primary Mailer Success.\n"; flush();
+        } 
+        // 3. If Primary failed, try Gmail Mailer (Fallback)
+        else {
+            echo "  - Primary Failed. Attempting Gmail Mailer...\n"; flush();
+            if (sendWelcomeEmailWithOfferLetterwithGmail($data['email'], $data['name'], $data['password'], $data['tech_name'], $pdfContent)) {
+                $sent = true;
+                $email_from = 'From Gmail mailer';
+                echo "  - Gmail Mailer Success.\n"; flush();
+            } else {
+                echo "  - All Delivery Methods Failed.\n"; flush();
+            }
+        }
+    }
+
+    // CLEANUP: Always delete temp file if it was created
+    if ($tempFile && file_exists($tempFile)) {
+        unlink($tempFile);
+        echo "  - Temp file deleted.\n"; flush();
     }
 
     // ---------------------------------------------------
@@ -425,7 +324,7 @@ while ($job = $result->fetch_assoc()) {
         $processed++;
     } else {
         // Failure: Increment attempts so we don't loop forever
-        echo "Failed to send email to: " . $data['email'] . ". Incrementing attempts.\n";
+        echo "Failed to notify: " . $data['email'] . ". Incrementing attempts.\n";
         $updateStmt = $conn->prepare("UPDATE email_queue SET attempts = attempts + 1 WHERE id = ?");
         $updateStmt->bind_param('i', $jobId);
         $updateStmt->execute();
@@ -438,4 +337,4 @@ while ($job = $result->fetch_assoc()) {
     flush();
 }
 
-echo "Email queue processed: $processed emails sent. from $email_from\n";
+echo "Queue processed: $processed notifications sent. last $email_from\n";

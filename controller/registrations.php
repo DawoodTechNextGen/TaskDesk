@@ -757,6 +757,7 @@ switch ($action) {
             $data = json_encode([
                 'name' => $registration['name'],
                 'email' => $registration['email'],
+                'mbl_number' => $registration['mbl_number'],
                 'password' => $password,
                 'tech_name' => $registration['tech_name']
             ]);
@@ -768,33 +769,6 @@ switch ($action) {
                 throw new Exception('Failed to add to email queue');
             }
             $queueStmt->close();
-
-            // WhatsApp Notification with Offer Letter
-            $whatsappMsg = "Assalam-o-Alaikum " . $registration['name'] . ",%0a%0a"
-            . "🎉 *Congratulations!* You have been hired as a *MERN Stack Intern* at DawoodTech NextGen.%0a%0a"
-            . "🔐 *Your Login Credentials:*%0a"
-            . "📧 *Email:* " . $registration['email'] . "%0a"
-            . "🔑 *Password:* " . $password . "%0a"
-            . "🌐 *TaskDesk:* https://dawoodtechnextgen.org/taskdesk/%0a%0a"
-            . "Your official offer letter is following this message. Please change your password after your first login.%0a%0a"
-            . "Best regards,%0a"
-            . "HR Department%0a"
-            . "*DawoodTech NextGen*";
-
-            // Generate and send Offer Letter via WhatsApp
-            $startDate = date('d-M-Y');
-            $endDate = date('d-M-Y', strtotime('+2 months'));
-            $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
-
-            if ($pdfContent) {
-                $tempFile = '../temp/Offer_Letter_' . $id . '_' . time() . '.pdf';
-                if (!is_dir('../temp')) mkdir('../temp', 0777, true);
-                file_put_contents($tempFile, $pdfContent);
-
-                // Use public URL for WhatsApp API to fetch the file
-                $publicFileUrl = BASE_URL . 'temp/' . basename($tempFile);
-                whatsappFileApi($registration['mbl_number'], $publicFileUrl, 'Offer_Letter.pdf', $whatsappMsg);
-            }
 
             // Commit transaction
             $conn->commit();

@@ -61,21 +61,22 @@ function whatsappApi($chatId, $message) {
         $chatId = '92' . ltrim($chatId, '0');
     }
 
-    $params = [
+    $data = [
         'instance_id'   => WHATSAPP_INSTANCE_ID,
         'access_token'  => WHATSAPP_ACCESS_TOKEN,
         'chatId'        => $chatId,
         'message'       => $message,
     ];
 
-    $url = WHATSAPP_API_URL . '?' . http_build_query($params);
-    error_log("WhatsApp API Request URL: " . $url);
+    $url = WHATSAPP_API_URL;
+    error_log("WhatsApp API Request to: " . $url);
 
     $curl = curl_init();
     curl_setopt_array($curl, [
         CURLOPT_URL            => $url,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => json_encode($data),
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
@@ -112,7 +113,7 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
     $ext = pathinfo($fileName, PATHINFO_EXTENSION);
     $mimetype = ($ext == 'pdf') ? 'application/pdf' : 'application/octet-stream';
 
-    $params = [
+    $data = [
         'instance_id'  => WHATSAPP_INSTANCE_ID,
         'access_token' => WHATSAPP_ACCESS_TOKEN,
         'chatId'       => $chatId,
@@ -123,18 +124,19 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         ],
         'caption'      => $caption
     ];
-    $url = WHATSAPP_API_FILEURL . '?' . http_build_query($params);
-    error_log("WhatsApp File API Request URL: " . $url);
+    $url = WHATSAPP_API_FILEURL;
+    error_log("WhatsApp File API Request to: " . $url);
 
     $curl = curl_init();
     curl_setopt_array($curl, [
         CURLOPT_URL            => $url,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST  => 'POST',
+        CURLOPT_POSTFIELDS     => json_encode($data),
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_HTTPHEADER     => ['Accept: application/json']
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json']
     ]);
 
     $response = curl_exec($curl);

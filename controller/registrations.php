@@ -3,6 +3,7 @@ session_start();
 include '../include/config.php';
 include '../include/connection.php';
 require_once '../include/pdf_helper.php';
+require_once '../include/notification_helper.php';
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -434,6 +435,13 @@ switch ($action) {
         $existing_stmt->close();
 
         // If no conflicts, schedule the interview
+        $sqlFetch = "SELECT email FROM registrations WHERE id = ?";
+        $stmtFetch = $conn->prepare($sqlFetch);
+        $stmtFetch->bind_param('i', $candidate_id);
+        $stmtFetch->execute();
+        $candidate_email = $stmtFetch->get_result()->fetch_assoc()['email'] ?? '';
+        $stmtFetch->close();
+
         $sql = "UPDATE registrations 
             SET interview_start = ?, interview_end = ?, status = 'interview', platform = ?
             WHERE id = ?";
@@ -458,10 +466,41 @@ switch ($action) {
             . "🚀 Kickstart Your Tech Career with DawoodTech";
 
             if ($stmt->execute()) {
-            $whatsapp_result = whatsappApi($mbl_number, $message);
+            // Enhanced notification with fallback
+            $htmlMsg = "
+            <html>
+            <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                <h2 style='color: #3B81F6;'>Interview Scheduled - Dawood Tech NextGen</h2>
+                <p>Dear <strong>$name</strong>,</p>
+                <p>Your interview has been scheduled with the following details:</p>
+                <ul>
+                    <li><strong>Platform:</strong> $platform</li>
+                    <li><strong>Date:</strong> " . date('d M, Y', strtotime($interview_start)) . "</li>
+                    <li><strong>Time:</strong> " . date('h:i A', strtotime($interview_start)) . " to " . date('h:i A', strtotime($interview_end)) . "</li>
+                </ul>
+                <p><strong>Instructions:</strong></p>
+                <ul>
+                    <li>We will send the meeting link 5 minutes before the scheduled time.</li>
+                    <li>Ensure a stable internet connection.</li>
+                    <li>Prepare to discuss your skills and experience.</li>
+                </ul>
+                <p>Best regards,<br>HR Department<br><strong>Dawood Tech NextGen</strong></p>
+            </body>
+            </html>";
+
+            $notifRes = sendNotificationFallback([
+                'email' => $candidate_email,
+                'name' => $name,
+                'mbl_number' => $mbl_number,
+                'subject' => 'Interview Scheduled - Dawood Tech NextGen',
+                'html_content' => $htmlMsg,
+                'whatsapp_msg' => $message
+            ]);
+
             echo json_encode([
                 'success' => true,
-                'message' => 'Interview scheduled successfully'
+                'message' => 'Interview scheduled successfully',
+                'notification' => $notifRes
             ]);
         } else {
             echo json_encode([

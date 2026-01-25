@@ -117,11 +117,8 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         'instance_id'  => WHATSAPP_INSTANCE_ID,
         'access_token' => WHATSAPP_ACCESS_TOKEN,
         'chatId'       => $chatId,
-        'file' => [
-            'url'      => $fileUrl,
-            'filename' => $fileName,
-            'mimetype' => $mimetype
-        ],
+        'file'         => $fileUrl,
+        'filename'     => $fileName,
         'caption'      => $caption
     ];
     $url = WHATSAPP_API_FILEURL;

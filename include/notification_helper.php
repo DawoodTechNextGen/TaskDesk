@@ -65,21 +65,9 @@ function sendNotificationFallback($params) {
                     $results['final_success'] = true;
                 } else {
                     $results['error_logs'][] = "WhatsApp File failed: " . ($res['message'] ?? 'Unknown error');
-                    // Fallback to text WhatsApp if file API fails
-                    $resText = whatsappApi($toMbl, $whatsappMsg);
-                    if ($resText['success']) {
-                        $results['whatsapp']['success'] = true;
-                        $results['final_success'] = true;
-                    }
                 }
             } else {
                 $results['error_logs'][] = "Failed to write temp file: $tempFile";
-                // Fallback to text WhatsApp if file writing fails
-                $resText = whatsappApi($toMbl, $whatsappMsg);
-                if ($resText['success']) {
-                    $results['whatsapp']['success'] = true;
-                    $results['final_success'] = true;
-                }
             }
         } else {
             $res = whatsappApi($toMbl, $whatsappMsg);

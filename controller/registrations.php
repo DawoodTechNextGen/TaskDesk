@@ -769,9 +769,9 @@ switch ($action) {
             }
             $queueStmt->close();
 
-            // WhatsApp Notification
+            // WhatsApp Notification with Offer Letter
             $whatsappMsg = "Assalam-o-Alaikum " . $registration['name'] . ",\n\n"
-                . "🎉 *Congratulations!* You have been hired as a *" . $registration['tech_name'] . " Intern* at DawoodTech NextGen.\n\n"
+                . "🎉 *Congratulations!* You have been hired as a *MERN Stack Intern* at DawoodTech NextGen.\n\n"
                 . "🔐 *Your Login Credentials:*\n"
                 . "📧 *Email:* " . $registration['email'] . "\n"
                 . "🔑 *Password:* " . $password . "\n"
@@ -780,8 +780,6 @@ switch ($action) {
                 . "Best regards,\n"
                 . "HR Department\n"
                 . "*DawoodTech NextGen*";
-
-            $whatsapp_sent = whatsappApi($registration['mbl_number'], $whatsappMsg);
 
             // Generate and send Offer Letter via WhatsApp
             $startDate = date('d-M-Y');
@@ -795,7 +793,7 @@ switch ($action) {
 
                 // Use public URL for WhatsApp API to fetch the file
                 $publicFileUrl = BASE_URL . 'temp/' . basename($tempFile);
-                whatsappFileApi($registration['mbl_number'], $publicFileUrl, 'Offer_Letter.pdf', "Here is your official Offer Letter!");
+                whatsappFileApi($registration['mbl_number'], $publicFileUrl, 'Offer_Letter.pdf', $whatsappMsg);
             }
 
             // Commit transaction

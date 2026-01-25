@@ -792,27 +792,63 @@ switch ($action) {
             }
             $stmt->close();
 
-            // Add to email queue
-            $data = json_encode([
-                'name' => $registration['name'],
+            // Create login credentials for notification
+            $loginUrl = BASE_URL . 'login';
+            $whatsappMsg = "Assalam-o-Alaikum *" . $registration['name'] . "*,\n\n"
+                . "🎉 *Congratulations! You have been hired at Dawood Tech NextGen!*\n\n"
+                . "📄 Your official *Offer Letter* is attached to this message.\n\n"
+                . "🔐 *Your Login Credentials:*\n"
+                . "🌐 *Portal URL:* $loginUrl\n"
+                . "📧 *Email:* " . $registration['email'] . "\n"
+                . "🔑 *Password:* `$password` (Copy-paste this code)\n\n"
+                . "Please login and change your password after your first login.\n\n"
+                . "We are excited to have you on board! 🚀\n\n"
+                . "Best regards,\n"
+                . "HR Department\n"
+                . "*Dawood Tech NextGen*";
+
+            $htmlEmail = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
+                <h2 style='color: #2563eb; text-align: center;'>Congratulations! 🎉</h2>
+                <p>Dear <strong>" . $registration['name'] . "</strong>,</p>
+                <p>We are thrilled to inform you that you have been hired at <strong>Dawood Tech NextGen</strong>.</p>
+                <p>Please find your official offer letter attached to this email.</p>
+                
+                <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
+                    <h3 style='margin-top: 0;'>🔐 Your Login Credentials:</h3>
+                    <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
+                    <p><strong>Email:</strong> " . $registration['email'] . "</p>
+                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>$password</code></p>
+                </div>
+
+                <p>We look forward to your valuable contribution!</p>
+                <p>Best regards,<br><strong>HR Department</strong><br>Dawood Tech NextGen</p>
+            </div>";
+
+            // Generate Offer Letter PDF
+            $startDate = date('d-M-Y');
+            $endDate = date('d-M-Y', strtotime($startDate . ' + 3 months'));
+            $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
+
+            // Send notification with fallback
+            $notifRes = sendNotificationFallback([
                 'email' => $registration['email'],
+                'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
-                'password' => $password,
-                'tech_name' => $registration['tech_name']
+                'subject' => 'Hiring Confirmation & Offer Letter - Dawood Tech NextGen',
+                'html_content' => $htmlEmail,
+                'whatsapp_msg' => $whatsappMsg,
+                'pdf_content' => $pdfContent,
+                'pdf_filename' => 'Offer_Letter_' . $registration['name'] . '.pdf'
             ]);
 
-            $queueStmt = $conn->prepare("INSERT INTO email_queue (to_email, to_name, template, data) VALUES (?, ?, 'welcome_offer', ?)");
-            $queueStmt->bind_param('sss', $registration['email'], $registration['name'], $data);
-
-            if (!$queueStmt->execute()) {
-                throw new Exception('Failed to add to email queue');
-            }
-            $queueStmt->close();
-
-            // Commit transaction
             $conn->commit();
 
-            echo json_encode(['success' => true, 'message' => 'Hired successfully!']);
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Hired successfully! Credentials and offer letter sent.',
+                'notification' => $notifRes
+            ]);
         } catch (Exception $e) {
             // Rollback transaction on error
             $conn->rollback();

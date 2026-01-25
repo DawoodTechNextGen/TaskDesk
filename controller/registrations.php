@@ -805,7 +805,7 @@ switch ($action) {
                 . "We are excited to have you on board! 🚀\n\n"
                 . "Best regards,\n"
                 . "HR Department\n"
-                . "*Dawood Tech NextGen*";
+                . "*DawoodTech NextGen*";
 
             $htmlEmail = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
@@ -822,7 +822,7 @@ switch ($action) {
                 </div>
 
                 <p>We look forward to your valuable contribution!</p>
-                <p>Best regards,<br><strong>HR Department</strong><br>Dawood Tech NextGen</p>
+                <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
             </div>";
 
             // Generate Offer Letter PDF
@@ -835,7 +835,7 @@ switch ($action) {
                 'email' => $registration['email'],
                 'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
-                'subject' => 'Hiring Confirmation & Offer Letter - Dawood Tech NextGen',
+                'subject' => 'Hiring Confirmation & Offer Letter - DawoodTech NextGen',
                 'html_content' => $htmlEmail,
                 'whatsapp_msg' => $whatsappMsg,
                 'pdf_content' => $pdfContent,

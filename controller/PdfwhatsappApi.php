@@ -75,12 +75,12 @@ function whatsappApi($chatId, $message) {
     curl_setopt_array($curl, [
         CURLOPT_URL            => $url,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST  => 'POST',
-        CURLOPT_POSTFIELDS     => json_encode($data),
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $data,
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json']
+        CURLOPT_HTTPHEADER     => ['Accept: application/json']
     ]);
 
     $response = curl_exec($curl);
@@ -110,15 +110,14 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
         $chatId = '92' . ltrim($chatId, '0');
     }
 
-    $ext = pathinfo($fileName, PATHINFO_EXTENSION);
-    $mimetype = ($ext == 'pdf') ? 'application/pdf' : 'application/octet-stream';
-
     $data = [
         'instance_id'  => WHATSAPP_INSTANCE_ID,
         'access_token' => WHATSAPP_ACCESS_TOKEN,
         'chatId'       => $chatId,
-        'file'         => $fileUrl,
-        'filename'     => $fileName,
+        'file' => [
+            'url'      => $fileUrl,
+            'filename' => $fileName
+        ],
         'caption'      => $caption
     ];
     $url = WHATSAPP_API_FILEURL;
@@ -128,12 +127,12 @@ function whatsappFileApi($chatId, $fileUrl, $fileName, $caption = "") {
     curl_setopt_array($curl, [
         CURLOPT_URL            => $url,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST  => 'POST',
-        CURLOPT_POSTFIELDS     => json_encode($data),
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query($data),
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json']
+        CURLOPT_HTTPHEADER     => ['Accept: application/json']
     ]);
 
     $response = curl_exec($curl);

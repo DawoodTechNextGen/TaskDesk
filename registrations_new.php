@@ -198,6 +198,39 @@ $(document).ready(function() {
         }
     });
 
+    // Handle update button click
+    $(document).on('click', '.update-btn', async function() {
+        const id = $(this).data('id');
+        const status = $(this).siblings('.status-select').val();
+
+        if (!confirm('Are you sure you want to update this status?')) return;
+
+        LoaderManager.showGlobal();
+        try {
+            const formData = new FormData();
+            formData.append('action', 'update_registration_status');
+            formData.append('id', id);
+            formData.append('status', status);
+
+            const res = await fetch('controller/registrations.php', {
+                method: 'POST',
+                body: formData
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                showToast('success', json.message);
+                table.ajax.reload();
+            } else {
+                showToast('error', json.message);
+            }
+        } catch (e) {
+            showToast('error', e.message);
+        } finally {
+            LoaderManager.hideGlobal();
+        }
+    });
+
 });
 
 </script>

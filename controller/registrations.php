@@ -856,6 +856,26 @@ switch ($action) {
         }
         break;
 
+    case 'update_registration_status':
+        $id = (int)($_POST['id'] ?? 0);
+        $newStatus = $_POST['status'] ?? '';
+
+        if ($id <= 0 || empty($newStatus)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
+        $stmt->bind_param('si', $newStatus, $id);
+
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update status: ' . $conn->error]);
+        }
+        $stmt->close();
+        break;
+
     case 'reject_candidate':
         $id = (int)$_POST['id'];
         $notes = $_POST['notes'] ?? '';

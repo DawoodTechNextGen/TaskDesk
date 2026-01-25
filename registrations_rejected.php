@@ -111,6 +111,65 @@ include_once "./include/headerLinks.php";
                 </div>
             </main>
 
+            <!-- Hire Modal -->
+            <div id="hireModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Hire Candidate</h3>
+                        <button type="button" id="hireCancelBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form id="hireForm" class="space-y-6">
+                        <input type="hidden" id="hireId" name="id">
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Candidate Name</label>
+                                <input type="text" id="hireName" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Technology</label>
+                                <input type="text" id="hireTechnology" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Supervisor</label>
+                                <div class="searchable-wrapper relative w-full">
+                                    <select id="hireTrainer" class="searchable-select hidden" name="hireTrainer" required>
+                                        <option value="">Select Supervisor</option>
+                                        <?php
+                                        $userQuery = "SELECT id, name FROM users WHERE user_role = 3 ORDER BY name ASC";
+                                        $userResult = mysqli_query($conn, $userQuery);
+                                        while ($user = mysqli_fetch_assoc($userResult)) {
+                                            echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                    <div class="relative">
+                                        <input type="text" class="searchable-input w-full px-3 py-2.5 pr-10 border rounded-lg bg-white dark:bg-gray-800 dark:text-gray-200 cursor-pointer" placeholder="Select Supervisor" autocomplete="off" required>
+                                    </div>
+                                    <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-800 border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" id="cancelHireBtn" class="px-4 py-2.5 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                Hire Candidate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <?php include_once "./include/footer.php"; ?>
         </div>
     </div>
@@ -143,8 +202,64 @@ include_once "./include/headerLinks.php";
         }
 
         $(document).ready(function() {
+            /* Utilities */
+            const LoaderManager = {
+                showGlobal: function() { $('#globalLoader').removeClass('hidden'); },
+                hideGlobal: function() { $('#globalLoader').addClass('hidden'); }
+            };
+
+            function showToast(type, msg) {
+                const toast = document.createElement('div');
+                toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+                toast.textContent = msg;
+                $('#toast-container').append(toast);
+                setTimeout(() => toast.remove(), 4000);
+            }
+
+            /* Searchable Select Logic */
+            function initSearchableSelect() {
+                const $wrapper = $('.searchable-wrapper');
+                const $originalSelect = $wrapper.find('.searchable-select');
+                const $searchInput = $wrapper.find('.searchable-input');
+                const $dropdown = $wrapper.find('.searchable-dropdown');
+
+                function populateDropdown() {
+                    $dropdown.empty();
+                    $originalSelect.find('option').each(function() {
+                        if (this.value === '') return;
+                        const $li = $('<li>').addClass('px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200')
+                            .on('click', () => {
+                                $originalSelect.val(this.value);
+                                $searchInput.val(this.textContent);
+                                $dropdown.addClass('hidden');
+                            });
+                        $li.text(this.textContent);
+                        $dropdown.append($li);
+                    });
+                }
+
+                $searchInput.on('click input', function() {
+                    populateDropdown();
+                    const term = this.value.toLowerCase();
+                    $dropdown.find('li').each(function() {
+                        const $li = $(this);
+                        const text = $li.text().toLowerCase();
+                        $li.toggle(text.indexOf(term) > -1);
+                    });
+                    $dropdown.removeClass('hidden');
+                });
+
+                $(document).on('click', function(e) {
+                    if (!$wrapper.is(e.target) && $wrapper.has(e.target).length === 0) {
+                        $dropdown.addClass('hidden');
+                    }
+                });
+            }
+
+            initSearchableSelect();
+
             // Build table header
-            $('#rejectedTable thead').html(`<tr><th></th><th>ID</th><th>Name</th><th>Contact</th><th>Internship Type</th><th>Technology</th><th>Experience</th><th>Remarks</th></tr>`);
+            $('#rejectedTable thead').html(`<tr><th></th><th>ID</th><th>Name</th><th>Contact</th><th>Internship Type</th><th>Technology</th><th>Experience</th><th>Remarks</th><th>Actions</th></tr>`);
 
             const table = $('#rejectedTable').DataTable({
                 serverSide: true,
@@ -189,6 +304,17 @@ include_once "./include/headerLinks.php";
                                 return '<span class="text-muted text-gray-400 dark:text-gray-700">No remarks</span>';
                             }
                         }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data, type, row) {
+                            return `
+                            <div class="flex items-center space-x-1">
+                                <button class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs hire-btn" data-id="${row.id}">Hire</button>
+                                <button class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs contact-btn" data-id="${row.id}" title="Move to Contact">Contact</button>
+                            </div>`;
+                        }
                     }
 
                 ],
@@ -215,6 +341,87 @@ include_once "./include/headerLinks.php";
                     row.child(formatDetails(row.data())).show();
                     tr.addClass('shown');
                     $(row.child()).find('.details-wrapper').slideDown(300);
+                }
+            });
+
+            // Hire Functionality
+            function openHireModal(row) {
+                $('#hireId').val(row.id);
+                $('#hireName').val(row.name);
+                $('#hireTechnology').val(row.technology);
+                $('#hireModal').removeClass('hidden');
+            }
+
+            $(document).on('click', '.hire-btn', function() {
+                const row = table.row($(this).closest('tr')).data();
+                openHireModal(row);
+            });
+
+            $('#hireCancelBtn, #cancelHireBtn').on('click', () => $('#hireModal').addClass('hidden'));
+
+            $('#hireForm').on('submit', async function(e) {
+                e.preventDefault();
+
+                if (!$('#hireTrainer').val()) {
+                    showToast('error', 'Please select a supervisor');
+                    return;
+                }
+
+                if (!confirm('Are you sure you want to hire this candidate?')) return;
+
+                LoaderManager.showGlobal();
+                try {
+                    const formData = new FormData(this);
+                    formData.append('action', 'update_hire_status');
+
+                    const res = await fetch('controller/registrations.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const json = await res.json();
+
+                    if (json.success) {
+                        showToast('success', 'Candidate hired successfully');
+                        $('#hireModal').addClass('hidden');
+                        table.ajax.reload();
+                    } else {
+                        showToast('error', json.message);
+                    }
+                } catch (e) {
+                    showToast('error', e.message);
+                } finally {
+                    LoaderManager.hideGlobal();
+                }
+            });
+
+            // Move to Contact Action
+            $(document).on('click', '.contact-btn', async function() {
+                const id = $(this).data('id');
+                if (!confirm('Move this candidate back to Contact?')) return;
+
+                LoaderManager.showGlobal();
+                try {
+                    const formDataObj = new FormData();
+                    formDataObj.append('action', 'update_registration_status');
+                    formDataObj.append('id', id);
+                    formDataObj.append('status', 'contact');
+
+                    const res = await fetch('controller/registrations.php', {
+                        method: 'POST',
+                        body: formDataObj
+                    });
+                    const json = await res.json();
+
+                    if (json.success) {
+                        showToast('success', 'Candidate moved to contact');
+                        table.ajax.reload();
+                    } else {
+                        showToast('error', json.message);
+                    }
+                } catch (e) {
+                    showToast('error', e.message);
+                } finally {
+                    LoaderManager.hideGlobal();
                 }
             });
 

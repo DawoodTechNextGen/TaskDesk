@@ -1,5 +1,5 @@
 <?php
-    include_once "./include/connection.php";
+    include_once URL_CRON_FILE . "connection.php";
 
     // Stop all tasks where status = 'working'
     $current_time = date("Y-m-d") . " 23:59:59";

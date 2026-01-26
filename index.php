@@ -24,7 +24,7 @@ if ($user_role == 1) {
     $pending_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'pending'")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
     $working_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'working'")->fetch_assoc()['total'];
-    $overdue_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status != 'complete' AND due_date < CURDATE()")->fetch_assoc()['total'];
+    $overdue_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status IN ('pending', 'working') AND due_date < CURDATE()")->fetch_assoc()['total'];
 
     // Monthly task trends
     $monthly_tasks = $conn->query("SELECT 
@@ -62,10 +62,15 @@ if ($user_role == 1) {
     $working_tasks->execute();
     $working_tasks = $working_tasks->get_result()->fetch_assoc()['total'];
 
-    $pending_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'pending'");
+    $pending_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'pending' AND due_date >= CURDATE()");
     $pending_tasks->bind_param("i", $user_id);
     $pending_tasks->execute();
     $pending_tasks = $pending_tasks->get_result()->fetch_assoc()['total'];
+
+    $overdue_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status IN ('pending', 'working') AND due_date < CURDATE()");
+    $overdue_tasks->bind_param("i", $user_id);
+    $overdue_tasks->execute();
+    $overdue_tasks = $overdue_tasks->get_result()->fetch_assoc()['total'];
 } elseif ($user_role == 3) {
     // Supervisor data
     $generated_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE created_by = ?");
@@ -547,7 +552,7 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
 
-                            <!-- Pending Tasks -->
+                             <!-- Pending Tasks -->
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
                                 <div class="flex items-center justify-between">
                                     <div>
@@ -556,9 +561,25 @@ include_once "./include/headerLinks.php"; ?>
                                             <?= $pending_tasks ?>
                                         </h3>
                                     </div>
+                                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Expired Tasks -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire</p>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
+                                            <?= $overdue_tasks ?>
+                                        </h3>
+                                    </div>
                                     <div class="bg-red-100 dark:bg-red-900 p-3 rounded-lg">
                                         <svg class="w-6 h-6 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -643,7 +664,11 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="space-y-4">
                                     <div class="text-center">
                                         <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2" id="completionRate">0%</div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Task Completion Rate</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">Total Completion</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2" id="onTimeRate">0%</div>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">On-Time Accuracy</p>
                                     </div>
                                     <div class="text-center">
                                         <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2" id="avgCompletionTime">0d</div>
@@ -696,16 +721,16 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
 
-                            <!-- Tasks Completion Rate -->
+                             <!-- Tasks Completion Rate -->
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Completion Rate</p>
-                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="supervisorCompletionRate">0%</h3>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">On-Time Accuracy</p>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white" id="supervisorOnTimeRate">0%</h3>
                                     </div>
-                                    <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
-                                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                                        <svg class="w-6 h-6 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
                                 </div>

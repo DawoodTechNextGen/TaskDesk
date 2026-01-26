@@ -269,7 +269,7 @@ function initializeAdminCharts() {
             datasets: [
               {
                 data: data.values,
-                backgroundColor: ["#EF4444", "#10B981", "#3B82F6"], // Admin, Intern, Supervisor
+                backgroundColor: ["#EF4444", "#10B981", "#3B82F6", "#6366F1"], // Admin, Intern, Supervisor, Manager
                 borderWidth: 0,
                 borderRadius: 8,
                 spacing: 4,

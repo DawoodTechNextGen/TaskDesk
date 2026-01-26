@@ -248,8 +248,17 @@ include_once "./include/headerLinks.php";
 
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
 
-                <!-- Title only -->
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">Interview List</h2>
+                <!-- Title and Filters -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Interview List</h2>
+                    
+                    <div class="flex flex-wrap gap-2" id="filterContainer">
+                        <button type="button" class="filter-btn active px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-md transform hover:scale-105" data-filter="today">Today</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="tomorrow">Tomorrow</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="day_after">Day After</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="all">All</button>
+                    </div>
+                </div>
 
                 <div class="bg-white mb-4 dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
                     <div class="table-container">
@@ -1261,6 +1270,8 @@ include_once "./include/headerLinks.php";
             </tr>
         `);
 
+        let currentFilter = 'today';
+
         const table = $('#interviewTable').DataTable({
             serverSide: true,
             processing: true,
@@ -1269,6 +1280,7 @@ include_once "./include/headerLinks.php";
                 type: 'GET',
                 data: function(d) {
                     d.action = 'interview';
+                    d.filter = currentFilter;
                 },
                 dataSrc: function(json) {
                     return json.data || [];
@@ -1363,7 +1375,6 @@ include_once "./include/headerLinks.php";
                 [2, 'asc']
             ],
             language: {
-                processing: 'Processing...',
                 emptyTable: 'No interviews scheduled',
                 zeroRecords: 'No interviews match your filter'
             },
@@ -1373,6 +1384,14 @@ include_once "./include/headerLinks.php";
                     $(row).addClass('upcoming-interview');
                 }
             }
+        });
+        
+        // Filter button handling
+        $('.filter-btn').on('click', function() {
+            $('.filter-btn').removeClass('active bg-indigo-600 text-white shadow-md transform scale-105').addClass('bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700');
+            $(this).addClass('active bg-indigo-600 text-white shadow-md transform scale-105').removeClass('bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700');
+            currentFilter = $(this).data('filter');
+            table.ajax.reload();
         });
 
         // Row details expansion

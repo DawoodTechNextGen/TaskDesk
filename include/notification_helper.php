@@ -57,9 +57,6 @@ function sendNotificationFallback($params) {
                 
                 $res = whatsappFileApi($toMbl, $publicFileUrl, $pdfFileName, $whatsappMsg);
                 
-                // Cleanup (Disabled for debugging)
-                // if (file_exists($tempFile)) unlink($tempFile);
-
                 if ($res['success']) {
                     $results['whatsapp']['success'] = true;
                     $results['final_success'] = true;
@@ -102,6 +99,11 @@ function sendNotificationFallback($params) {
         } else {
             $results['error_logs'][] = "Gmail Fallback failed. Check error_log for SMTP details.";
         }
+    }
+
+    // 4. Final Cleanup (if temp file was created)
+    if (isset($tempFile) && file_exists($tempFile)) {
+        unlink($tempFile);
     }
 
     return $results;

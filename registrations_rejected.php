@@ -322,7 +322,6 @@ include_once "./include/headerLinks.php";
                     [1, 'desc']
                 ],
                 language: {
-                    processing: 'Processing...',
                     emptyTable: 'No rejected records',
                     zeroRecords: 'No rejected records'
                 }

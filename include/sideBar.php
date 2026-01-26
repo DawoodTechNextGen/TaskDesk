@@ -352,8 +352,8 @@
                         <p id="sidebar-name" class="font-medium text-gray-800 dark:text-white text-sm"><?= $_SESSION['user_name']; ?></p>
                         <p class="text-xs text-gray-500 dark:text-gray-400"> <?php
                                                                                 echo $_SESSION['tech'] . " " . (
-                                                                                    $_SESSION['user_role'] == '1' ? 'Admin' : ($_SESSION['user_role'] == '2' ? 'Intern' : 'Supervisor')
-                                                                                );
+                                                                                    $_SESSION['user_role'] == '1' ? 'Admin' : ($_SESSION['user_role'] == '2' ? 'Intern' : ($_SESSION['user_role'] == '3' ? 'Supervisor' : 'Manager'))
+                                                );
                                                                                 ?>
                         </p>
                     </div>

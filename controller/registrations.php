@@ -540,12 +540,16 @@ switch ($action) {
             WHERE r.status = 'interview'";
 
         // Apply filters
-        $filter = $_GET['filter'] ?? 'all';
+        $filter = $_GET['filter'] ?? 'today';
         $date_from = $_GET['date_from'] ?? null;
         $date_to = $_GET['date_to'] ?? null;
 
         if ($filter === 'today') {
             $sql .= " AND DATE(r.interview_start) = CURDATE()";
+        } elseif ($filter === 'tomorrow') {
+            $sql .= " AND DATE(r.interview_start) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
+        } elseif ($filter === 'day_after') {
+            $sql .= " AND DATE(r.interview_start) = DATE_ADD(CURDATE(), INTERVAL 2 DAY)";
         } elseif ($filter === 'upcoming') {
             $sql .= " AND r.interview_start > NOW()";
         } elseif ($filter === 'past') {
@@ -882,17 +886,98 @@ switch ($action) {
 
     case 'reject_candidate':
         $id = (int)$_POST['id'];
-        $notes = $_POST['notes'] ?? '';
 
+        // 1. Fetch candidate info for notification
+        $stmt_fetch = $conn->prepare("
+            SELECT r.name, r.email, r.remarks, t.name as technology 
+            FROM registrations r
+            LEFT JOIN technologies t ON t.id = r.technology_id
+            WHERE r.id = ?
+        ");
+        $stmt_fetch->bind_param('i', $id);
+        $stmt_fetch->execute();
+        $candidate = $stmt_fetch->get_result()->fetch_assoc();
+        $stmt_fetch->close();
+
+        if (!$candidate) {
+            echo json_encode(['success' => false, 'message' => 'Candidate not found']);
+            break;
+        }
+
+        // 2. Perform rejection
         $sql = "UPDATE registrations 
-            SET status = 'rejected', remarks = ?
+            SET status = 'rejected'
             WHERE id = ?";
 
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param('si', $notes, $id);
+        $stmt->bind_param('i', $id);
 
         if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Candidate rejected']);
+            // 3. Prepare Rejection Message
+            $tech_name = $candidate['technology'] ?? 'Jr Developer';
+            $remarks = trim($candidate['remarks'] ?? '');
+            
+         if (!empty($remarks)) {
+    $rejection_message = "
+        <p>
+            After careful review of your application, we regret to inform you that we will not be moving forward with your candidature at this time.
+        </p>
+        <p>
+            <strong>Feedback:</strong><br>
+            " . nl2br(htmlspecialchars($remarks)) . "
+        </p>
+        <p>
+            Please note that this decision was made after evaluating multiple applications, and it does not reflect negatively on your overall potential.
+        </p>
+    ";
+} else {
+    $rejection_message = "
+        <p>
+            After careful review of your application, we regret to inform you that we will not be moving forward with your candidature at this time.
+        </p>
+        <p>
+            Due to a high volume of applications, we are unable to provide individual feedback on this occasion.
+        </p>
+    ";
+}
+
+$subject = "Application Status Update – DawoodTech NextGen";
+
+$html_content = "
+    <div style='font-family: Arial, sans-serif; line-height: 1.7; color: #333;'>
+        <p>Dear " . htmlspecialchars($candidate['name']) . ",</p>
+
+        <p>
+            Thank you for your interest in the <strong>" . htmlspecialchars($tech_name) . " Internship</strong> at DawoodTech NextGen and for the time you invested in your application.
+        </p>
+
+        $rejection_message
+
+        <p>
+            We sincerely appreciate your interest in DawoodTech NextGen and encourage you to apply again in the future should a suitable opportunity arise.
+        </p>
+
+        <p style='color: #666; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 12px; margin-top: 24px;'>
+            <strong>Note:</strong> This is an automated message. Replies to this email will not be monitored.
+        </p>
+
+        <p>
+            Kind regards,<br>
+            <strong>Hiring Team</strong><br>
+            DawoodTech NextGen
+        </p>
+    </div>
+";
+
+
+            sendNotificationFallback([
+                'email' => $candidate['email'],
+                'name' => $candidate['name'],
+                'subject' => $subject,
+                'html_content' => $html_content
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Candidate rejected and notified via email']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to reject candidate']);
         }

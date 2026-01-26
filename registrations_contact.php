@@ -1515,7 +1515,6 @@ include_once "./include/headerLinks.php";
                 [1, 'desc']
             ],
             language: {
-                processing: 'Processing...',
                 emptyTable: 'No contacts found',
                 zeroRecords: 'No contacts found'
             },

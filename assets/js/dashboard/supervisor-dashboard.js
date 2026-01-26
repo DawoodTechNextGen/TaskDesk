@@ -143,8 +143,14 @@ async function loadSupervisorStats() {
     const data = await response.json();
 
     if (data.success) {
-      document.getElementById("supervisorCompletionRate").textContent =
-        data.completion_rate + "%";
+      if (document.getElementById("supervisorCompletionRate")) {
+        document.getElementById("supervisorCompletionRate").textContent =
+          data.completion_rate + "%";
+      }
+      if (document.getElementById("supervisorOnTimeRate")) {
+        document.getElementById("supervisorOnTimeRate").textContent =
+          data.on_time_rate + "%";
+      }
     }
   } catch (error) {
     console.error("Error loading supervisor stats:", error);

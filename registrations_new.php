@@ -175,7 +175,6 @@ $(document).ready(function() {
         ],
         order: [[1, 'desc']],
         language: {
-            processing: 'Processing...',
             emptyTable: 'No new registrations',
             zeroRecords: 'No new registrations found'
         }

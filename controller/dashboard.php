@@ -9,13 +9,22 @@ $user_role = $_SESSION['user_role'];
 
 if ($action === 'admin_task_stats') {
     // Get task status distribution
-    $stmt = $conn->query("SELECT status, COUNT(*) as count FROM tasks GROUP BY status");
+    $stmt = $conn->query("
+        SELECT
+            CASE 
+                WHEN status IN ('pending', 'working') AND due_date < CURDATE() THEN 'expired'
+                ELSE status
+            END AS status_group,
+            COUNT(*) as count
+        FROM tasks
+        GROUP BY status_group
+    ");
     $task_stats = [];
     $labels = [];
     $values = [];
 
     while ($row = $stmt->fetch_assoc()) {
-        $labels[] = ucfirst($row['status']);
+        $labels[] = ucfirst($row['status_group']);
         $values[] = $row['count'];
     }
 
@@ -34,7 +43,7 @@ if ($action === 'admin_role_stats') {
     $values = [];
 
     while ($row = $stmt->fetch_assoc()) {
-        $role_name = $row['user_role'] == 1 ? 'Admins' : ($row['user_role'] == 2 ? 'Interns' : 'Supervisors');
+        $role_name = $row['user_role'] == 1 ? 'Admins' : ($row['user_role'] == 2 ? 'Interns' : ($row['user_role'] == 3 ? 'Supervisors' : 'Managers'));
         $labels[] = $role_name;
         $values[] = $row['count'];
     }
@@ -47,10 +56,10 @@ if ($action === 'admin_role_stats') {
 }
 
 if ($action === 'intern_stats') {
-    // Calculate completion rate
     $stmt = $conn->prepare("SELECT 
         COUNT(*) as total_tasks,
-        SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as completed_tasks
+        SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as completed_tasks,
+        SUM(CASE WHEN status = 'complete' AND (completed_at <= due_date OR due_date IS NULL) THEN 1 ELSE 0 END) as timely_completed_tasks
         FROM tasks WHERE assign_to = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -58,6 +67,9 @@ if ($action === 'intern_stats') {
 
     $completion_rate = $result['total_tasks'] > 0 ?
         round(($result['completed_tasks'] / $result['total_tasks']) * 100) : 0;
+    
+    $on_time_rate = $result['total_tasks'] > 0 ?
+        round(($result['timely_completed_tasks'] / $result['total_tasks']) * 100) : 0;
 
     // Calculate average completion time (in days)
     $stmt = $conn->prepare("SELECT AVG(DATEDIFF(completed_at, created_at)) as avg_days 
@@ -78,6 +90,7 @@ if ($action === 'intern_stats') {
     echo json_encode([
         'success' => true,
         'completion_rate' => $completion_rate,
+        'on_time_rate' => $on_time_rate,
         'avg_completion_time' => $avg_time,
         'total_hours' => $total_hours
     ]);
@@ -149,7 +162,8 @@ if ($action === 'supervisor_stats') {
     // Calculate completion rate for supervisor's tasks
     $stmt = $conn->prepare("SELECT 
         COUNT(*) as total_tasks,
-        SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as completed_tasks
+        SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as completed_tasks,
+        SUM(CASE WHEN status = 'complete' AND (completed_at <= due_date OR due_date IS NULL) THEN 1 ELSE 0 END) as timely_completed_tasks
         FROM tasks WHERE created_by = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -157,10 +171,14 @@ if ($action === 'supervisor_stats') {
 
     $completion_rate = $result['total_tasks'] > 0 ?
         round(($result['completed_tasks'] / $result['total_tasks']) * 100) : 0;
+    
+    $on_time_rate = $result['total_tasks'] > 0 ?
+        round(($result['timely_completed_tasks'] / $result['total_tasks']) * 100) : 0;
 
     echo json_encode([
         'success' => true,
-        'completion_rate' => $completion_rate
+        'completion_rate' => $completion_rate,
+        'on_time_rate' => $on_time_rate
     ]);
 }
 

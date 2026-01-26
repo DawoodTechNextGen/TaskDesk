@@ -155,6 +155,8 @@ async function loadInternPerformance() {
     if (data.success) {
       document.getElementById("completionRate").textContent =
         data.completion_rate + "%";
+      document.getElementById("onTimeRate").textContent =
+        data.on_time_rate + "%";
       document.getElementById("avgCompletionTime").textContent =
         data.avg_completion_time + "d";
       document.getElementById("totalHours").textContent =

@@ -29,7 +29,7 @@
         
         if ($due_date_only == $today) {
             // If due date is today, mark as completed
-            $status = "completed";
+            $status = "complete";
             $completed_at = $current_time;
             
             $stmt2 = $conn->prepare("UPDATE tasks SET status = ?, started_at = NULL, completed_at = ? WHERE id = ?");

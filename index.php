@@ -71,6 +71,14 @@ if ($user_role == 1) {
     $overdue_tasks->bind_param("i", $user_id);
     $overdue_tasks->execute();
     $overdue_tasks = $overdue_tasks->get_result()->fetch_assoc()['total'];
+
+    // Fetch intern details for progress calculation
+    $intern_details_query = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    $intern_details_query->bind_param("i", $user_id);
+    $intern_details_query->execute();
+    $intern_details = $intern_details_query->get_result()->fetch_assoc();
+    $joining_date = $intern_details['created_at'];
+    $internship_type = $intern_details['internship_type'];
 } elseif ($user_role == 3) {
     // Supervisor data
     $generated_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE created_by = ?");
@@ -545,22 +553,7 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
 
-                             <!-- Pending Tasks -->
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Pending</p>
-                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
-                                            <?= $pending_tasks ?>
-                                        </h3>
-                                    </div>
-                                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Removed Pending Tasks Card as requested -->
                             <!-- Expired Tasks -->
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
                                 <div class="flex items-center justify-between">
@@ -575,6 +568,60 @@ include_once "./include/headerLinks.php"; ?>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Internship Duration Progress -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700 mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Internship Duration Progress
+                            </h3>
+                            <?php
+                            $start = new DateTime($joining_date);
+                            $now = new DateTime();
+                            $weeks = ($internship_type == 0) ? 4 : 12;
+                            $end = clone $start;
+                            $end->modify("+$weeks weeks");
+                            
+                            $total_days = $start->diff($end)->days;
+                            $days_passed = $start->diff($now)->days;
+                            if ($now < $start) $days_passed = 0;
+                            
+                            $progress = min(100, max(0, round(($days_passed / $total_days) * 100)));
+                            $remaining = max(0, $total_days - $days_passed);
+                            ?>
+                            <div class="relative pt-1">
+                                <div class="flex mb-2 items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                                            <?= $progress ?>% Completed
+                                        </span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-xs font-semibold inline-block text-indigo-600">
+                                            <?= $remaining ?> Days Remaining
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-indigo-100 dark:bg-gray-700 shadow-inner">
+                                    <div style="width:<?= $progress ?>%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500 relative overflow-hidden">
+                                        <!-- Subtle stripe animation -->
+                                        <div class="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[move-stripe_1s_linear_infinite]"></div>
+                                    </div>
+                                </div>
+                                <style>
+                                @keyframes move-stripe {
+                                    from { background-position: 1rem 0; }
+                                    to { background-position: 0 0; }
+                                }
+                                </style>
+                                <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                                    <span>Joined: <?= date('M d, Y', strtotime($joining_date)) ?></span>
+                                    <span>Ends: <?= $end->format('M d, Y') ?></span>
                                 </div>
                             </div>
                         </div>
@@ -1262,7 +1309,13 @@ include_once "./include/headerLinks.php"; ?>
                                             name="hireTrainer">
                                             <option value="">Select Intern</option>
                                             <?php
-                                            $userQuery = "SELECT id, name FROM users where user_role = 2 AND supervisor_id = $user_id ORDER BY name ASC";
+                                                                                        $userQuery = "SELECT id, name FROM users 
+                                                          WHERE user_role = 2 
+                                                            AND supervisor_id = $user_id 
+                                                            AND freeze_status = 'active'
+                                                            AND DATE_ADD(created_at, INTERVAL IF(internship_type = 0, 4, 12) WEEK) > NOW()
+                                                          ORDER BY name ASC";
+
                                             $userResult = mysqli_query($conn, $userQuery);
                                             while ($user = mysqli_fetch_assoc($userResult)) {
                                                 echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
@@ -1345,7 +1398,13 @@ include_once "./include/headerLinks.php"; ?>
                                         <select id="edit_user_id" class="searchable-select hidden">
                                             <option value="">Select Intern</option>
                                             <?php
-                                            $userQuery = "SELECT id, name FROM users where user_role = 2 AND supervisor_id = $user_id ORDER BY name ASC";
+                                                                                        $userQuery = "SELECT id, name FROM users 
+                                                          WHERE user_role = 2 
+                                                            AND supervisor_id = $user_id 
+                                                            AND freeze_status = 'active'
+                                                            AND DATE_ADD(created_at, INTERVAL IF(internship_type = 0, 4, 12) WEEK) > NOW()
+                                                          ORDER BY name ASC";
+
                                             $userResult = mysqli_query($conn, $userQuery);
                                             while ($user = mysqli_fetch_assoc($userResult)) {
                                                 echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
@@ -1446,7 +1505,6 @@ include_once "./include/headerLinks.php"; ?>
             } else if (userRole === 3) {
                 initializeSupervisorCharts();
                 loadSupervisorStats();
-                
             } else if (userRole === 4) {
                 initializeManagerCharts();
             }

@@ -491,7 +491,7 @@ async function getTasks() {
           formatDateTime(task.created_at),
           `
                         ${
-                          task.status == "pending_review" || task.status == "complete"
+                          task.status == "pending_review"
                             ? `<button onclick="showReviewModal(${task.id}, '${task.title.replace(/'/g, "\\'")}')" 
                                 class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2 py-1 rounded text-xs font-semibold me-2">
                                 Review

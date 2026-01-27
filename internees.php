@@ -183,6 +183,15 @@ include_once "./include/headerLinks.php"; ?>
                             </div>
                         </div>
                         <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Attendance Rate</p>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div class="bg-emerald-600 h-2 rounded-full" id="view-attendance-bar"></div>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100" id="view-attendance">0%</span>
+                            </div>
+                        </div>
+                        <div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">Months Completed</p>
                             <p class="font-medium text-gray-900 dark:text-gray-100" id="view-months">0</p>
                         </div>
@@ -217,7 +226,11 @@ include_once "./include/headerLinks.php"; ?>
                             <span id="view-eligibility-rate" class="text-sm font-medium text-red-600 dark:text-red-400">✗ Not Met</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Months Completed ≥ 3</span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Attendance Rate ≥ 75%</span>
+                            <span id="view-eligibility-attendance" class="text-sm font-medium text-red-600 dark:text-red-400">✗ Not Met</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Internship Duration</span>
                             <span id="view-eligibility-months" class="text-sm font-medium text-red-600 dark:text-red-400">✗ Not Met</span>
                         </div>
                         <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
@@ -333,12 +346,16 @@ include_once "./include/headerLinks.php"; ?>
                 const res = await fetch('controller/user.php?action=get_internees');
                 const json = await res.json();
                 const user_role = <?php echo $_SESSION['user_role']; ?>;
+                const user_id = <?php echo $_SESSION['user_id']; ?>;
                 const canEditDelete = user_role == 1 || user_role == 4;
 
                 if (json.success) {
                     interneesData = json.data; // Store the data
                     table.clear();
                     json.data.forEach(u => {
+                        const canEdit = (user_role == 1 || user_role == 4) || (user_role == 3 && u.supervisor_id == user_id);
+                        const canDelete = (user_role == 1 || user_role == 4);
+
                         // Build actions HTML conditionally
                         let actionsHTML = '<div class="flex items-center space-x-2">';
 
@@ -353,7 +370,10 @@ include_once "./include/headerLinks.php"; ?>
                                 data-supervisor="${u.supervisor_id || ''}"
                                 data-supervisor-name="${u.supervisor_name || ''}"
                                 data-completion="${u.completion_rate || 0}"
+                                data-attendance="${u.attendance_rate || 0}"
                                 data-months="${u.months_completed || 0}"
+                                data-days-left="${u.days_left || 0}"
+                                data-type="${u.internship_type || 0}"
                                 data-approved="${u.approve_status || 0}"
                                 data-total-tasks="${u.total_tasks || 0}"
                                 data-completed-tasks="${u.completed_tasks || 0}"
@@ -366,8 +386,8 @@ include_once "./include/headerLinks.php"; ?>
                             </svg>
                         </button>`;
 
-                        // Edit button - only for roles 1 or 4
-                        if (canEditDelete) {
+                        // Edit button - Roles 1, 4, or Supervisor for their own intern
+                        if (canEdit) {
                             actionsHTML += `
                         <button class="edit-internee text-blue-600 hover:text-blue-800 transition-colors" 
                                 data-id="${u.id}" 
@@ -384,8 +404,8 @@ include_once "./include/headerLinks.php"; ?>
                         </button>`;
                         }
 
-                        // Approve certificate button - show based on completion criteria
-                        if (u.completion_rate >= 75 && u.months_completed >= 3) {
+                        // Approve certificate button - show based on eligibility criteria
+                        if (u.completion_rate >= 75 && u.attendance_rate >= 75 && u.days_left <= 0) {
                             actionsHTML += `
                         <button class="approve-certificate ${(u.approve_status !== 1) ? 'text-amber-300 hover:text-amber-400' : 'text-green-500 hover:text-green-600'} transition-colors" 
                                 data-id="${u.id}"
@@ -403,7 +423,7 @@ include_once "./include/headerLinks.php"; ?>
                         }
 
                         // Delete button - only for roles 1 or 4
-                        if (canEditDelete) {
+                        if (canDelete) {
                             actionsHTML += `
                         <button class="delete-internee text-red-600 hover:text-red-800 transition-colors" data-id="${u.id}" title="Delete">
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -444,12 +464,11 @@ include_once "./include/headerLinks.php"; ?>
             const supervisorId = btn.dataset.supervisor;
             const supervisorName = btn.dataset.supervisorName;
             const completion = parseInt(btn.dataset.completion) || 0;
+            const attendance = parseInt(btn.dataset.attendance) || 0;
             const months = parseInt(btn.dataset.months) || 0;
+            const daysLeft = parseInt(btn.dataset.daysLeft) || 0;
+            const type = parseInt(btn.dataset.type) || 0;
             const approved = parseInt(btn.dataset.approved) || 0;
-            const totalTasks = parseInt(btn.dataset.totalTasks) || 0;
-            const completedTasks = parseInt(btn.dataset.completedTasks) || 0;
-            const pendingTasks = parseInt(btn.dataset.pendingTasks) || 0;
-            const overdueTasks = parseInt(btn.dataset.overdueTasks) || 0;
 
             // Update personal info
             document.getElementById('view-name').textContent = name || '-';
@@ -465,53 +484,59 @@ include_once "./include/headerLinks.php"; ?>
             document.getElementById('view-technology').textContent = techName || 'Not assigned';
             document.getElementById('view-completion').textContent = completion + '%';
             document.getElementById('view-progress-bar').style.width = completion + '%';
+            document.getElementById('view-attendance').textContent = attendance + '%';
+            document.getElementById('view-attendance-bar').style.width = attendance + '%';
             document.getElementById('view-months').textContent = months;
 
             // Update supervisor info
             document.getElementById('view-supervisor').textContent = supervisorName || 'Not assigned';
             document.getElementById('view-supervisor-id').textContent = supervisorId || '-';
 
-            // Update certificate status
+            // Update eligibility criteria
+            const rateEligibility = document.getElementById('view-eligibility-rate');
+            const attendanceEligibility = document.getElementById('view-eligibility-attendance');
+            const monthsEligibility = document.getElementById('view-eligibility-months');
+            const overallEligibility = document.getElementById('view-eligibility-overall');
+
+            // Rate Eligibility
+            if (completion >= 75) {
+                rateEligibility.innerHTML = `<span class="text-green-600 dark:text-green-400">✓ Met (${completion}%)</span>`;
+            } else {
+                rateEligibility.innerHTML = `<span class="text-red-600 dark:text-red-400">✗ ${completion}% / 75%</span>`;
+            }
+
+            // Attendance Eligibility
+            if (attendance >= 75) {
+                attendanceEligibility.innerHTML = `<span class="text-green-600 dark:text-green-400">✓ Met (${attendance}%)</span>`;
+            } else {
+                attendanceEligibility.innerHTML = `<span class="text-red-600 dark:text-red-400">✗ ${attendance}% / 75%</span>`;
+            }
+
+            // Duration Eligibility
+            const targetWeeks = type == 0 ? 4 : 12;
+            if (daysLeft <= 0) {
+                monthsEligibility.innerHTML = `<span class="text-green-600 dark:text-green-400">✓ Met (${targetWeeks} weeks reached)</span>`;
+            } else {
+                const weeksLeft = Math.ceil(daysLeft / 7);
+                const leftDisplay = weeksLeft > 1 ? `${weeksLeft} weeks left` : (daysLeft > 1 ? `${daysLeft} days left` : `1 day left`);
+                monthsEligibility.innerHTML = `<span class="text-red-600 dark:text-red-400">✗ ${leftDisplay} (Goal: ${targetWeeks}w)</span>`;
+            }
+
+            // Overall Status
             const certBadge = document.getElementById('view-cert-status');
             if (approved === 1) {
                 certBadge.textContent = 'Approved';
                 certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            } else if (completion >= 75 && months >= 3) {
+                overallEligibility.textContent = 'Already Approved';
+                overallEligibility.className = 'text-sm font-medium text-blue-600 dark:text-blue-400';
+            } else if (completion >= 75 && attendance >= 75 && daysLeft <= 0) {
                 certBadge.textContent = 'Eligible';
                 certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300';
+                overallEligibility.textContent = 'Eligible';
+                overallEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
             } else {
                 certBadge.textContent = 'Not Eligible';
                 certBadge.className = 'inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-            }
-
-            // Update eligibility criteria
-            const rateEligibility = document.getElementById('view-eligibility-rate');
-            const monthsEligibility = document.getElementById('view-eligibility-months');
-            const overallEligibility = document.getElementById('view-eligibility-overall');
-
-            if (completion >= 75) {
-                rateEligibility.textContent = '✓ Met';
-                rateEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else {
-                rateEligibility.textContent = `✗ ${completion}%`;
-                rateEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-            }
-
-            if (months >= 3) {
-                monthsEligibility.textContent = '✓ Met';
-                monthsEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else {
-                monthsEligibility.textContent = `✗ ${months} months`;
-                monthsEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-            }
-
-            if (completion >= 75 && months >= 3 && approved !== 1) {
-                overallEligibility.textContent = 'Eligible';
-                overallEligibility.className = 'text-sm font-medium text-green-600 dark:text-green-400';
-            } else if (approved === 1) {
-                overallEligibility.textContent = 'Already Approved';
-                overallEligibility.className = 'text-sm font-medium text-blue-600 dark:text-blue-400';
-            } else {
                 overallEligibility.textContent = 'Not Eligible';
                 overallEligibility.className = 'text-sm font-medium text-red-600 dark:text-red-400';
             }

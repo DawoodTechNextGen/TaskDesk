@@ -174,6 +174,71 @@ include_once "./include/headerLinks.php"; ?>
                     </div>
                 </div>
             </div>
+            
+            <!-- Review Modal (For Supervisors) -->
+            <div id="review-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
+                <div class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white mx-auto my-auto p-6 rounded-lg w-11/12 max-w-2xl relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-6 absolute top-2 right-2 cursor-pointer close-review-modal">
+                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                    <h2 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100 dark:border-gray-600">Review Task Submission</h2>
+                    <form id="review-form">
+                        <input type="hidden" id="review-task-id">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Github Repo</label>
+                                <a id="review-github" href="#" target="_blank" class="text-blue-600 hover:text-blue-800 underline block truncate">View Repo</a>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Live URL</label>
+                                <a id="review-live" href="#" target="_blank" class="text-blue-600 hover:text-blue-800 underline block truncate">View Live</a>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Intern Notes</label>
+                            <div id="review-intern-notes" class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm"></div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Review Action *</label>
+                            <select id="review-action" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none" required>
+                                <option value="">Select Action...</option>
+                                <option value="approved">Approve (Mark Complete)</option>
+                                <option value="needs_improvement">Request Improvements</option>
+                                <option value="rejected">Reject (Expire Task)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Review Notes (Feedback)</label>
+                            <textarea id="review-notes" rows="3" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none" placeholder="Provide feedback to the intern..."></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" class="close-review-modal px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500">Cancel</button>
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">Submit Review</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reactivate Modal -->
+            <div id="reactivate-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
+                <div class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white mx-auto my-auto p-6 rounded-lg w-11/12 max-w-md relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-6 absolute top-2 right-2 cursor-pointer close-reactivate-modal">
+                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                    <h2 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100 dark:border-gray-600">Reactivate Task</h2>
+                    <form id="reactivate-form">
+                        <input type="hidden" id="reactivate-task-id">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">New Due Date *</label>
+                            <input type="date" id="reactivate-date" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:outline-none" required>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" class="close-reactivate-modal px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500">Cancel</button>
+                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500">Reactivate</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <!-- Footer -->
             <?php include_once "./include/footer.php"; ?>
         </div>
@@ -216,7 +281,9 @@ include_once "./include/headerLinks.php"; ?>
                     const statusOrder = {
                         "working": 1,
                         "pending": 2,
-                        "complete": 3
+                        "pending_review": 3,
+                        "complete": 4,
+                        "expired": 5
                     };
                     result.data.sort((a, b) => {
                         return statusOrder[a.status] - statusOrder[b.status];
@@ -272,6 +339,29 @@ include_once "./include/headerLinks.php"; ?>
                                     <span class="cursor-not-allowed cursor-pointer bg-stone-600 px-2 py-1 text-white rounded-sm">
                                         Completed
                                     </span>
+                                ` : ''}
+                                
+                                ${task.status === 'pending_review' ? `
+                                    <span class="cursor-not-allowed cursor-pointer bg-yellow-600 px-2 py-1 text-white rounded-sm">
+                                        Under Review
+                                    </span>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Supervisor Actions -->
+                            <div class="flex gap-2 mt-2">
+                                ${task.status === 'pending_review' ? `
+                                <button onclick="openReviewModal(${task.id}, '${task.github_repo || ''}', '${task.live_url || ''}', '${(task.additional_notes || '').replace(/'/g, "\\'")}')" 
+                                    class="bg-indigo-600 px-2 py-1 text-white rounded-sm text-xs">
+                                    Review
+                                </button>
+                                ` : ''}
+                                
+                                ${task.status === 'expired' ? `
+                                <button onclick="openReactivateModal(${task.id})" 
+                                    class="bg-orange-600 px-2 py-1 text-white rounded-sm text-xs">
+                                    Reactivate
+                                </button>
                                 ` : ''}
                             </div>`
                         ]);
@@ -602,6 +692,94 @@ include_once "./include/headerLinks.php"; ?>
 
             return true;
         }
+
+        // --- Supervisor Review Functions ---
+
+        function openReviewModal(id, github, live, notes) {
+            document.getElementById('review-task-id').value = id;
+            document.getElementById('review-github').href = github;
+            document.getElementById('review-live').href = live;
+            document.getElementById('review-intern-notes').textContent = notes || 'No notes provided.';
+            document.getElementById('review-modal').classList.remove('hidden');
+        }
+
+        function openReactivateModal(id) {
+            document.getElementById('reactivate-task-id').value = id;
+            // Set min date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reactivate-date').min = today;
+            document.getElementById('reactivate-modal').classList.remove('hidden');
+        }
+
+        // Close modals
+        document.querySelectorAll('.close-review-modal').forEach(btn => {
+            btn.addEventListener('click', () => document.getElementById('review-modal').classList.add('hidden'));
+        });
+        document.querySelectorAll('.close-reactivate-modal').forEach(btn => {
+            btn.addEventListener('click', () => document.getElementById('reactivate-modal').classList.add('hidden'));
+        });
+
+        // Submit Review
+        document.getElementById('review-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const taskId = document.getElementById('review-task-id').value;
+            const action = document.getElementById('review-action').value;
+            const notes = document.getElementById('review-notes').value;
+
+            try {
+                const response = await fetch('controller/task.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'review_task',
+                        task_id: taskId,
+                        review_action: action,
+                        review_notes: notes
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('success', result.message);
+                    document.getElementById('review-modal').classList.add('hidden');
+                    getAssignedTasks(); // Refresh list
+                } else {
+                    showToast('error', result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('error', 'Review failed');
+            }
+        });
+
+        // Submit Reactivation
+        document.getElementById('reactivate-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const taskId = document.getElementById('reactivate-task-id').value;
+            const newDate = document.getElementById('reactivate-date').value;
+
+            try {
+                const response = await fetch('controller/task.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'reactivate_task',
+                        task_id: taskId,
+                        new_due_date: newDate
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('success', result.message);
+                    document.getElementById('reactivate-modal').classList.add('hidden');
+                    getAssignedTasks(); 
+                } else {
+                    showToast('error', result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('error', 'Reactivation failed');
+            }
+        });
 
         // Update your start function to include time checks
         async function start() {

@@ -82,8 +82,38 @@ function markSkippedDaysAbsent($conn, $user_id, $user_created_at)
         return;
     }
 
+    // Get freeze periods for this user
+    $freeze_periods = [];
+    $freeze_stmt = $conn->prepare("
+        SELECT freeze_start_date, freeze_end_date 
+        FROM users 
+        WHERE id = ? 
+        AND freeze_start_date IS NOT NULL 
+        AND freeze_end_date IS NOT NULL
+    ");
+    $freeze_stmt->bind_param("i", $user_id);
+    $freeze_stmt->execute();
+    $freeze_result = $freeze_stmt->get_result();
+    while ($freeze_row = $freeze_result->fetch_assoc()) {
+        $freeze_periods[] = [
+            'start' => $freeze_row['freeze_start_date'],
+            'end' => $freeze_row['freeze_end_date']
+        ];
+    }
+    $freeze_stmt->close();
+
     while ($start < $today) {
-        if (!isWeekend($start)) {
+        // Check if this date is within a freeze period
+        $is_frozen = false;
+        foreach ($freeze_periods as $period) {
+            if ($start >= $period['start'] && $start <= $period['end']) {
+                $is_frozen = true;
+                break;
+            }
+        }
+        
+        // Only mark attendance if not weekend and not frozen
+        if (!isWeekend($start) && !$is_frozen) {
             ensureAttendanceRow($conn, $user_id, $start, $task_id);
         }
         $start = date('Y-m-d', strtotime($start . ' +1 day'));
@@ -111,13 +141,48 @@ if ($data['action'] === 'start') {
         exit;
     }
 
-    // Get User created date
-    $stmt = $conn->prepare("SELECT created_at FROM users WHERE id = ?");
+    // Check if user is frozen
+    $freeze_stmt = $conn->prepare("SELECT freeze_status FROM users WHERE id = ?");
+    $freeze_stmt->bind_param("i", $user_id);
+    $freeze_stmt->execute();
+    $freeze_stmt->bind_result($freeze_status);
+    $freeze_stmt->fetch();
+    $freeze_stmt->close();
+
+    if ($freeze_status === 'frozen') {
+        echo json_encode(["success" => false, "message" => "Cannot work during internship freeze period"]);
+        exit;
+    }
+
+    if ($freeze_status === 'freeze_requested') {
+        echo json_encode(["success" => false, "message" => "Your freeze request is pending approval"]);
+        exit;
+    }
+
+    // Get User created date and internship type
+    $stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $stmt->bind_result($user_created_at);
+    $stmt->bind_result($user_created_at, $internship_type);
     $stmt->fetch();
     $stmt->close();
+
+    // Check if internship duration is completed
+    $start_date = new DateTime($user_created_at);
+    $current_date = new DateTime($today);
+    $duration_weeks = ($internship_type == 0) ? 4 : 12;
+    // Calculate end date (start + duration)
+    // We can use modify to add weeks
+    $end_date = clone $start_date;
+    $end_date->modify("+$duration_weeks weeks");
+
+    if ($current_date > $end_date) {
+        echo json_encode(["success" => false, "message" => "Internship duration ($duration_weeks weeks) completed. Attendance marked automatically."]);
+        // Optionally ensure the last day was marked? 
+        // User said: "dont mark his/her attendance" ... wait.
+        // "when duration is complete then dont mark his/her attendance" -> restrict clock-in.
+        exit;
+    }
 
     // Back-fill absents safely
     markSkippedDaysAbsent($conn, $user_id, $user_created_at);
@@ -183,6 +248,57 @@ if ($data['action'] === 'stop') {
     $stmt->close();
 
     echo json_encode(["success" => true, "message" => "Timer stopped successfully"]);
+    exit;
+}
+
+/* =========================
+   COMPLETE TASK (STOP & SUBMIT)
+========================= */
+
+if ($data['action'] === 'complete') {
+    $user_id = $_SESSION['user_id'];
+    $task_id = (int)$data['task_id'];
+    $stop_time = $data['stoped_at'];
+    $github_repo = $data['github_repo'] ?? '';
+    // Map live_view from frontend to live_url in DB
+    $live_url = $data['live_view'] ?? ''; 
+    $additional_notes = $data['additional_notes'] ?? '';
+    $today = date('Y-m-d');
+
+    // 1. Stop the timer (Logic similar to 'stop' action)
+    $stmt = $conn->prepare("SELECT started_at FROM tasks WHERE id = ?");
+    $stmt->bind_param("i", $task_id);
+    $stmt->execute();
+    $stmt->bind_result($started_at);
+    $stmt->fetch();
+    $stmt->close();
+
+    if ($started_at) {
+        $duration = strtotime($stop_time) - strtotime($started_at);
+        updateAttendanceTime($conn, $user_id, $today, $duration, $task_id);
+
+        $stmt = $conn->prepare("
+            UPDATE time_logs 
+            SET end_time = ?, duration = ?
+            WHERE task_id = ? AND end_time IS NULL
+        ");
+        $stmt->bind_param("sii", $stop_time, $duration, $task_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    // 2. Update task status AND submission details
+    // Note: completed_at is set to NOW() when marking as pending_review
+    // Status 'pending_review' means intern has submitted it.
+    $stmt = $conn->prepare("UPDATE tasks SET status = 'pending_review', completed_at = NOW(), github_repo = ?, live_url = ?, additional_notes = ? WHERE id = ?");
+    $stmt->bind_param("sssi", $github_repo, $live_url, $additional_notes, $task_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(["success" => true, "message" => "Task submitted for review"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to submit task"]);
+    }
+    $stmt->close();
     exit;
 }
 

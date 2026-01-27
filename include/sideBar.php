@@ -1,12 +1,13 @@
     <style>
         #registrations-arrow {
-  color: #4B5563; /* Tailwind gray-700 hex */
-}
+            color: #4B5563;
+            /* Tailwind gray-700 hex */
+        }
 
-.dark #registrations-arrow {
-  color: #E5E7EB; /* Tailwind gray-200 hex */
-}
-
+        .dark #registrations-arrow {
+            color: #E5E7EB;
+            /* Tailwind gray-200 hex */
+        }
     </style>
     <aside id="sidebar"
         class="sidebar-expanded sidebar-transition bg-white dark:bg-gray-800 shadow-lg flex flex-col border-r border-gray-200 dark:border-gray-700">
@@ -113,15 +114,14 @@
                                         <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
                                     </div>
                                     <svg
-        id="registrations-arrow"
-        class="w-4 h-4 transition-transform duration-200 <?php echo $isRegistrationsActive ? 'rotate-180' : '' ?>"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-    </svg>
+                                        id="registrations-arrow"
+                                        class="w-4 h-4 transition-transform duration-200 <?php echo $isRegistrationsActive ? 'rotate-180' : '' ?>"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
                                 </button>
                                 <ul id="registrations-submenu" class="<?php echo $isRegistrationsActive ? '' : 'hidden' ?> py-2 space-y-2">
                                     <li>
@@ -290,6 +290,37 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Active Interns</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="frozen_interns.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'frozen_interns.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                       <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                <g id="SVGRepo_iconCarrier">
+                                                    <path d="M12 2V18M12 22V18M12 18L15 21M12 18L9 21M15 3L12 6L9 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M3.33978 7.00042L6.80389 9.00042M6.80389 9.00042L17.1962 15.0004M6.80389 9.00042L5.70581 4.90234M6.80389 9.00042L2.70581 10.0985M17.1962 15.0004L20.6603 17.0004M17.1962 15.0004L21.2943 13.9023M17.1962 15.0004L18.2943 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M20.66 7.00042L17.1959 9.00042M17.1959 9.00042L6.80364 15.0004M17.1959 9.00042L18.294 4.90234M17.1959 9.00042L21.294 10.0985M6.80364 15.0004L3.33954 17.0004M6.80364 15.0004L2.70557 13.9023M6.80364 15.0004L5.70557 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </g>
+                                            </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Frozen Interns</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="completed_interns.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'completed_interns.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" />
+                                            <path d="M8 12L10.5 14.5L16 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Completed Interns</span>
+                                </a>
+                            </li>
                             <?php if ($_SESSION['user_role'] == 3) { ?>
                                 <li>
                                     <a href="attendance_supervisor.php" onclick="window.location=this.href"
@@ -301,6 +332,24 @@
                                             </svg>
                                         </div>
                                         <span class="sidebar-item text-gray-700 dark:text-gray-200">Intern Attendance</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="freeze_management.php" onclick="window.location=this.href"
+                                        class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                    <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'freeze_management.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                        <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                <g id="SVGRepo_iconCarrier">
+                                                    <path d="M12 2V18M12 22V18M12 18L15 21M12 18L9 21M15 3L12 6L9 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M3.33978 7.00042L6.80389 9.00042M6.80389 9.00042L17.1962 15.0004M6.80389 9.00042L5.70581 4.90234M6.80389 9.00042L2.70581 10.0985M17.1962 15.0004L20.6603 17.0004M17.1962 15.0004L21.2943 13.9023M17.1962 15.0004L18.2943 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M20.66 7.00042L17.1959 9.00042M17.1959 9.00042L6.80364 15.0004M17.1959 9.00042L18.294 4.90234M17.1959 9.00042L21.294 10.0985M6.80364 15.0004L3.33954 17.0004M6.80364 15.0004L2.70557 13.9023M6.80364 15.0004L5.70557 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </g>
+                                            </svg>
+                                        </div>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Freeze Management</span>
                                     </a>
                                 </li>
                             <?php } ?>
@@ -361,6 +410,24 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">My Attendance</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="freeze_request.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'freeze_request.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <path d="M12 2V18M12 22V18M12 18L15 21M12 18L9 21M15 3L12 6L9 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M3.33978 7.00042L6.80389 9.00042M6.80389 9.00042L17.1962 15.0004M6.80389 9.00042L5.70581 4.90234M6.80389 9.00042L2.70581 10.0985M17.1962 15.0004L20.6603 17.0004M17.1962 15.0004L21.2943 13.9023M17.1962 15.0004L18.2943 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M20.66 7.00042L17.1959 9.00042M17.1959 9.00042L6.80364 15.0004M17.1959 9.00042L18.294 4.90234M17.1959 9.00042L21.294 10.0985M6.80364 15.0004L3.33954 17.0004M6.80364 15.0004L2.70557 13.9023M6.80364 15.0004L5.70557 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Freeze Request</span>
+                                </a>
+                            </li>
                         <?php } ?>
                     </ul>
                 </div>
@@ -379,7 +446,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400"> <?php
                                                                                 echo $_SESSION['tech'] . " " . (
                                                                                     $_SESSION['user_role'] == '1' ? 'Admin' : ($_SESSION['user_role'] == '2' ? 'Intern' : ($_SESSION['user_role'] == '3' ? 'Supervisor' : 'Manager'))
-                                                );
+                                                                                );
                                                                                 ?>
                         </p>
                     </div>

@@ -24,6 +24,10 @@ include_once "./include/headerLinks.php";
                         <div>
                             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">My Attendance</h1>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Review your work hours grouped by task.</p>
+                            <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                <span id="weekInfo">Loading week info...</span>
+                            </div>
                         </div>
                         <div id="overallStats" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center space-x-6">
                             <div class="text-center">
@@ -50,7 +54,17 @@ include_once "./include/headerLinks.php";
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                    if (data.success) {
                         document.getElementById('attendancePercent').textContent = data.attendance_percentage + '%';
+                        
+                        // Update Week Info
+                        const weekInfo = document.getElementById('weekInfo');
+                        if (data.current_week && data.total_weeks) {
+                            weekInfo.textContent = `Week ${data.current_week} of ${data.total_weeks}`;
+                        } else {
+                             weekInfo.textContent = 'Week info unavailable';
+                        }
+                    }
                     }
                 });
 

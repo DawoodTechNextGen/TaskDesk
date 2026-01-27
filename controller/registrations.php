@@ -781,8 +781,8 @@ switch ($action) {
             }
 
             // Create user record
-            $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $insertHire->bind_param('ssssiiii', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer);
+            $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id, internship_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertHire->bind_param('ssssiiiis', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $registration['internship_type']);
 
             if (!$insertHire->execute()) {
                 throw new Exception('Failed to create user');

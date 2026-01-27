@@ -270,6 +270,41 @@ if ($data['action'] === 'getPendingTasks') {
     }
 
     $stmt->close();
+    $stmt->close();
+}
+
+// ====================== COMPLETE TASK (Intern Action) ======================
+if ($data['action'] === 'complete_task') {
+    $task_id = (int)($data['task_id'] ?? 0);
+    $user_id = $_SESSION['user_id'];
+    
+    if ($task_id <= 0) {
+        echo json_encode(["success" => false, "message" => "Invalid task ID"]);
+        exit;
+    }
+    
+    // Verify task is assigned to user and is currently working
+    $stmt = $conn->prepare("SELECT id FROM tasks WHERE id = ? AND assign_to = ? AND status = 'working'");
+    $stmt->bind_param("ii", $task_id, $user_id);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows === 0) {
+        echo json_encode(["success" => false, "message" => "Task not found or not in working status"]);
+        exit;
+    }
+    $stmt->close();
+    
+    // Update status to 'pending_review' (waiting for supervisor approval)
+    // Note: User requested "when supervisor approve then its mark as complete", so intern completes -> pending_review
+    $stmt = $conn->prepare("UPDATE tasks SET status = 'pending_review', completed_at = NOW() WHERE id = ?");
+    $stmt->bind_param("i", $task_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(["success" => true, "message" => "Task submitted for review"]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Failed to submit task"]);
+    }
+    $stmt->close();
+    exit;
 }
 
 // Review Task Action (Approve/Reject/Request Improvements)
@@ -284,21 +319,32 @@ if ($data['action'] === 'review_task') {
         exit;
     }
     
-    // Verify supervisor created this task
+    // Verify supervisor created this task (or is admin/manager?)
+    // For now assuming creator is supervisor
     $check_stmt = $conn->prepare("SELECT id FROM tasks WHERE id = ? AND created_by = ?");
     $check_stmt->bind_param("ii", $task_id, $supervisor_id);
     $check_stmt->execute();
-    if ($check_stmt->get_result()->num_rows === 0) {
+    if ($check_stmt->get_result()->num_rows === 0 && $_SESSION['user_role'] != 1) { // Allow admin too maybe?
         echo json_encode(["success" => false, "message" => "Unauthorized"]);
         exit;
     }
     
+    // Map review action to task status
+    $new_status = '';
+    if ($review_action === 'approved') {
+        $new_status = 'complete';
+    } elseif ($review_action === 'rejected') {
+        $new_status = 'expired'; // As requested
+    } elseif ($review_action === 'needs_improvement') {
+        $new_status = 'working'; // Re-open loop
+    }
+    
     $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
-    $stmt->bind_param("ssii", $review_action, $review_notes, $supervisor_id, $task_id);
+    $stmt->bind_param("ssii", $new_status, $review_notes, $supervisor_id, $task_id);
     
     if ($stmt->execute()) {
-        $message = $review_action === 'approved' ? 'Task approved successfully' : 
-                   ($review_action === 'rejected' ? 'Task rejected' : 'Improvements requested');
+        $message = $review_action === 'approved' ? 'Task approved and marked as complete' : 
+                   ($review_action === 'rejected' ? 'Task rejected and marked as expired' : 'Task returned for improvements');
         echo json_encode(["success" => true, "message" => $message]);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to review task"]);

@@ -12,7 +12,7 @@ function showReviewModal(taskId, taskTitle) {
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Review Notes (Optional)</label>
                 <textarea id="reviewNotes" rows="4" 
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-white"
                     placeholder="Add feedback or comments..."></textarea>
             </div>
             

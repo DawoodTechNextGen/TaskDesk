@@ -87,9 +87,9 @@ if ($action === 'intern_stats') {
     $hours_result = $stmt->get_result()->fetch_assoc();
     $total_hours = round($hours_result['total_seconds'] / 3600);
 
-    // Calculate attendance percentage for this intern based on 3-hour rule and user creation date
-    // Get user creation date
-    $stmt = $conn->prepare("SELECT created_at FROM users WHERE id = ?");
+    // Calculate attendance percentage and week info
+    // Get user creation date and internship type
+    $stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
@@ -97,13 +97,26 @@ if ($action === 'intern_stats') {
     $now = new DateTime();
     $interval = $created_at->diff($now);
     $total_days = $interval->days + 1; // Include today
+    
+    // Calculate current week
+    $days_since_start = $interval->days;
+    $current_week = floor($days_since_start / 7) + 1;
+    
+    // Total weeks (Type 0 = 4, Type 1 = 12)
+    $total_weeks = ($user_res['internship_type'] == 0) ? 4 : 12;
+    
+    // Cap current week at total weeks if needed, or let it exceed to show overtime? 
+    // Usually "Week 5 of 4" is informative. Let's keep it real.
 
-    // Count present days (>= 3 hours)
-    $stmt = $conn->prepare("SELECT 
-        COUNT(DISTINCT DATE(date)) as present_days
-        FROM attendance 
-        WHERE user_id = ? AND total_work_seconds >= 10800");
-    $stmt->bind_param("i", $user_id);
+    // Count present days (>= 3 hours OR task completed)
+    $stmt = $conn->prepare("
+        SELECT COUNT(DISTINCT date) as present_days FROM (
+            SELECT DATE(date) as date FROM attendance WHERE user_id = ? AND total_work_seconds >= 10800
+            UNION
+            SELECT DATE(completed_at) as date FROM tasks WHERE assign_to = ? AND status = 'complete'
+        ) as combined_attendance
+    ");
+    $stmt->bind_param("ii", $user_id, $user_id);
     $stmt->execute();
     $attendance_result = $stmt->get_result()->fetch_assoc();
     $present_days = $attendance_result['present_days'];
@@ -117,7 +130,9 @@ if ($action === 'intern_stats') {
         'on_time_rate' => $on_time_rate,
         'avg_completion_time' => $avg_time,
         'total_hours' => $total_hours,
-        'attendance_percentage' => $attendance_percentage
+        'attendance_percentage' => $attendance_percentage,
+        'current_week' => $current_week,
+        'total_weeks' => $total_weeks
     ]);
 }
 
@@ -635,11 +650,15 @@ if ($action === 'supervisor_intern_attendance') {
                 u.name, 
                 u.email,
                 t.name as technology,
-                COUNT(a.id) as total_days,
-                SUM(CASE WHEN a.total_work_seconds >= 10800 THEN 1 ELSE 0 END) as present_days
+                COUNT(DISTINCT a.id) as total_days,
+                COUNT(DISTINCT CASE 
+                    WHEN a.total_work_seconds >= 10800 OR task.id IS NOT NULL THEN a.date 
+                    ELSE NULL 
+                END) as present_days
             FROM users u
             LEFT JOIN technologies t ON u.tech_id = t.id
             LEFT JOIN attendance a ON u.id = a.user_id
+            LEFT JOIN tasks task ON u.id = task.assign_to AND task.status = 'complete' AND DATE(task.completed_at) = DATE(a.date)
             WHERE u.supervisor_id = ? AND u.user_role = 2
             GROUP BY u.id";
             
@@ -704,7 +723,8 @@ if ($action === "intern_attendance_logs") {
             $total_hours += $hours;
             $total_days++;
             
-            $is_present = $log['total_work_seconds'] >= 10800;
+            $task_completed_date = ($task['task_status'] === 'complete' && $task['due_date']) ? date('Y-m-d', strtotime($task['completed_at'] ?? '')) : '';
+            $is_present = $log['total_work_seconds'] >= 10800 || ($task_completed_date === $log['date']);
             if ($is_present) $present_days++;
             
             $daily_logs[] = [
@@ -739,6 +759,8 @@ if ($action === "intern_daily_history") {
 
     $interval = new DateInterval('P1D');
     $period = new DatePeriod($start_date, $interval, $end_date);
+
+
 
     // Get attendance records
     $att_sql = "SELECT date, total_work_seconds, status FROM attendance WHERE user_id = ?";
@@ -779,6 +801,39 @@ if ($action === "intern_daily_history") {
         ];
     }
 
+    // Get completed tasks dates and titles
+    $completed_tasks_sql = "SELECT DATE(completed_at) as date, title FROM tasks WHERE assign_to = ? AND status = 'complete'";
+    $stmt = $conn->prepare($completed_tasks_sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $completed_result = $stmt->get_result();
+    $completed_dates = [];
+    while ($row = $completed_result->fetch_assoc()) {
+        $date = $row['date'];
+        $completed_dates[$date] = true;
+        
+        // Add to tasks_map for display
+        if (!isset($tasks_map[$date])) {
+            $tasks_map[$date] = [];
+        }
+        
+        // Check if this task is already in the list
+        $found = false;
+        foreach ($tasks_map[$date] as $t) {
+            if ($t['name'] === $row['title']) {
+                $found = true;
+                break;
+            }
+        }
+        
+        if (!$found) {
+            $tasks_map[$date][] = [
+                'name' => $row['title'],
+                'duration' => '(Completed)'
+            ];
+        }
+    }
+
     $history = [];
     
     foreach ($period as $dt) {
@@ -795,7 +850,7 @@ if ($action === "intern_daily_history") {
             $work_time = gmdate("H:i:s", $total_seconds);
             $progress = min(($total_seconds / 10800) * 100, 100);
             
-            if ($total_seconds >= 10800) {
+            if ($total_seconds >= 10800 || isset($completed_dates[$date_str])) {
                 $status = 'Present';
             } else {
                 $status = 'Absent';

@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.2
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost:3306
--- Generation Time: Jan 26, 2026 at 09:55 PM
--- Server version: 8.0.43-cll-lve
--- PHP Version: 8.4.16
+-- Host: 127.0.0.1
+-- Generation Time: Jan 27, 2026 at 05:40 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `dawoodte_task_desk`
+-- Database: `task_management`
 --
 
 -- --------------------------------------------------------
@@ -28,12 +28,12 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `approvals` (
-  `id` int NOT NULL,
-  `task_id` int DEFAULT NULL,
-  `email` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `status` tinyint NOT NULL DEFAULT '0',
-  `notification` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `task_id` int(11) DEFAULT NULL,
+  `email` varchar(50) DEFAULT NULL,
+  `status` tinyint(4) NOT NULL DEFAULT 0,
+  `notification` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -43,15 +43,15 @@ CREATE TABLE `approvals` (
 --
 
 CREATE TABLE `attendance` (
-  `id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `task_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
   `date` date NOT NULL,
-  `status` enum('present','absent','half_day') COLLATE utf8mb4_general_ci DEFAULT 'absent',
-  `total_work_seconds` int DEFAULT '0' COMMENT 'Total seconds worked',
+  `status` enum('present','absent','half_day') DEFAULT 'absent',
+  `total_work_seconds` int(11) DEFAULT 0 COMMENT 'Total seconds worked',
   `formatted_time` time DEFAULT '00:00:00',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -59,65 +59,38 @@ CREATE TABLE `attendance` (
 --
 
 INSERT INTO `attendance` (`id`, `user_id`, `task_id`, `date`, `status`, `total_work_seconds`, `formatted_time`, `created_at`, `updated_at`) VALUES
-(1, 4, 1, '2025-12-10', 'absent', 10369, '00:00:00', '2025-12-10 13:33:49', '2025-12-10 13:58:47'),
-(2, 5, 2, '2025-12-10', 'absent', 0, '00:00:00', '2025-12-12 09:42:59', '2025-12-12 09:42:59'),
-(3, 5, 2, '2025-12-11', 'absent', 0, '00:00:00', '2025-12-12 09:42:59', '2025-12-12 09:42:59'),
-(4, 5, 2, '2025-12-12', 'present', 0, '00:00:00', '2025-12-12 09:42:59', '2025-12-12 09:42:59'),
-(5, 5, 2, '2025-12-13', 'present', 94087, '00:00:00', '2025-12-13 11:51:07', '2025-12-13 11:51:07'),
-(6, 7, 3, '2025-12-15', 'present', 0, '00:00:00', '2025-12-15 09:15:04', '2025-12-15 09:15:04'),
-(7, 6, 4, '2025-12-15', 'absent', 681, '00:00:00', '2025-12-15 14:55:56', '2025-12-15 15:08:13'),
-(8, 5, 2, '2025-12-15', 'absent', 0, '00:00:00', '2025-12-16 12:38:25', '2025-12-16 12:38:25'),
-(9, 5, 2, '2025-12-16', 'present', 25955, '00:00:00', '2025-12-16 12:38:25', '2025-12-16 16:14:43'),
-(10, 6, 4, '2025-12-16', 'absent', 0, '00:00:00', '2025-12-17 17:24:54', '2025-12-17 17:24:54'),
-(11, 6, 4, '2025-12-17', 'absent', 4284, '00:00:00', '2025-12-17 17:24:54', '2025-12-17 18:39:24'),
-(12, 6, 4, '2025-12-18', 'present', 14826, '00:00:00', '2025-12-18 10:28:28', '2025-12-18 14:35:36'),
-(13, 14, 6, '2025-12-26', 'present', 15923, '00:00:00', '2025-12-26 09:18:17', '2025-12-26 13:43:46'),
-(14, 5, 5, '2025-12-26', 'present', 0, '00:00:00', '2025-12-26 09:37:49', '2025-12-26 09:37:49'),
-(15, 14, 6, '2025-12-29', 'present', 18283, '00:00:00', '2025-12-29 12:32:59', '2025-12-29 17:38:03'),
-(16, 5, 5, '2025-12-29', 'present', 0, '00:00:00', '2025-12-29 12:33:36', '2025-12-29 12:33:36'),
-(17, 14, 6, '2025-12-30', 'present', 19677, '00:00:00', '2025-12-30 09:43:22', '2025-12-30 15:11:19'),
-(18, 18, 7, '2025-12-30', 'absent', 2084, '00:00:00', '2025-12-30 15:55:39', '2025-12-30 16:30:23'),
-(19, 14, 6, '2025-12-31', 'present', 11251, '00:00:00', '2025-12-31 11:45:39', '2025-12-31 14:53:37'),
-(20, 18, 7, '2025-12-31', 'present', 1, '00:00:00', '2025-12-31 11:54:51', '2025-12-31 11:54:57'),
-(21, 16, 8, '2025-12-31', 'present', 6, '00:00:00', '2025-12-31 14:57:53', '2025-12-31 14:58:02'),
-(22, 14, 6, '2026-01-01', 'present', 11047, '00:00:00', '2026-01-01 09:10:00', '2026-01-01 12:14:07'),
-(23, 18, 7, '2026-01-01', 'present', 15467, '00:00:00', '2026-01-01 09:25:13', '2026-01-01 13:43:00'),
-(24, 5, 5, '2025-12-30', 'absent', 0, '00:00:00', '2026-01-01 13:07:57', '2026-01-01 13:07:57'),
-(25, 5, 5, '2025-12-31', 'absent', 0, '00:00:00', '2026-01-01 13:07:57', '2026-01-01 13:07:57'),
-(26, 5, 5, '2026-01-01', 'present', 0, '00:00:00', '2026-01-01 13:07:57', '2026-01-01 13:07:57'),
-(27, 18, 7, '2026-01-02', 'present', 11837, '00:00:00', '2026-01-02 10:02:24', '2026-01-02 13:19:40'),
-(28, 5, 5, '2026-01-02', 'present', 0, '00:00:00', '2026-01-02 10:31:51', '2026-01-02 10:31:51'),
-(29, 14, 6, '2026-01-02', 'present', 11097, '00:00:00', '2026-01-02 13:17:04', '2026-01-02 16:22:00'),
-(30, 18, 7, '2026-01-05', 'present', 22867, '00:00:00', '2026-01-05 12:57:42', '2026-01-05 16:08:34'),
-(31, 18, 7, '2026-01-06', 'present', 0, '00:00:00', '2026-01-06 10:25:20', '2026-01-06 10:25:20'),
-(32, 19, 9, '2026-01-05', 'absent', 0, '00:00:00', '2026-01-06 11:37:49', '2026-01-06 11:37:49'),
-(33, 19, 9, '2026-01-06', 'present', 14044, '00:00:00', '2026-01-06 11:37:49', '2026-01-06 17:48:32'),
-(34, 19, 9, '2026-01-07', 'present', 12031, '00:00:00', '2026-01-07 09:48:40', '2026-01-07 17:47:34'),
-(35, 19, 9, '2026-01-08', 'present', 17752, '00:00:00', '2026-01-08 10:14:14', '2026-01-08 16:00:24'),
-(36, 19, 9, '2026-01-09', 'absent', 10550, '00:00:00', '2026-01-09 09:37:24', '2026-01-09 16:36:25'),
-(37, 19, 9, '2026-01-12', 'absent', 49, '00:00:00', '2026-01-12 15:57:19', '2026-01-12 15:59:23'),
-(38, 14, 10, '2026-01-14', 'present', 0, '00:00:00', '2026-01-14 17:28:36', '2026-01-14 17:28:36'),
-(39, 14, 10, '2026-01-15', 'present', 15326, '00:00:00', '2026-01-15 09:22:30', '2026-01-15 13:37:55'),
-(40, 5, 11, '2026-01-14', 'absent', 0, '00:00:00', '2026-01-15 09:30:01', '2026-01-15 09:30:01'),
-(41, 5, 11, '2026-01-15', 'present', 0, '00:00:00', '2026-01-15 09:30:01', '2026-01-15 09:30:01'),
-(42, 6, 12, '2026-01-14', 'absent', 0, '00:00:00', '2026-01-15 14:30:49', '2026-01-15 14:30:49'),
-(43, 6, 12, '2026-01-15', 'absent', 1705, '00:00:00', '2026-01-15 14:30:49', '2026-01-15 14:59:15'),
-(44, 14, 10, '2026-01-16', 'present', 0, '00:00:00', '2026-01-16 12:59:24', '2026-01-16 12:59:24'),
-(45, 5, 11, '2026-01-16', 'present', 0, '00:00:00', '2026-01-16 16:12:17', '2026-01-16 16:12:17'),
-(46, 22, 13, '2026-01-19', 'absent', 0, '00:00:00', '2026-01-19 12:45:58', '2026-01-19 12:45:58'),
-(47, 5, 11, '2026-01-19', 'absent', 0, '00:00:00', '2026-01-19 12:59:44', '2026-01-19 12:59:44'),
-(48, 14, 10, '2026-01-19', 'absent', 0, '00:00:00', '2026-01-19 16:57:53', '2026-01-19 16:57:53'),
-(49, 5, 11, '2026-01-20', 'absent', 0, '00:00:00', '2026-01-20 12:10:55', '2026-01-20 12:10:55'),
-(50, 22, 13, '2026-01-20', 'absent', 0, '00:00:00', '2026-01-20 12:37:02', '2026-01-20 12:37:02'),
-(51, 7, 14, '2026-01-21', 'present', 47716, '00:00:00', '2026-01-21 05:21:13', '2026-01-21 18:36:43'),
-(52, 22, 13, '2026-01-21', 'absent', 246, '00:00:00', '2026-01-21 08:23:26', '2026-01-21 09:30:48'),
-(53, 14, 10, '2026-01-20', 'absent', 0, '00:00:00', '2026-01-21 14:05:06', '2026-01-21 14:05:06'),
-(54, 14, 10, '2026-01-21', 'present', 11355, '00:00:00', '2026-01-21 14:05:06', '2026-01-21 17:14:22'),
-(55, 22, 13, '2026-01-22', 'absent', 14, '00:00:00', '2026-01-22 08:05:51', '2026-01-22 08:06:05'),
-(56, 22, 13, '2026-01-23', 'present', 0, '00:00:00', '2026-01-23 09:34:51', '2026-01-23 09:34:51'),
-(77, 14, 16, '2026-01-23', 'absent', 0, '00:00:00', '2026-01-26 13:28:01', '2026-01-26 13:28:01'),
-(78, 14, 16, '2026-01-26', 'present', 10890, '00:00:00', '2026-01-26 13:28:01', '2026-01-26 16:30:07'),
-(79, 7, 17, '2026-01-26', 'present', 19, '00:00:00', '2026-01-26 14:45:12', '2026-01-26 16:45:40');
+(1, 7, 1, '2025-12-15', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(2, 7, 1, '2025-12-16', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(3, 7, 1, '2025-12-17', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(4, 7, 1, '2025-12-18', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(5, 7, 1, '2025-12-19', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(6, 7, 1, '2025-12-22', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(7, 7, 1, '2025-12-23', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(8, 7, 1, '2025-12-24', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(9, 7, 1, '2025-12-25', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(10, 7, 1, '2025-12-26', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(11, 7, 1, '2025-12-29', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(12, 7, 1, '2025-12-30', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(13, 7, 1, '2025-12-31', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(14, 7, 1, '2026-01-01', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(15, 7, 1, '2026-01-02', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(16, 7, 1, '2026-01-05', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(17, 7, 1, '2026-01-06', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(18, 7, 1, '2026-01-07', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(19, 7, 1, '2026-01-08', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(20, 7, 1, '2026-01-09', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(21, 7, 1, '2026-01-12', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(22, 7, 1, '2026-01-13', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(23, 7, 1, '2026-01-14', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(24, 7, 1, '2026-01-15', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(25, 7, 1, '2026-01-16', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(26, 7, 1, '2026-01-19', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(27, 7, 1, '2026-01-20', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(28, 7, 1, '2026-01-21', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(29, 7, 1, '2026-01-22', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(30, 7, 1, '2026-01-23', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(31, 7, 1, '2026-01-26', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
+(32, 7, 1, '2026-01-27', 'absent', 4913, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 16:33:50');
 
 -- --------------------------------------------------------
 
@@ -126,10 +99,10 @@ INSERT INTO `attendance` (`id`, `user_id`, `task_id`, `date`, `status`, `total_w
 --
 
 CREATE TABLE `certificate` (
-  `id` int NOT NULL,
-  `intern_id` int NOT NULL,
-  `approve_status` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `intern_id` int(11) NOT NULL,
+  `approve_status` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -186,16 +159,16 @@ INSERT INTO `certificate` (`id`, `intern_id`, `approve_status`, `created_at`) VA
 --
 
 CREATE TABLE `email_queue` (
-  `id` int NOT NULL,
-  `to_email` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `to_name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `subject` varchar(255) COLLATE utf8mb4_general_ci DEFAULT 'Welcome to DawoodTech NextGen',
-  `template` enum('welcome_offer') COLLATE utf8mb4_general_ci DEFAULT 'welcome_offer',
-  `data` json NOT NULL,
-  `status` enum('pending','sent','failed') COLLATE utf8mb4_general_ci DEFAULT 'pending',
-  `attempts` int DEFAULT '0',
-  `error` text COLLATE utf8mb4_general_ci,
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `id` int(11) NOT NULL,
+  `to_email` varchar(255) NOT NULL,
+  `to_name` varchar(255) DEFAULT NULL,
+  `subject` varchar(255) DEFAULT 'Welcome to DawoodTech NextGen',
+  `template` enum('welcome_offer') DEFAULT 'welcome_offer',
+  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`data`)),
+  `status` enum('pending','sent','failed') DEFAULT 'pending',
+  `attempts` int(11) DEFAULT 0,
+  `error` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
   `sent_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -228,23 +201,23 @@ INSERT INTO `email_queue` (`id`, `to_email`, `to_name`, `subject`, `template`, `
 --
 
 CREATE TABLE `registrations` (
-  `id` int NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `country` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `mbl_number` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `city` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `cnic` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `technology_id` bigint NOT NULL,
-  `internship_type` int NOT NULL DEFAULT '0',
-  `experience` int NOT NULL DEFAULT '0',
-  `status` enum('new','contact','interview','hire','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `country` varchar(255) NOT NULL,
+  `mbl_number` varchar(255) NOT NULL,
+  `city` varchar(255) DEFAULT NULL,
+  `cnic` varchar(255) NOT NULL,
+  `technology_id` bigint(20) NOT NULL,
+  `internship_type` int(11) NOT NULL DEFAULT 0,
+  `experience` int(11) NOT NULL DEFAULT 0,
+  `status` enum('new','contact','interview','hire','rejected') NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `interview_start` datetime DEFAULT NULL,
   `interview_end` datetime DEFAULT NULL,
-  `platform` enum('Google Meet','Physical','Zoom') COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `Remarks` text COLLATE utf8mb4_general_ci
+  `platform` enum('Google Meet','Physical','Zoom') DEFAULT NULL,
+  `Remarks` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -395,45 +368,32 @@ INSERT INTO `registrations` (`id`, `name`, `email`, `country`, `mbl_number`, `ci
 --
 
 CREATE TABLE `tasks` (
-  `id` int NOT NULL,
-  `title` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `description` text COLLATE utf8mb4_general_ci,
-  `created_by` int NOT NULL,
-  `assign_to` int DEFAULT NULL,
-  `notification` tinyint(1) NOT NULL DEFAULT '0',
-  `status` enum('pending','working','complete') COLLATE utf8mb4_general_ci DEFAULT 'pending',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `assign_to` int(11) DEFAULT NULL,
+  `notification` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('pending','working','complete','pending_review','approved','rejected','needs_improvement','expired') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp(),
   `started_at` datetime DEFAULT NULL,
   `completed_at` datetime DEFAULT NULL,
   `due_date` date NOT NULL,
-  `live_url` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `github_repo` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `additional_notes` text COLLATE utf8mb4_general_ci NOT NULL
+  `live_url` varchar(255) NOT NULL,
+  `github_repo` varchar(255) NOT NULL,
+  `additional_notes` text NOT NULL,
+  `review_notes` text DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `reviewed_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `title`, `description`, `created_by`, `assign_to`, `notification`, `status`, `created_at`, `updated_at`, `started_at`, `completed_at`, `due_date`, `live_url`, `github_repo`, `additional_notes`) VALUES
-(1, 'Week 1', '<p><strong>Week 1 Social Media Basics + Brand Understanding</strong><br>• SMM basics (FB, Insta, TikTok)<br>• Target audience understanding<br>• Competitor analysis<br>• Brand guidelines (Colors, fonts, tone)<br>• Content pillars set karna</p><p><br><strong>Practical Tasks</strong><br>• 5 competitor pages analyze<br>• 10 content ideas sheet create<br>• Brand tone + hashtag bank prepare<br><strong>Outcome</strong>: Clear direction of brand + audience</p>', 2, 4, 1, 'complete', '2025-12-10 13:33:11', '2025-12-10 18:33:11', '2025-12-10 18:34:01', '2025-12-17 17:24:54', '2025-12-17', '', '', ''),
-(2, 'Week 1 Python & Data Handling Fundamentals', '<p><strong>Goal</strong>: Set up the environment and build strong foundations in Python for data science.<br><strong>Tasks</strong>:<br>* Install Python, Jupyter Notebook, VS Code<br>* Practice Python fundamentals: functions, loops, OOP basics<br>* Learn and practice NumPy (arrays, operations, reshaping)<br>* Learn Pandas (DataFrames, filtering, merging, cleaning)<br>* Introduction to data visualization using Matplotlib &amp; Seaborn<br><strong>Weekly Deliverable</strong>:<br>A clean and well-documented notebook performing EDA on a sample dataset (e.g.,<br>Iris/Titanic) with charts and insights.</p>', 2, 5, 1, 'complete', '2025-12-10 14:16:48', '2025-12-10 19:16:48', '2025-12-16 17:38:25', '2025-12-17 17:24:54', '2025-12-17', '', '', ''),
-(3, 'testing', '<p>Test</p>', 2, 7, 1, 'complete', '2025-12-13 19:09:36', '2025-12-14 00:09:36', '2025-12-15 14:16:31', '2025-12-15 14:55:56', '2025-12-15', '', '', ''),
-(4, 'Jadooo', '<p>Task Details:<br>Task Template: https://www.figma.com/community/file/993910904620677970/travel-website-landing-page<br>Description: Design the given task according to your frontend skills and also make it responsive.<br>Deadline: 1 week</p>', 2, 6, 1, 'complete', '2025-12-15 14:47:49', '2025-12-15 19:47:49', '2025-12-18 18:17:50', '2026-01-05 12:57:42', '2026-01-04', '', '', ''),
-(5, 'Data Cleaning & Exploratory Data Analysis (EDA)', '<p>Goal: Work with real-world datasets and develop strong EDA skills.<br>Tasks:<br>• Handle missing values and inconsistent data<br>• Detect and treat outliers<br>• Perform feature engineering<br>• Conduct detailed correlation and distribution analysis<br>• Write a professional EDA report<br>Weekly Deliverable:<br>A complete EDA project on a real dataset (e.g., Netflix, FIFA, weather data) including data<br>cleaning, visualizations, and conclusions.</p>', 2, 5, 1, 'complete', '2025-12-26 06:03:14', '2025-12-26 11:03:14', NULL, '2026-01-05 12:57:42', '2026-01-04', '', '', ''),
-(6, 'Core Machine Learning Algorithms', '<p>Goal: Implement ML algorithms and understand model behavior.</p><p> </p><p>Tasks:<br>• Train/Test split and evaluation metrics<br>• Implement Linear Regression &amp; Logistic Regression<br>• Implement KNN, SVM, Decision Trees, Random Forest<br>• Use Scikit-Learn pipelines<br>• Create confusion matrix, classification report, and error analysis</p><p><br>Weekly Deliverable:<br>Two ML models:<br>• Regression model (House Price Prediction)<br>• Classification model (Student Performance or similar)</p><p><br>With comparison, metrics, and documentation.</p>', 2, 14, 1, 'complete', '2025-12-26 06:05:47', '2025-12-26 11:05:47', '2026-01-02 18:17:03', '2026-01-05 12:57:42', '2026-01-04', '', '', ''),
-(7, 'Personal Expense Tracker App', '<p><strong>Deliverables: </strong><br>• Working Flutter app (APK) <br>• Add/Edit/Delete expense feature </p><p>• Category-wise expense summary </p><p>• Charts &amp; analytics screen </p><p>• Local storage implemented </p><p>• GitHub repository with README </p><p>• Screenshots &amp; short demo video</p>', 2, 18, 1, 'complete', '2025-12-30 15:06:47', '2025-12-30 20:06:47', '2026-01-06 15:25:20', '2026-01-06 11:37:49', '2026-01-06', '', '', ''),
-(8, 'Design 5 Posts', '<p>Topic: Learn Python with Live classes and learn how to build intelligent systems using Artificial Intelligence </p>', 2, 16, 1, 'complete', '2025-12-31 14:41:48', '2025-12-31 19:41:48', NULL, '2026-01-02 10:02:24', '2026-01-02', '', '', ''),
-(9, 'Research report on digital marketing trends', '<p>Research report on digital marketing<br>trends</p>', 2, 19, 1, 'complete', '2026-01-05 17:10:39', '2026-01-05 22:10:39', '2026-01-12 20:59:01', '2026-01-14 17:28:36', '2026-01-12', '', '', ''),
-(10, 'Model Optimization & Feature Engineering', '<p><strong>Goal: Improve model performance using tuning and better features.</strong><br><strong>Tasks:</strong><br>• Hyperparameter tuning with GridSearchCV<br>• Cross-validation (k-fold)<br>• Feature scaling and encoding<br>• Dimensionality reduction (PCA basics)<br>• Compare models and discuss overfitting/underfitting<br>Weekly Deliverable:<br>A notebook comparing 3–5 ML models with tuning results and a leaderboard table.</p>', 2, 14, 1, 'complete', '2026-01-14 17:23:39', '2026-01-14 22:23:39', '2026-01-21 19:05:06', '2026-01-22 13:05:51', '2026-01-22', '', '', ''),
-(11, 'Core Machine Learning Algorithms', '<p><strong>Goal: Implement ML algorithms and understand model behavior.</strong><br> </p><p><strong>Tasks:</strong><br>• Train/Test split and evaluation metrics<br>• Implement Linear Regression &amp; Logistic Regression<br>• Implement KNN, SVM, Decision Trees, Random Forest<br>• Use Scikit-Learn pipelines<br>• Create confusion matrix, classification report, and error analysis<br>Weekly Deliverable:<br>Two ML models:<br>• Regression model (House Price Prediction)<br>• Classification model (Student Performance or similar)<br>With comparison, metrics, and documentation.</p>', 2, 5, 1, 'complete', '2026-01-14 17:25:16', '2026-01-14 22:25:16', NULL, '2026-01-22 13:05:51', '2026-01-22', '', '', ''),
-(12, 'Design Construction Company Website', '<p>Dear Intern,</p><p>I hope this message finds you well. I am reaching out to assign you a task as part of your internship with us. Your contribution is valued, and this task will provide you with an opportunity to enhance your skills and contribute to our ongoing projects.</p><p>Task Details:<br>Task Template: https://preview.colorlib.com/theme/constructioncompany/<br>Description: Design the given task according to your frontend skills and also make it responsive.<br>Deadline: 1 week</p><p>If you have any questions or need clarification regarding the task, please don\'t hesitate to reach out to me. I am here to help provide guidance and support throughout the process.</p><p>Thank you for your dedication and effort. We look forward to seeing your contributions to this project.</p>', 2, 6, 1, 'complete', '2026-01-14 17:39:48', '2026-01-14 22:39:48', '2026-01-15 19:30:49', '2026-01-22 13:05:51', '2026-01-22', '', '', ''),
-(13, 'Design Basics & Tools', '<ul><li>Understand graphic design fundamentals </li><li>Learn raster vs vector graphics </li><li>Color modes (RGB vs CMYK) </li><li>Photoshop &amp; Illustrator interface <br> </li></ul><p><strong>Tasks</strong>: basic poster, typography design, motivational quote</p>', 2, 22, 1, 'complete', '2026-01-19 09:32:43', '2026-01-19 14:32:43', '2026-01-23 14:34:57', '2026-01-23 14:35:10', '2026-01-26', '', '', ''),
-(14, 'Testing', '<p>Testing the intern side dashboard</p>', 2, 7, 1, 'complete', '2026-01-21 04:54:56', '2026-01-21 09:54:56', '2026-01-21 10:21:21', '2026-01-22 13:05:51', '2026-01-22', '', '', ''),
-(15, 'Color Theory & Typography', '<p>Color psychology &amp; harmony<br>Typography basics<br>Font pairing techniques<br><br>Tasks: color palettes, typography poster, event poster<br><br><strong>NOTE: These are not only three tasks these tasks for 1 week </strong></p>', 2, 22, 1, 'pending', '2026-01-23 17:09:00', '2026-01-23 22:09:00', NULL, NULL, '2026-01-30', '', '', ''),
-(16, 'Introduction to Deep Learning', '<p><strong>Goal: Understand basic neural networks and train simple deep learning models.</strong><br><br>Tasks:<br>• Introduction to Neural Networks<br>• Understand activation &amp; loss functions<br>• Build ANN models using TensorFlow or PyTorch<br>• Train ANN on a dataset (e.g., MNIST-like digits)<br>• Plot accuracy and loss curves<br><br><strong>Weekly Deliverable:</strong><br>A basic ANN model for image or text classification with training graphs.</p>', 2, 14, 1, 'pending', '2026-01-23 17:14:38', '2026-01-23 22:14:38', '2026-01-26 21:18:25', NULL, '2026-01-30', '', '', ''),
-(17, 'Testing 3', '<p>Test</p>', 2, 7, 1, 'working', '2026-01-26 14:44:51', '2026-01-26 19:44:51', '2026-01-26 21:45:31', NULL, '2026-02-28', '', '', '');
+INSERT INTO `tasks` (`id`, `title`, `description`, `created_by`, `assign_to`, `notification`, `status`, `created_at`, `updated_at`, `started_at`, `completed_at`, `due_date`, `live_url`, `github_repo`, `additional_notes`, `review_notes`, `reviewed_at`, `reviewed_by`) VALUES
+(1, 'Testing 1', '<p>Testing</p>', 2, 7, 1, '', '2026-01-27 15:11:28', '2026-01-27 20:11:28', '2026-01-27 20:11:57', '2026-01-27 21:33:50', '2026-02-03', 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=task_management&table=tasks', 'https://github.com/', '', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -442,10 +402,10 @@ INSERT INTO `tasks` (`id`, `title`, `description`, `created_by`, `assign_to`, `n
 --
 
 CREATE TABLE `technologies` (
-  `id` int NOT NULL,
-  `name` varchar(30) COLLATE utf8mb4_general_ci NOT NULL,
-  `status` int NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `id` int(11) NOT NULL,
+  `name` varchar(30) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -470,12 +430,12 @@ INSERT INTO `technologies` (`id`, `name`, `status`, `created_at`) VALUES
 --
 
 CREATE TABLE `time_logs` (
-  `id` int NOT NULL,
-  `task_id` int NOT NULL,
-  `user_id` int NOT NULL,
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   `start_time` datetime DEFAULT NULL,
   `end_time` datetime DEFAULT NULL,
-  `duration` int DEFAULT '0' COMMENT 'in seconds'
+  `duration` int(11) DEFAULT 0 COMMENT 'in seconds'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -483,79 +443,7 @@ CREATE TABLE `time_logs` (
 --
 
 INSERT INTO `time_logs` (`id`, `task_id`, `user_id`, `start_time`, `end_time`, `duration`) VALUES
-(1, 1, 4, '2025-12-10 18:33:48', '2025-12-10 18:33:54', 6),
-(2, 1, 4, '2025-12-10 18:34:01', '2025-12-10 18:58:35', 1474),
-(3, 2, 5, '2025-12-12 14:43:00', '2025-12-13 16:51:07', 94087),
-(4, 3, 7, '2025-12-15 14:16:31', '2026-01-01 23:25:55', 0),
-(5, 4, 6, '2025-12-15 19:55:54', '2025-12-15 19:55:58', 4),
-(6, 4, 6, '2025-12-15 19:56:52', '2025-12-15 19:56:53', 1),
-(7, 4, 6, '2025-12-15 19:56:55', '2025-12-15 20:08:11', 676),
-(8, 2, 5, '2025-12-16 17:38:25', '2025-12-16 21:14:41', 12976),
-(9, 4, 6, '2025-12-17 22:24:55', '2025-12-17 22:31:31', 396),
-(10, 4, 6, '2025-12-17 22:34:36', '2025-12-17 23:39:24', 3888),
-(11, 4, 6, '2025-12-18 15:28:27', '2025-12-18 18:17:47', 10160),
-(12, 4, 6, '2025-12-18 18:17:50', '2025-12-18 19:35:36', 4666),
-(13, 6, 14, '2025-12-26 14:18:17', '2025-12-26 14:54:47', 2190),
-(14, 5, 5, '2025-12-26 14:37:49', '2025-12-26 23:59:59', 33730),
-(15, 6, 14, '2025-12-26 14:54:51', '2025-12-26 18:43:44', 13733),
-(16, 6, 14, '2025-12-29 17:32:58', '2025-12-29 19:13:28', 6030),
-(17, 5, 5, '2025-12-29 17:33:37', '2025-12-29 23:59:59', 23182),
-(18, 6, 14, '2025-12-29 19:13:49', '2025-12-29 22:38:02', 12253),
-(19, 6, 14, '2025-12-30 14:43:22', '2025-12-30 20:11:19', 19677),
-(20, 7, 18, '2025-12-30 20:55:39', '2025-12-30 21:30:23', 2084),
-(21, 6, 14, '2025-12-31 16:45:38', '2025-12-31 18:20:02', 5664),
-(22, 7, 18, '2025-12-31 16:54:50', '2025-12-31 16:54:53', 1),
-(23, 7, 18, '2025-12-31 16:54:51', '2025-12-31 16:54:53', 1),
-(24, 7, 18, '2025-12-31 16:54:52', '2025-12-31 16:54:53', 1),
-(25, 7, 18, '2025-12-31 16:54:57', '2025-12-31 23:59:59', 25502),
-(26, 6, 14, '2025-12-31 18:20:30', '2025-12-31 19:53:37', 5587),
-(27, 8, 16, '2025-12-31 19:57:52', '2025-12-31 19:57:58', 6),
-(28, 8, 16, '2025-12-31 19:58:01', '2025-12-31 23:59:59', 14518),
-(29, 6, 14, '2026-01-01 14:10:00', '2026-01-01 17:14:07', 11047),
-(30, 7, 18, '2026-01-01 14:25:13', '2026-01-01 18:43:00', 15467),
-(31, 5, 5, '2026-01-01 18:07:57', '2026-01-01 23:59:59', 21122),
-(32, 7, 18, '2026-01-02 15:02:23', '2026-01-02 18:19:40', 11837),
-(33, 5, 5, '2026-01-02 15:31:51', '2026-01-02 23:59:59', 30488),
-(34, 6, 14, '2026-01-02 18:17:03', '2026-01-02 21:22:00', 11097),
-(35, 7, 18, '2026-01-05 17:57:42', '2026-01-05 21:08:13', 11431),
-(36, 7, 18, '2026-01-06 15:25:20', NULL, 0),
-(37, 9, 19, '2026-01-06 16:37:49', '2026-01-06 16:42:06', 257),
-(38, 9, 19, '2026-01-06 16:42:13', '2026-01-06 17:36:58', 3285),
-(39, 9, 19, '2026-01-06 18:39:25', '2026-01-06 19:29:34', 3009),
-(40, 9, 19, '2026-01-06 20:25:06', '2026-01-06 21:04:46', 2380),
-(41, 9, 19, '2026-01-06 21:23:19', '2026-01-06 22:48:32', 5113),
-(42, 9, 19, '2026-01-07 14:48:40', '2026-01-07 15:57:02', 4102),
-(43, 9, 19, '2026-01-07 17:50:18', '2026-01-07 19:10:09', 4791),
-(44, 9, 19, '2026-01-07 21:15:59', '2026-01-07 21:41:28', 1529),
-(45, 9, 19, '2026-01-07 22:20:45', '2026-01-07 22:47:34', 1609),
-(46, 9, 19, '2026-01-08 15:14:13', '2026-01-08 15:57:31', 2598),
-(47, 9, 19, '2026-01-08 16:47:07', '2026-01-08 17:10:04', 1377),
-(48, 9, 19, '2026-01-08 17:10:47', '2026-01-08 21:00:24', 13777),
-(49, 9, 19, '2026-01-09 14:37:24', '2026-01-09 15:41:46', 3862),
-(50, 9, 19, '2026-01-09 16:18:55', '2026-01-09 17:49:57', 5462),
-(51, 9, 19, '2026-01-09 21:15:59', '2026-01-09 21:36:25', 1226),
-(52, 9, 19, '2026-01-12 20:57:18', '2026-01-12 20:57:46', 28),
-(53, 9, 19, '2026-01-12 20:59:01', '2026-01-12 20:59:22', 21),
-(54, 10, 14, '2026-01-14 22:28:36', '2026-01-14 23:59:59', 5483),
-(55, 10, 14, '2026-01-15 14:22:29', '2026-01-15 18:37:55', 15326),
-(56, 11, 5, '2026-01-15 14:30:00', '2026-01-15 23:59:59', 34199),
-(57, 12, 6, '2026-01-15 19:30:49', '2026-01-15 19:59:14', 1705),
-(58, 10, 14, '2026-01-16 17:59:24', '2026-01-16 23:59:59', 21635),
-(59, 11, 5, '2026-01-16 21:12:15', '2026-01-16 23:59:59', 10067),
-(60, 11, 5, '2026-01-16 21:12:12', '2026-01-16 23:59:59', 10067),
-(61, 14, 7, '2026-01-21 10:21:21', '2026-01-21 23:36:37', 47716),
-(62, 13, 22, '2026-01-21 13:23:32', '2026-01-21 13:27:35', 243),
-(63, 13, 22, '2026-01-21 13:27:38', '2026-01-21 13:27:40', 2),
-(64, 13, 22, '2026-01-21 14:30:52', '2026-01-21 14:30:53', 1),
-(65, 10, 14, '2026-01-21 19:05:06', '2026-01-21 22:14:21', 11355),
-(66, 13, 22, '2026-01-22 13:05:57', '2026-01-22 13:06:11', 14),
-(67, 13, 22, '2026-01-23 14:34:57', '2026-01-23 14:35:10', 13),
-(68, 16, 14, '2026-01-26 18:28:01', '2026-01-26 20:38:51', 7850),
-(69, 17, 7, '2026-01-26 19:45:02', '2026-01-26 19:45:11', 9),
-(70, 17, 7, '2026-01-26 19:46:02', '2026-01-26 19:46:12', 10),
-(71, 16, 14, '2026-01-26 20:39:12', '2026-01-26 21:18:10', 2338),
-(72, 16, 14, '2026-01-26 21:18:25', '2026-01-26 21:30:07', 702),
-(73, 17, 7, '2026-01-26 21:45:31', NULL, 0);
+(1, 1, 7, '2026-01-27 20:11:57', '2026-01-27 21:33:50', 4913);
 
 -- --------------------------------------------------------
 
@@ -564,41 +452,42 @@ INSERT INTO `time_logs` (`id`, `task_id`, `user_id`, `start_time`, `end_time`, `
 --
 
 CREATE TABLE `users` (
-  `id` int NOT NULL,
-  `name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `plain_password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `user_role` int NOT NULL DEFAULT '2',
-  `status` int NOT NULL DEFAULT '1',
-  `tech_id` int NOT NULL,
-  `supervisor_id` int DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `temp_col` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
+  `id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `email` varchar(50) NOT NULL,
+  `plain_password` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `user_role` int(11) NOT NULL DEFAULT 2,
+  `status` int(11) NOT NULL DEFAULT 1,
+  `tech_id` int(11) NOT NULL,
+  `supervisor_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `temp_col` varchar(255) DEFAULT NULL,
+  `internship_type` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `plain_password`, `password`, `user_role`, `status`, `tech_id`, `supervisor_id`, `created_at`, `temp_col`) VALUES
-(1, 'Admin', 'admin@taskdesk.org', 'GenNext@@0099', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 1, 1, 0, NULL, '2025-12-08 14:55:31', NULL),
-(2, 'Qamar Naveed', 'qamargill427@gmail.com', '1122', '$2y$10$6x9T3UXOChDqmFdWnYQ9DeGeJH2wgGy5yY9hMZZT8CNy/Fh3/dUTy', 3, 1, 0, NULL, '2025-12-08 14:56:47', NULL),
-(3, 'Muhammad Mudassir', 'muhammadmudassir8877@gmail.com', '5aLJms47gu1', '$2y$10$72h8iSO5RRV3MEvjUEFZNew9TaEgTv9ruMbUX/WBJ.UnMjnhyJJv2', 2, 1, 3, 2, '2025-12-08 15:06:49', NULL),
-(4, 'Fiza', 'fizaa7343@gmail.com', '5aLJms47gu1', '$2y$10$H7b5eSIHn0xAJ4ok2WyXmOTNicnmketc3JLUYkT0bMig3dlJiPw9m', 2, 1, 7, 2, '2025-12-08 15:11:14', NULL),
-(5, 'Faryal Naz', 'faryalnaz711@gmail.com', '5aLJms47gu1', '$2y$10$Z3wrp18h7fG3zgCrrqKjNefDNSi4UOGg/GoTPFtxZCHl7N5/WDBBe', 2, 1, 4, 2, '2025-12-08 15:12:18', NULL),
-(6, 'Vandna', 'wandhnarejhra@gmail.com', 'AFPYI&2af3]E', '$2y$10$UBtEeIyBO2gCqPoc.o7Wl.9Pw3hvcIpptUkrhiYjOAy2LRwNn5y66', 2, 1, 8, 2, '2025-12-12 15:39:46', NULL),
-(7, 'Abdul Rehman', 'arimran7315@gmail.com', 'c]j0%OxipKCq', '$2y$10$HH2dDM6Nus0dba0c7lc8JOHECypd0NRhJWYXg40t7/kK0LP4VHQO.', 2, 1, 6, 2, '2025-12-13 19:06:56', NULL),
-(14, 'Fajar Shakeel', 'manhalhads@gmail.com', '?zuE;t]zp~$?GS8', '$2y$10$o2y/ydBySoC52QNBkDVmqONTKQCFVcMTiHKgiJT28wY1CdZimGZQO', 2, 1, 4, 2, '2025-12-26 05:22:49', NULL),
-(16, 'Mehwish Zahra', 'mehwishzahra086@gmail.com', 'VHA$FJAkio37', '$2y$10$HnMIV6UIV5VmkV33hj79ruVEjkbfh1FR2oN8yzp/dhbBoaGfMo3B.', 2, 1, 7, 2, '2025-12-29 05:33:43', NULL),
-(18, 'Munazza Akhlaq', 'munazzamunazza229@gmail.com', '(_I[0L72pbH%', '$2y$10$seTiN.RdGEDoAjoNHfK/eu8hIhlxduzBa4O4561NCQLtg3P4XboAa', 2, 1, 10, 2, '2025-12-30 14:24:53', NULL),
-(19, 'Areesha Arain', 'areeshaarain2006@gmail.com', 'a@_TA76[wGyJ', '$2y$10$3n391BQKZm0kTfPZ5JmojeoNyaf9uSHa7NmbX1Ps1kd3XJMPpoJ5W', 2, 1, 7, 2, '2025-12-31 14:04:15', NULL),
-(20, 'Fatima Manzoor', 'fatemahmnzor@gmail.com', 'b9=6LSW]6Ccx', '$2y$10$GaRFS.55dlC6ESEisABrIOWaIPRcDE/IvAux6aESkuPELu6Q0aPnu', 2, 1, 4, 21, '2026-01-07 06:08:37', NULL),
-(21, 'Ahmed Naeem', 'ahmednaeemnaeemgulzar521@gmail.com', '7WkoQJ&Mz[nq', '$2y$10$ggGWqo2dXP.gVunp2/cPwuldAQW6sxEtpbtLMRAHZj9J.lQMfGKxy', 3, 1, 0, NULL, '2026-01-07 06:31:00', NULL),
-(22, 'Iqra Arshad', 'chaudharyiqra105@gmail.com', 'RHaf&^^moc9C', '$2y$10$qIcgwbrW1MBAADNTy6V4BejCgaEGjJRmV3WIvE5yCUnuZlfcrbi.2', 2, 1, 5, 2, '2026-01-14 17:14:13', NULL),
-(23, 'Manager', 'manager@taskdesk.org', 'TaskDesk@345', '$2y$10$Zgz13iXGsRyiwvKG74qOL.wLfEFgwPEg7Y7Lm41glJmX77d7WVqr6', 4, 1, 0, 0, '2026-01-19 08:42:17', NULL),
-(46, 'Qamar Naveed', 'code.learners.edu.pk@gmail.com', '&+f7O&9z3h@3', '$2y$10$cfzx8yqGgMOKbujOfPD8eOg5tyJJWFfzvDHxh/SjcggEfSO.LYSbC', 2, 1, 3, 2, '2026-01-25 17:57:10', NULL),
-(49, 'Hafsa umair', 'hafsaalam95@gmail.com', 'u*7ZJcYTztaP', '$2y$10$w13dIeGVMzF9xf2J72GSoea2iL.2ap1hug4aBSnLsBVEVhfwok.R.', 2, 1, 5, 2, '2026-01-26 15:20:45', NULL);
+INSERT INTO `users` (`id`, `name`, `email`, `plain_password`, `password`, `user_role`, `status`, `tech_id`, `supervisor_id`, `created_at`, `temp_col`, `internship_type`) VALUES
+(1, 'Admin', 'admin@taskdesk.org', 'GenNext@@0099', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 1, 1, 0, NULL, '2025-12-08 14:55:31', NULL, 1),
+(2, 'Qamar Naveed', 'qamargill427@gmail.com', '1122', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 3, 1, 0, NULL, '2025-12-08 14:56:47', NULL, 1),
+(3, 'Muhammad Mudassir', 'muhammadmudassir8877@gmail.com', '5aLJms47gu1', '$2y$10$72h8iSO5RRV3MEvjUEFZNew9TaEgTv9ruMbUX/WBJ.UnMjnhyJJv2', 2, 1, 3, 2, '2025-12-08 15:06:49', NULL, 1),
+(4, 'Fiza', 'fizaa7343@gmail.com', '5aLJms47gu1', '$2y$10$H7b5eSIHn0xAJ4ok2WyXmOTNicnmketc3JLUYkT0bMig3dlJiPw9m', 2, 1, 7, 2, '2025-12-08 15:11:14', NULL, 1),
+(5, 'Faryal Naz', 'faryalnaz711@gmail.com', '5aLJms47gu1', '$2y$10$Z3wrp18h7fG3zgCrrqKjNefDNSi4UOGg/GoTPFtxZCHl7N5/WDBBe', 2, 1, 4, 2, '2025-12-08 15:12:18', NULL, 1),
+(6, 'Vandna', 'wandhnarejhra@gmail.com', 'AFPYI&2af3]E', '$2y$10$UBtEeIyBO2gCqPoc.o7Wl.9Pw3hvcIpptUkrhiYjOAy2LRwNn5y66', 2, 1, 8, 2, '2025-12-12 15:39:46', NULL, 1),
+(7, 'Abdul Rehman', 'arimran7315@gmail.com', 'c]j0%OxipKCq', '$2y$10$HH2dDM6Nus0dba0c7lc8JOHECypd0NRhJWYXg40t7/kK0LP4VHQO.', 2, 1, 6, 2, '2025-12-13 19:06:56', NULL, 0),
+(14, 'Fajar Shakeel', 'manhalhads@gmail.com', '?zuE;t]zp~$?GS8', '$2y$10$o2y/ydBySoC52QNBkDVmqONTKQCFVcMTiHKgiJT28wY1CdZimGZQO', 2, 1, 4, 2, '2025-12-26 05:22:49', NULL, 1),
+(16, 'Mehwish Zahra', 'mehwishzahra086@gmail.com', 'VHA$FJAkio37', '$2y$10$HnMIV6UIV5VmkV33hj79ruVEjkbfh1FR2oN8yzp/dhbBoaGfMo3B.', 2, 1, 7, 2, '2025-12-29 05:33:43', NULL, 1),
+(18, 'Munazza Akhlaq', 'munazzamunazza229@gmail.com', '(_I[0L72pbH%', '$2y$10$seTiN.RdGEDoAjoNHfK/eu8hIhlxduzBa4O4561NCQLtg3P4XboAa', 2, 1, 10, 2, '2025-12-30 14:24:53', NULL, 1),
+(19, 'Areesha Arain', 'areeshaarain2006@gmail.com', 'a@_TA76[wGyJ', '$2y$10$3n391BQKZm0kTfPZ5JmojeoNyaf9uSHa7NmbX1Ps1kd3XJMPpoJ5W', 2, 1, 7, 2, '2025-12-31 14:04:15', NULL, 1),
+(20, 'Fatima Manzoor', 'fatemahmnzor@gmail.com', 'b9=6LSW]6Ccx', '$2y$10$GaRFS.55dlC6ESEisABrIOWaIPRcDE/IvAux6aESkuPELu6Q0aPnu', 2, 1, 4, 21, '2026-01-07 06:08:37', NULL, 1),
+(21, 'Ahmed Naeem', 'ahmednaeemnaeemgulzar521@gmail.com', '7WkoQJ&Mz[nq', '$2y$10$ggGWqo2dXP.gVunp2/cPwuldAQW6sxEtpbtLMRAHZj9J.lQMfGKxy', 3, 1, 0, NULL, '2026-01-07 06:31:00', NULL, 1),
+(22, 'Iqra Arshad', 'chaudharyiqra105@gmail.com', 'RHaf&^^moc9C', '$2y$10$qIcgwbrW1MBAADNTy6V4BejCgaEGjJRmV3WIvE5yCUnuZlfcrbi.2', 2, 1, 5, 2, '2026-01-14 17:14:13', NULL, 1),
+(23, 'Manager', 'manager@taskdesk.org', 'TaskDesk@345', '$2y$10$Zgz13iXGsRyiwvKG74qOL.wLfEFgwPEg7Y7Lm41glJmX77d7WVqr6', 4, 1, 0, 0, '2026-01-19 08:42:17', NULL, 1),
+(46, 'Qamar Naveed', 'code.learners.edu.pk@gmail.com', '&+f7O&9z3h@3', '$2y$10$cfzx8yqGgMOKbujOfPD8eOg5tyJJWFfzvDHxh/SjcggEfSO.LYSbC', 2, 1, 3, 2, '2026-01-25 17:57:10', NULL, 1),
+(49, 'Hafsa umair', 'hafsaalam95@gmail.com', 'u*7ZJcYTztaP', '$2y$10$w13dIeGVMzF9xf2J72GSoea2iL.2ap1hug4aBSnLsBVEVhfwok.R.', 2, 1, 5, 2, '2026-01-26 15:20:45', NULL, 1);
 
 --
 -- Indexes for dumped tables
@@ -669,49 +558,49 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `certificate`
 --
 ALTER TABLE `certificate`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `email_queue`
 --
 ALTER TABLE `email_queue`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `registrations`
 --
 ALTER TABLE `registrations`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=156;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=156;
 
 --
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `technologies`
 --
 ALTER TABLE `technologies`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `time_logs`
 --
 ALTER TABLE `time_logs`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- Constraints for dumped tables

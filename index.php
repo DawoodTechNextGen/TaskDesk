@@ -78,22 +78,15 @@ if ($user_role == 1) {
     $generated_tasks->execute();
     $generated_tasks = $generated_tasks->get_result()->fetch_assoc()['total'];
 
-    // Get supervisor's technology
-    $supervisor_tech = $conn->prepare("SELECT tech_id FROM users WHERE id = ?");
-    $supervisor_tech->bind_param("i", $user_id);
-    $supervisor_tech->execute();
-    $tech_result = $supervisor_tech->get_result();
-    $tech_id = $tech_result->num_rows > 0 ? $tech_result->fetch_assoc()['tech_id'] : null;
+    $managed_interns = $conn->prepare("SELECT COUNT(id) as total FROM users WHERE user_role = 2 AND status = 1 AND supervisor_id = ?");
+    $managed_interns->bind_param("i", $user_id);
+    $managed_interns->execute();
+    $managed_interns = $managed_interns->get_result()->fetch_assoc()['total'];
 
-    if ($tech_id) {
-        $managed_interns = $conn->prepare("SELECT COUNT(id) as total FROM users WHERE user_role = 2 AND status = 1");
-        $managed_interns->execute();
-        $managed_interns = $managed_interns->get_result()->fetch_assoc()['total'];
-    } else {
-        $managed_interns = 0;
-    }
-
-    $overdue_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE created_by = ? AND status != 'complete' AND due_date < CURDATE()");
+    $overdue_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks 
+        WHERE (assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)) 
+        AND ((status != 'complete' AND due_date < CURDATE()) 
+             OR (status = 'complete' AND completed_at > due_date))");
     $overdue_tasks->bind_param("i", $user_id);
     $overdue_tasks->execute();
     $overdue_tasks = $overdue_tasks->get_result()->fetch_assoc()['total'];
@@ -1435,6 +1428,7 @@ include_once "./include/headerLinks.php"; ?>
         <script src="./assets/js/dashboard/intern-dashboard.js"></script>
     <?php elseif ($user_role == 3): ?>
         <script src="./assets/js/dashboard/supervisor-dashboard.js"></script>
+        <script src="assets/js/task-review.js"></script>
     <?php endif; ?>
     <?php if ($user_role == 4): ?>
         <script src="./assets/js/dashboard/manager-dashboard.js"></script>
@@ -1452,6 +1446,7 @@ include_once "./include/headerLinks.php"; ?>
             } else if (userRole === 3) {
                 initializeSupervisorCharts();
                 loadSupervisorStats();
+                
             } else if (userRole === 4) {
                 initializeManagerCharts();
             }

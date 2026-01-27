@@ -453,6 +453,19 @@ function getStatusBadge(status) {
         case "working":
             classes = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
             break;
+        case "pending_review":
+            classes = "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+            break;
+        case "approved":
+            classes = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
+            break;
+        case "rejected":
+            classes = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+            break;
+        case "needs_improvement":
+            classes = "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+            break;
+        case "expired":
         case "Expired":
             classes = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
             break;

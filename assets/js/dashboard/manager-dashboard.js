@@ -243,9 +243,9 @@ function initializeManagerCharts() {
                 if (legendContainer) {
                     legendContainer.innerHTML = "";
                     data.technologies.forEach((tech, index) => {
-                        const value = data.registrations[index];
-                        const total = data.registrations.reduce((a, b) => a + b, 0);
-                        const percentage = Math.round((value / total) * 100);
+                        const value = Number(data.registrations[index]);
+                        const total = data.registrations.map(Number).reduce((a, b) => a + b, 0);
+                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
 
                         const legendItem = document.createElement("div");
                         legendItem.className = "flex flex-col items-center";

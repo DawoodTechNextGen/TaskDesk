@@ -290,6 +290,20 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Active Interns</span>
                                 </a>
                             </li>
+                            <?php if ($_SESSION['user_role'] == 3) { ?>
+                                <li>
+                                    <a href="attendance_supervisor.php" onclick="window.location=this.href"
+                                        class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                    <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'attendance_supervisor.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                        <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Intern Attendance</span>
+                                    </a>
+                                </li>
+                            <?php } ?>
                         <?php } ?>
                         <?php if ($_SESSION['user_role'] == 2) { ?>
                             <li id="update-new-tasks">
@@ -334,8 +348,20 @@
                                         <span class="sidebar-item text-gray-700 dark:text-gray-200">Get Your Certificate</span>
                                     </a>
                                 </li>
-                        <?php }
-                        } ?>
+                            <?php } ?>
+                            <li>
+                                <a href="attendance_intern.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'attendance_intern.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">My Attendance</span>
+                                </a>
+                            </li>
+                        <?php } ?>
                     </ul>
                 </div>
             </nav>

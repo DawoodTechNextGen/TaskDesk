@@ -491,9 +491,18 @@ async function getTasks() {
           formatDateTime(task.created_at),
           `
                         ${
-                          task.status == "complete" || task.status == "working"
-                            ? ""
-                            : `
+                          task.status == "pending_review" || task.status == "complete"
+                            ? `<button onclick="showReviewModal(${task.id}, '${task.title.replace(/'/g, "\\'")}')" 
+                                class="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2 py-1 rounded text-xs font-semibold me-2">
+                                Review
+                               </button>`
+                            : task.status == "expired" || task.status == "Expired"
+                            ? `<button onclick="showReactivateModal(${task.id}, '${task.title.replace(/'/g, "\\'")}', '${task.due_date}')" 
+                                class="bg-orange-100 text-orange-700 hover:bg-orange-200 px-2 py-1 rounded text-xs font-semibold me-2">
+                                Reactivate
+                               </button>`
+                            : task.status !== "complete" && task.status !== "working" && task.status !== "approved"
+                            ? `
                             <button class="open-modal text-blue-600 me-2"
                             data-modal="edit-task-modal"
                             data-id="${task.id}"
@@ -505,6 +514,7 @@ async function getTasks() {
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 22H8M20 22H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M13.8881 3.66293L14.6296 2.92142C15.8581 1.69286 17.85 1.69286 19.0786 2.92142C20.3071 4.14999 20.3071 6.14188 19.0786 7.37044L18.3371 8.11195M13.8881 3.66293C13.8881 3.66293 13.9807 5.23862 15.3711 6.62894C16.7614 8.01926 18.3371 8.11195 18.3371 8.11195M13.8881 3.66293L7.07106 10.4799C6.60933 10.9416 6.37846 11.1725 6.17992 11.4271C5.94571 11.7273 5.74491 12.0522 5.58107 12.396C5.44219 12.6874 5.33894 12.9972 5.13245 13.6167L4.25745 16.2417M18.3371 8.11195L14.9286 11.5204M11.5201 14.9289C11.0584 15.3907 10.8275 15.6215 10.5729 15.8201C10.2727 16.0543 9.94775 16.2551 9.60398 16.4189C9.31256 16.5578 9.00282 16.6611 8.38334 16.8675L5.75834 17.7426M5.75834 17.7426L5.11667 17.9564C4.81182 18.0581 4.47573 17.9787 4.2485 17.7515C4.02128 17.5243 3.94194 17.1882 4.04356 16.8833L4.25745 16.2417M5.75834 17.7426L4.25745 16.2417" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
                             </button>
                             `
+                            : ""
                         }
                             <button class="open-modal text-amber-600" 
                             data-modal="view-task-modal" id="view-task" 
@@ -579,21 +589,22 @@ function viewTask() {
       const additional_msg = button.dataset.additionalmsg;
 
       const viewUrls = document.querySelector(".view-urls");
-      if (github_repo !== "" || github_repo !== null) {
-        viewUrls.innerHTML = `
-                                    <button type="button" class="close-modal px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">Close</button>
-                                    ${
-                                      github_repo
-                                        ? `<a href="${github_repo}" target="_blank" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500">View Github Repo</a>`
-                                        : ""
-                                    }
-                                    ${
-                                      live_url
-                                        ? `<a href="${live_url}" target="_blank" class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-500">View Live Web</a>`
-                                        : ""
-                                    }
-                                    `;
-      }
+      const hasGithub = github_repo && github_repo !== "" && github_repo !== "null";
+      const hasLive = live_url && live_url !== "" && live_url !== "null";
+
+      viewUrls.innerHTML = `
+          <button type="button" class="close-modal px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">Close</button>
+          ${
+            hasGithub
+              ? `<a href="${github_repo}" target="_blank" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500">View Github Repo</a>`
+              : ""
+          }
+          ${
+            hasLive
+              ? `<a href="${live_url}" target="_blank" class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-500">View Live Web</a>`
+              : ""
+          }
+          `;
       // Update the view data
       modal.querySelector(".view-data").innerHTML = `
             <div class="grid grid-cols-2">

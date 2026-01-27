@@ -941,7 +941,7 @@ switch ($action) {
     ";
 }
 
-$subject = "Application Status Update – DawoodTech NextGen";
+$subject = "Application Status Update - DawoodTech NextGen";
 
 $html_content = "
     <div style='font-family: Arial, sans-serif; line-height: 1.7; color: #333;'>

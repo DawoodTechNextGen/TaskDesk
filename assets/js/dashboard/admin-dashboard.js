@@ -262,6 +262,17 @@ function initializeAdminCharts() {
         const userRoleCtx = document
           .getElementById("userRoleChart")
           .getContext("2d");
+
+        // Define specific colors for each role
+        const roleColors = {
+            'Admins': '#EF4444',      // Red
+            'Interns': '#10B981',     // Green
+            'Supervisors': '#3B82F6',  // Blue
+            'Managers': '#6366F1'      // Indigo
+        };
+
+        const chartColors = data.labels.map(label => roleColors[label] || '#6B7280');
+
         const userRoleChart = new Chart(userRoleCtx, {
           type: "pie",
           data: {
@@ -269,7 +280,7 @@ function initializeAdminCharts() {
             datasets: [
               {
                 data: data.values,
-                backgroundColor: ["#EF4444", "#10B981", "#3B82F6", "#6366F1"], // Admin, Intern, Supervisor, Manager
+                backgroundColor: chartColors,
                 borderWidth: 0,
                 borderRadius: 8,
                 spacing: 4,
@@ -303,7 +314,7 @@ function initializeAdminCharts() {
 
             const total = data.values.map(Number).reduce((a, b) => a + b, 0);
 
-            const percentage = Math.round((value / total) * 100);
+            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
 
             const legendItem = document.createElement("div");
             legendItem.className = "flex flex-col items-center";

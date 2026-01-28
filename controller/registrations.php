@@ -116,8 +116,8 @@ switch ($action) {
             // Format internship_type
             if (isset($row['internship_type'])) {
                 $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Only Internship'
-                    : 'Supervised Internship';
+                    ? 'Free Intern'
+                    : 'Paid Intern';
             }
 
             // Format experience
@@ -609,8 +609,8 @@ switch ($action) {
             // Format internship_type
             if (isset($row['internship_type'])) {
                 $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Only Internship'
-                    : 'Supervised Internship';
+                    ? 'Free Intern'
+                    : 'Paid Intern';
             }
 
             // Format experience
@@ -835,7 +835,9 @@ switch ($action) {
 
             // Generate Offer Letter PDF
             $startDate = date('d-M-Y');
-            $endDate = date('d-M-Y', strtotime($startDate . ' + 3 months'));
+            $endDate = ($registration['internship_type'] == 0) 
+                ? date('d-M-Y', strtotime('+4 weeks')) 
+                : date('d-M-Y', strtotime('+12 weeks'));
             $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
 
             // Send notification with fallback

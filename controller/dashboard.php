@@ -533,7 +533,7 @@ if ($action === 'manager_internship_type_stats') {
     FROM registrations
     GROUP BY internship_type");
 
-    $labels = ['Internship Only', 'Full Training + Internship'];
+    $labels = ['Free Intern', 'Paid Intern'];
     $values = [0, 0];
 
     while ($row = $stmt->fetch_assoc()) {

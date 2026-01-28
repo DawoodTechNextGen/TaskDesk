@@ -671,6 +671,54 @@ include_once "./include/headerLinks.php";
                 </div>
             </div>
 
+            <!-- Edit Internship Type Modal -->
+            <div id="editTypeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Internship Type</h3>
+                        <button type="button" id="closeEditTypeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form id="editTypeForm" class="space-y-6">
+                        <input type="hidden" id="editTypeId" name="id">
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Candidate Name</label>
+                                <input type="text" id="editTypeName" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Internship Type</label>
+                                <input type="text" id="editTypeCurrentType" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Internship Type</label>
+                                <select id="editTypeNewType" class="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200" required>
+                                    <option value="">Select Internship Type</option>
+                                    <option value="0">Free Intern</option>
+                                    <option value="1">Paid Intern</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" id="cancelEditTypeBtn" class="px-4 py-2.5 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                Update Type
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <?php include_once "./include/footer.php"; ?>
         </div>
     </div>
@@ -1327,10 +1375,10 @@ include_once "./include/headerLinks.php";
                     }
                 },
                 {
-                    data: 'internship_type_text'
-                },
-                {
-                    data: 'experience_text'
+                    data: 'internship_type_text',
+                    render: function(data, type, row) {
+                        return `<span class="internship-type-cell cursor-pointer inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition" data-id="${row.id}" data-current="${row.internship_type}">${escapeHTML(data)}</span>`;
+                    }
                 },
                 {
                     data: null,
@@ -1655,6 +1703,61 @@ include_once "./include/headerLinks.php";
         });
 
         $('#hireCancelBtn, #cancelHireBtn').on('click', () => $('#hireModal').addClass('hidden'));
+
+        // Inline Internship Type Edit
+        $(document).on('click', '.internship-type-cell', function(e) {
+            e.stopPropagation();
+            const cell = $(this);
+            const id = cell.data('id');
+            const current = cell.data('current');
+            
+            // Create select dropdown
+            const select = $(`
+                <select class="internship-type-select px-2 py-1 rounded border border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                    <option value="0" ${current == 0 ? 'selected' : ''}>Free Intern</option>
+                    <option value="1" ${current == 1 ? 'selected' : ''}>Paid Intern</option>
+                </select>
+            `);
+            
+            cell.replaceWith(select);
+            select.focus();
+            
+            // Handle change
+            select.on('change', function() {
+                const newValue = $(this).val();
+                
+                $.ajax({
+                    url: 'controller/registrations.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'update_internship_type',
+                        registration_id: id,
+                        internship_type: newValue
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', 'Internship type updated successfully');
+                            table.ajax.reload();
+                        } else {
+                            showToast('error', response.message || 'Failed to update internship type');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        showToast('error', 'An error occurred while updating internship type');
+                    }
+                });
+            });
+            
+            // Handle blur - revert if no change
+            select.on('blur', function() {
+                const newValue = $(this).val();
+                if (newValue == current) {
+                    table.ajax.reload();
+                }
+            });
+        });
 
         $('#hireForm').on('submit', async function(e) {
             e.preventDefault();

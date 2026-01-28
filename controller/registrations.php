@@ -737,6 +737,32 @@ switch ($action) {
         $update_stmt->close();
         break;
 
+    case 'update_internship_type':
+        $registration_id = (int)($_POST['registration_id'] ?? 0);
+        $internship_type = $_POST['internship_type'] ?? '';
+
+        if ($registration_id <= 0 || $internship_type === '') {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            break;
+        }
+
+        // Validate internship type (0 = Full-Time, 1 = Part-Time)
+        if (!in_array($internship_type, ['0', '1'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid internship type']);
+            break;
+        }
+
+        $stmt = $conn->prepare("UPDATE registrations SET internship_type = ? WHERE id = ?");
+        $stmt->bind_param('si', $internship_type, $registration_id);
+
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Internship type updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update internship type: ' . $conn->error]);
+        }
+        $stmt->close();
+        break;
+
     case 'update_hire_status':
         $id = (int)($_POST['id'] ?? 0);
         $trainer = (int)($_POST['hireTrainer'] ?? 0);

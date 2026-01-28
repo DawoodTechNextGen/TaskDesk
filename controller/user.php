@@ -221,41 +221,6 @@ switch ($action) {
         $stmt->bind_param('sssissi', $name, $hashed, $role, $tech_id, $email, $password, $supervisor_id);
 
         if ($stmt->execute()) {
-            $user_id = $conn->insert_id;
-
-            if ($role == 2) {
-                // Insert certificate
-                $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
-                $stmt->bind_param('i', $user_id);
-                $stmt->execute();
-
-                // Get tech name
-                $tech_name = '';
-                if ($tech_id) {
-                    $t = $conn->prepare("SELECT name FROM technologies WHERE id = ?");
-                    $t->bind_param('i', $tech_id);
-                    $t->execute();
-                    $techResult = $t->get_result()->fetch_assoc();
-                    $tech_name = $techResult['name'] ?? 'Intern';
-                }
-
-                // QUEUE THE EMAIL (not send now)
-                $data = json_encode([
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => $password,
-                    'tech_name' => $tech_name,
-                    'tech_id' => $tech_id
-                ]);
-
-                $queueStmt = $conn->prepare("
-                INSERT INTO email_queue (to_email, to_name, template, data) 
-                VALUES (?, ?, 'welcome_offer', ?)
-                    ");
-                $queueStmt->bind_param('sss', $email, $name, $data);
-                $queueStmt->execute();
-            }
-
             echo json_encode([
                 'success' => true,
                 'message' => ($role == 2) ? 'Internee created successfully!' : (($role == 3) ? 'Supervisor created successfully!' : 'Manager created successfully!')

@@ -89,6 +89,20 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4) { ?>
+                        <li>
+                            <a href="reports.php" onclick="window.location=this.href"
+                                class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'reports.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                    <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 17L7 13M12 17L12 9M17 17L17 5M3 20H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>
+                                </div>
+                                <span class="sidebar-item text-gray-700 dark:text-gray-200">Reports</span>
+                            </a>
+                        </li>
+                        <?php } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
                             <li>
                                 <?php

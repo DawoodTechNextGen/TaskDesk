@@ -423,7 +423,9 @@ function updateMonthlyTrendsStats(tasks, months) {
 
   const currentMonth = tasks[tasks.length - 1];
   const prevMonth = tasks[tasks.length - 2] || 0;
-  const growthRate = Math.round(((currentMonth - prevMonth)) * 100);
+  const growthRate = prevMonth > 0 
+    ? Math.round(((currentMonth - prevMonth) / prevMonth) * 100)
+    : (currentMonth * 100);
   statsContainer.innerHTML = `
         <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${totalTasks}</div>
@@ -443,9 +445,9 @@ function updateMonthlyTrendsStats(tasks, months) {
                 ? "text-green-600 dark:text-green-400"
                 : "text-red-600 dark:text-red-400"
             }">
-                ${growthRate >= 0 ? "+" : "-"}${growthRate}%
+                ${growthRate >= 0 ? "+" : ""}${growthRate}%
             </div>
-            <div class="text-sm text-orange-600 dark:text-orange-300">Growth Rate</div>
+            <div class="text-sm text-orange-600 dark:text-orange-300">Growth Rate (MoM)</div>
         </div>
         `;
 }

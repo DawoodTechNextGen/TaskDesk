@@ -690,7 +690,7 @@ include_once "./include/headerLinks.php"; ?>
                                                 <span class="inline-block px-2 py-1 text-xs rounded-full <?= $statusClass ?>">
                                                     <?= $statusText ?>
                                                 </span>
-                                                <p class="text-xs text-red-500 dark:text-gray-400 mt-1">Due: <?= date('M d', strtotime($dueDate)) ?></p>
+                                                <p class="text-xs text-red-500 dark:text-gray-400 mt-1 font-medium">Due: <?= date('M d', strtotime($dueDate)) ?></p>
                                             </div>
 
                                         </div>
@@ -704,7 +704,7 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="space-y-4">
                                     <div class="text-center">
                                         <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2" id="completionRate">0%</div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">Total Completion</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">Task Completion</p>
                                     </div>
                                     <div class="text-center">
                                         <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2" id="onTimeRate">0%</div>

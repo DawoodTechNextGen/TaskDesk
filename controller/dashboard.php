@@ -94,7 +94,9 @@ if ($action === 'intern_stats') {
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
     $created_at = new DateTime($user_res['created_at']);
+    $created_at->setTime(0, 0, 0); // Normalize to start of day
     $now = new DateTime();
+    $now->setTime(0, 0, 0); // Normalize to start of today
     $interval = $created_at->diff($now);
     $total_days = $interval->days + 1; // Include today
     
@@ -754,8 +756,10 @@ if ($action === "intern_daily_history") {
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
     $start_date = new DateTime($user_res['created_at']);
-    $end_date = new DateTime();
-    $end_date->modify('+1 day'); // Include today
+    $start_date->setTime(0, 0, 0); // Start of day
+    $end_date = new DateTime(); // Today
+    $end_date->setTime(0, 0, 0);
+    $end_date->modify('+1 day'); // Start of tomorrow (to include today in period)
 
     $interval = new DateInterval('P1D');
     $period = new DatePeriod($start_date, $interval, $end_date);

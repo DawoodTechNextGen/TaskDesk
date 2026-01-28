@@ -2,6 +2,7 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+include_once "../include/notification_helper.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -52,6 +53,36 @@ if ($data['action'] === 'create') {
     $stmt->bind_param("ssisss", $title, $description, $assign_to, $created_by, $status, $due_date);
 
     if ($stmt->execute()) {
+        // --- Send Notification ---
+        $user_stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
+        $user_stmt->bind_param("i", $assign_to);
+        $user_stmt->execute();
+        $user_data = $user_stmt->get_result()->fetch_assoc();
+        $user_stmt->close();
+
+        if ($user_data && !empty($user_data['email'])) {
+            $subject = "Task Assigned: " . $title;
+            // Professional HTML Content
+            $html_content = "
+                <div style='font-family: Arial, sans-serif; color: #333;'>
+                    <h2>Hello " . htmlspecialchars($user_data['name']) . ",</h2>
+                    <p>You have been assigned a new task: <strong>" . htmlspecialchars($title) . "</strong></p>
+                    <p><strong>Due Date:</strong> " . htmlspecialchars($due_date) . "</p>
+                    <p>Please log in to your dashboard to start working on it.</p>
+                    <br>
+                    <p>Best Regards,<br>Management Team</p>
+                </div>
+            ";
+
+            sendNotificationFallback([
+                'email' => $user_data['email'],
+                'name' => $user_data['name'],
+                'subject' => $subject,
+                'html_content' => $html_content
+            ]);
+        }
+        // --- End Notification ---
+
         echo json_encode(["success" => true, "message" => "Task created successfully"]);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to create task"]);

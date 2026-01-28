@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once './include/connection.php';
 
+require "/home2/dawoodte/public_html/taskdesk/include/connection.php";
 // This file should be called by cron job
 function markAutoAttendance() {
     global $conn;

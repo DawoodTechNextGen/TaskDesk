@@ -1,6 +1,5 @@
 <?php
-require "/include/connection.php";
-// require "/home2/dawoodte/public_html/taskdesk/include/connection.php";
+require "/home2/dawoodte/public_html/taskdesk/include/connection.php";
 
 // Stop all tasks where status = 'working'
 $current_time = date("Y-m-d") . " 23:59:59";

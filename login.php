@@ -22,6 +22,15 @@ unset($_SESSION['error']);
       background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
     }
 
+    html.dark {
+      background: linear-gradient(135deg, #0b1220 0%, #071026 100%);
+    }
+
+    html.dark body {
+      background: transparent;
+      color: #e6eef8;
+    }
+
     .hidden {
       display: none;
       opacity: 0;
@@ -102,15 +111,29 @@ unset($_SESSION['error']);
       }
     }
   </style>
+  <style>
+    /* Hide right-side vector only on small screens (mobile) */
+    @media (max-width: 768px) {
+      .vector-container {
+        display: none !important;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .auth-card {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 
 <body class="min-h-screen flex items-center justify-center p-4">
   <div id="toast-container" class="fixed top-2 right-4 z-50 space-y-2"></div>
-  <div class="relative max-w-5xl w-full auth-card bg-white overflow-hidden">
+  <div class="relative max-w-5xl w-full auth-card bg-white overflow-hidden dark:bg-gray-900">
     <!-- Login Section -->
     <div id="login-section" class="flex flex-col md:flex-row active-section">
       <!-- Form on the left for login -->
-      <div class="w-full md:w-1/2 p-8 md:p-12 form-container">
+      <div class="w-full md:w-1/2 p-8 md:p-12 form-container dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800">
         <div class="max-w-md mx-auto">
           <div class="flex items-center mb-10 justify-center">
             <svg
@@ -132,21 +155,21 @@ unset($_SESSION['error']);
 
           <form method="POST" action="<?= BASE_URL ?>controller/auth.php" autocomplete="on">
             <div class="mb-2">
-              <label class="block text-gray-700 text-sm font-medium mb-2" for="login-email">Email</label>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2" for="login-email">Email</label>
               <input
                 type="email"
                 name="email"
                 autocomplete="email"
-                class="border border-gray-200 w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition"
+                class="border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition"
                 placeholder="Enter your email">
             </div>
             <div class="mb-5 relative">
-              <label class="block text-gray-700 text-sm font-medium mb-2" for="login-password">Password</label>
+              <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2" for="login-password">Password</label>
               <input
                 type="password"
                 name="password"
                 autocomplete="current-password"
-                class="border border-gray-200 w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition pr-10"
+                class="border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition pr-10"
                 placeholder="Enter your password">
               <!-- Toggle button -->
               <button type="button" id="toggle-password"
@@ -160,8 +183,7 @@ unset($_SESSION['error']);
                 </svg>
               </button>
             </div>
-            <button type="submit" class="w-full auth-btn text-white p-3 rounded-lg font-medium
-                bg-gradient-to-r from-blue-500 to-blue-600 cursor-pointer flex items-center justify-center gap-2">
+            <button type="submit" class="w-full auth-btn text-white p-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-500 dark:to-blue-600 cursor-pointer flex items-center justify-center gap-2">
               <span id="signin-text">Sign in</span>
               <div id="signin-loader" class="loader hidden"></div>
             </button>
@@ -172,7 +194,7 @@ unset($_SESSION['error']);
 
       <!-- Vector on the right for login -->
       <div class="w-full md:w-1/2 p-8 flex items-center justify-center vector-container
-        bg-gradient-to-r from-blue-500 to-blue-600">
+        bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-500 dark:to-blue-900">
         <div class="text-center text-white max-w-xs">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
             <g id="freepik--Shadow--inject-70">
@@ -680,7 +702,23 @@ unset($_SESSION['error']);
 
     });
   </script>
-
+</script>
+  <script>
+    (function() {
+      try {
+        const darkModePref = localStorage.getItem('darkMode');
+        if (darkModePref === 'enabled' ||
+          (!darkModePref && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {
+        console.warn('Login dark-mode init error', e);
+      }
+    })();
+  </script>
+  <script src="./assets/js/script.js"></script>
 </body>
 
 </html>

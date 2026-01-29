@@ -37,6 +37,45 @@ include_once "./include/headerLinks.php";
                         </div>
                     </div>
 
+                    <!-- Attendance Summary Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-xl shadow-sm border border-green-200 dark:border-green-700 p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider">Total Present</div>
+                                    <div class="text-3xl font-bold text-green-700 dark:text-green-300 mt-2" id="totalPresent">0</div>
+                                </div>
+                                <div class="text-green-200 dark:text-green-800">
+                                    <i class="fas fa-check-circle text-4xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl shadow-sm border border-red-200 dark:border-red-700 p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider">Total Absent</div>
+                                    <div class="text-3xl font-bold text-red-700 dark:text-red-300 mt-2" id="totalAbsent">0</div>
+                                </div>
+                                <div class="text-red-200 dark:text-red-800">
+                                    <i class="fas fa-times-circle text-4xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-700 p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-medium text-yellow-600 dark:text-yellow-400 uppercase tracking-wider">Total Holidays</div>
+                                    <div class="text-3xl font-bold text-yellow-700 dark:text-yellow-300 mt-2" id="totalHolidays">0</div>
+                                </div>
+                                <div class="text-yellow-200 dark:text-yellow-800">
+                                    <i class="fas fa-calendar text-4xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Task-Based Attendance -->
                     <div id="tasksContainer" class="space-y-6">
                         <!-- Tasks will be loaded here -->
@@ -76,16 +115,36 @@ include_once "./include/headerLinks.php";
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.history.length > 0) {
+                        // Calculate totals
+                        let totalPresent = 0;
+                        let totalAbsent = 0;
+                        let totalHolidays = 0;
+                        
+                        data.history.forEach(day => {
+                            if (day.is_weekend) {
+                                totalHolidays++;
+                            } else if (day.status === 'Present') {
+                                totalPresent++;
+                            } else {
+                                totalAbsent++;
+                            }
+                        });
+                        
+                        // Update total stats
+                        document.getElementById('totalPresent').textContent = totalPresent;
+                        document.getElementById('totalAbsent').textContent = totalAbsent;
+                        document.getElementById('totalHolidays').textContent = totalHolidays;
+                        
                         let html = `
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
                                 <div class="overflow-x-auto">
-                                    <table class="min-w-full">
+                                    <table id="attendanceTable" class="min-w-full">
                                         <thead class="bg-gray-50 dark:bg-gray-700/50">
                                             <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Work Time</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tasks Worked On</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Work Time</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tasks Worked On</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -102,7 +161,7 @@ include_once "./include/headerLinks.php";
                                 statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
                             } else if (day.is_weekend) {
                                 statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-                                statusText = 'Weekend'; 
+                                statusText = 'Holiday'; 
                             }
                             
                             // If user worked on weekend, keep it Present
@@ -122,22 +181,22 @@ include_once "./include/headerLinks.php";
 
                             html += `
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         <div class="font-medium">${day.date}</div>
                                         <div class="text-xs text-gray-500">${dayName}</div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-4 py-2 whitespace-nowrap">
                                         <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
                                             ${statusText}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                         <div class="font-bold">${day.work_time}</div>
                                         <div class="w-24 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 mt-1">
                                             <div class="h-1.5 rounded-full ${day.status === 'Present' ? 'bg-green-500' : 'bg-red-400'}" style="width: ${day.progress_percent}%"></div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
                                         ${taskList}
                                     </td>
                                 </tr>
@@ -152,6 +211,25 @@ include_once "./include/headerLinks.php";
                         `;
                         
                         attendanceContainer.innerHTML = html;
+                        
+                        // Initialize DataTables
+                        setTimeout(() => {
+                            $('#attendanceTable').DataTable({
+                                "pageLength": 10,
+                                "order": [[0, "desc"]],
+                                "language": {
+                                    "search": "Search records:",
+                                    "paginate": {
+                                        "previous": "Previous",
+                                        "next": "Next"
+                                    }
+                                },
+                                "dom": '<"top"f>t<"bottom"lip>',
+                                "drawCallback": function() {
+                                    // Optional: Custom styling after draw
+                                }
+                            });
+                        }, 100);
                     } else {
                          attendanceContainer.innerHTML = `
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center border border-gray-100 dark:border-gray-700">

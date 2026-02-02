@@ -160,17 +160,25 @@ if ($data['action'] === 'start') {
     }
 
     // Get User created date and internship type
-    $stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $stmt->bind_result($user_created_at, $internship_type);
+    $stmt->bind_result($user_created_at, $internship_type, $internship_duration);
     $stmt->fetch();
     $stmt->close();
 
     // Check if internship duration is completed
     $start_date = new DateTime($user_created_at);
     $current_date = new DateTime($today);
-    $duration_weeks = ($internship_type == 0) ? 4 : 12;
+    
+    $duration_weeks = 12;
+    if (!empty($internship_duration)) {
+        if ($internship_duration === '4 weeks') $duration_weeks = 4;
+        elseif ($internship_duration === '8 weeks') $duration_weeks = 8;
+        elseif ($internship_duration === '12 weeks') $duration_weeks = 12;
+    } else {
+        $duration_weeks = ($internship_type == 0) ? 4 : 12;
+    }
     // Calculate end date (start + duration)
     // We can use modify to add weeks
     $end_date = clone $start_date;
@@ -307,8 +315,19 @@ if ($data['action'] === 'complete') {
 ========================= */
 
 if ($data['action'] === 'get_task_attendance') {
-
+    $task_id = (int)($data['task_id'] ?? 0);
     $user_id = $_SESSION['user_id'];
+
+    if ($task_id > 0) {
+        $task_stmt = $conn->prepare("SELECT assign_to FROM tasks WHERE id = ?");
+        $task_stmt->bind_param("i", $task_id);
+        $task_stmt->execute();
+        $task_res = $task_stmt->get_result()->fetch_assoc();
+        if ($task_res) {
+            $user_id = $task_res['assign_to'];
+        }
+        $task_stmt->close();
+    }
 
     $stmt = $conn->prepare("
         SELECT date, total_work_seconds, status
@@ -384,6 +403,52 @@ if ($data['action'] === 'get') {
         echo json_encode(["success" => true, "logs" => $logs]);
     }
 
+    exit;
+}
+
+/* =========================
+   CHECK ACTIVE TASKS
+========================= */
+
+if ($data['action'] === 'check_active') {
+    $user_id = $_SESSION['user_id'];
+    $stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND status = 'working' LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    echo json_encode(["success" => true, "has_active" => $result->num_rows > 0]);
+    $stmt->close();
+    exit;
+}
+
+/* =========================
+   MARK AUTO ATTENDANCE
+========================= */
+
+if ($data['action'] === 'mark_auto_attendance') {
+    // This is called periodically or at end of day to ensure rows exist
+    $today = date('Y-m-d');
+    
+    // Get all active interns (role 2)
+    $stmt = $conn->prepare("SELECT id, created_at FROM users WHERE user_role = 2 AND status = 'approved'");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    while ($user = $result->fetch_assoc()) {
+        // Find most recent task for this user to link attendance
+        $task_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? ORDER BY created_at DESC LIMIT 1");
+        $task_stmt->bind_param("i", $user['id']);
+        $task_stmt->execute();
+        $task_res = $task_stmt->get_result()->fetch_assoc();
+        $task_id = $task_res ? $task_res['id'] : 0;
+        $task_stmt->close();
+        
+        if ($task_id > 0) {
+            ensureAttendanceRow($conn, $user['id'], $today, $task_id);
+        }
+    }
+    
+    echo json_encode(["success" => true, "message" => "Auto-attendance check completed"]);
     exit;
 }
 

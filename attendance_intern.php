@@ -18,67 +18,111 @@ include_once "./include/headerLinks.php";
         <?php include_once "./include/sideBar.php"; ?>
         <div class="flex-1 flex flex-col overflow-hidden">
             <?php include_once "./include/header.php" ?>
-            <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
-                <div class="mb-8">
-                    <div class="flex justify-between items-center mb-6">
+            <main class="flex-1 overflow-y-auto px-6 pt-24 pb-12 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
+                <div class="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">My Attendance</h1>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Review your work hours grouped by task.</p>
-                            <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                <i class="fas fa-calendar-alt mr-2"></i>
-                                <span id="weekInfo">Loading week info...</span>
-                            </div>
+                            <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">My Attendance</h1>
+                            <p class="text-gray-500 dark:text-gray-400 mt-1">Detailed overview of your work hours and internship progress.</p>
                         </div>
-                        <div id="overallStats" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center space-x-6">
-                            <div class="text-center">
-                                <div id="attendancePercent" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">0%</div>
-                                <div class="text-xs text-gray-500 uppercase tracking-wider">Overall Attendance</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Attendance Summary Stats -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-xl shadow-sm border border-green-200 dark:border-green-700 p-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider">Total Present</div>
-                                    <div class="text-3xl font-bold text-green-700 dark:text-green-300 mt-2" id="totalPresent">0</div>
-                                </div>
-                                <div class="text-green-200 dark:text-green-800">
-                                    <i class="fas fa-check-circle text-4xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl shadow-sm border border-red-200 dark:border-red-700 p-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="text-sm font-medium text-red-600 dark:text-red-400 uppercase tracking-wider">Total Absent</div>
-                                    <div class="text-3xl font-bold text-red-700 dark:text-red-300 mt-2" id="totalAbsent">0</div>
-                                </div>
-                                <div class="text-red-200 dark:text-red-800">
-                                    <i class="fas fa-times-circle text-4xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-700 p-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="text-sm font-medium text-yellow-600 dark:text-yellow-400 uppercase tracking-wider">Total Holidays</div>
-                                    <div class="text-3xl font-bold text-yellow-700 dark:text-yellow-300 mt-2" id="totalHolidays">0</div>
-                                </div>
-                                <div class="text-yellow-200 dark:text-yellow-800">
-                                    <i class="fas fa-calendar text-4xl"></i>
-                                </div>
+                        <div class="flex items-center gap-3">
+                            <div class="px-4 py-2 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                </span>
+                                <span id="weekInfo" class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Loading week...</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Task-Based Attendance -->
-                    <div id="tasksContainer" class="space-y-6">
-                        <!-- Tasks will be loaded here -->
+                    <!-- Modern Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Progress Card -->
+                        <div class="relative overflow-hidden group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors"></div>
+                            <div class="flex flex-col h-full justify-between">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl text-indigo-600 dark:text-indigo-400">
+                                        <i class="fas fa-tasks text-xl"></i>
+                                    </div>
+                                    <div id="attendancePercent" class="text-2xl font-black text-indigo-600 dark:text-indigo-400">0%</div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Attendance Rate</p>
+                                    <div class="mt-4 space-y-2">
+                                        <div class="flex justify-between text-xs font-bold text-gray-500">
+                                            <span>Internship Progress</span>
+                                            <span id="progressText">0/0 Days</span>
+                                        </div>
+                                        <div class="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                            <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Present Card -->
+                        <div class="relative overflow-hidden group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors"></div>
+                            <div class="flex flex-col h-full justify-between">
+                                <div class="flex items-center justify-between mb-8">
+                                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-emerald-600 dark:text-emerald-400">
+                                        <i class="fas fa-check-double text-xl"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Present Days</p>
+                                    <p id="totalPresent" class="text-4xl font-black text-gray-900 dark:text-white mt-1">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Absent Card -->
+                        <div class="relative overflow-hidden group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl group-hover:bg-rose-500/10 transition-colors"></div>
+                            <div class="flex flex-col h-full justify-between">
+                                <div class="flex items-center justify-between mb-8">
+                                    <div class="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-2xl text-rose-600 dark:text-rose-400">
+                                        <i class="fas fa-user-times text-xl"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Absent Days</p>
+                                    <p id="totalAbsent" class="text-4xl font-black text-gray-900 dark:text-white mt-1">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Holidays Card -->
+                        <div class="relative overflow-hidden group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors"></div>
+                            <div class="flex flex-col h-full justify-between">
+                                <div class="flex items-center justify-between mb-8">
+                                    <div class="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400">
+                                        <i class="fas fa-coffee text-xl"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Weekend/Holidays</p>
+                                    <p id="totalHolidays" class="text-4xl font-black text-gray-900 dark:text-white mt-1">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Table Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div class="p-4 md:p-8">
+                            <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Daily History</h2>
+                            </div>
+                            
+                            <div id="tasksContainer" class="min-h-[400px]">
+                                <!-- Table will be injected here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -136,67 +180,94 @@ include_once "./include/headerLinks.php";
                         document.getElementById('totalHolidays').textContent = totalHolidays;
                         
                         let html = `
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
-                                <div class="overflow-x-auto">
-                                    <table id="attendanceTable" class="min-w-full">
-                                        <thead class="bg-gray-50 dark:bg-gray-700/50">
-                                            <tr>
-                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Work Time</th>
-                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tasks Worked On</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <div class="p-1 md:p-4 border border-gray-100 dark:border-gray-700/50 rounded-[2.5rem] bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl shadow-sm">
+                                <table id="attendanceTable" class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50/50 dark:bg-gray-900/20">
+                                            <th class="px-6 py-5 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Date</th>
+                                            <th class="px-6 py-5 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Status</th>
+                                            <th class="px-6 py-5 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Work Duration</th>
+                                            <th class="px-6 py-5 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Activity Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
                         `;
                         
                         data.history.forEach(day => {
                             const dateObj = new Date(day.date);
-                            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                            const dayShort = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
                             
-                            let statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-                            let statusText = day.status;
+                            let statusConfig = {
+                                color: 'from-rose-500/10 to-orange-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30',
+                                icon: 'fa-user-times',
+                                text: day.status
+                            };
                             
                             if (day.status === 'Present') {
-                                statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                                statusConfig = {
+                                    color: 'from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30',
+                                    icon: 'fa-check-circle',
+                                    text: 'Present'
+                                };
                             } else if (day.is_weekend) {
-                                statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-                                statusText = 'Holiday'; 
+                                statusConfig = {
+                                    color: 'from-gray-500/10 to-slate-500/10 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700/50',
+                                    icon: 'fa-mug-hot',
+                                    text: 'Holiday'
+                                };
                             }
                             
-                            // If user worked on weekend, keep it Present
+                            // Ensure Present text if work duration exists
                             if (day.status === 'Present') {
-                                statusText = 'Present';
-                                statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                                statusConfig.text = 'Present';
                             }
 
                             let taskList = '';
                             if (day.tasks && day.tasks.length > 0) {
-                                taskList = day.tasks.map(t => 
-                                    `<div class="text-sm"><span class="font-medium">${t.name}:</span> <span class="text-gray-500">${t.duration}</span></div>`
-                                ).join('');
+                                taskList = day.tasks.map(t => `
+                                    <div class="group/task flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-200">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${t.name}</span>
+                                        </div>
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-700">${t.duration}</span>
+                                    </div>
+                                `).join('');
+                                taskList = `<div class="space-y-1 max-w-xs">${taskList}</div>`;
                             } else {
-                                taskList = '<span class="text-xs text-gray-400">-</span>';
+                                taskList = '<span class="text-xs font-medium text-gray-400 dark:text-gray-600 italic px-2">No activity logged</span>';
                             }
 
                             html += `
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                        <div class="font-medium">${day.date}</div>
-                                        <div class="text-xs text-gray-500">${dayName}</div>
-                                    </td>
-                                    <td class="px-4 py-2 whitespace-nowrap">
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                                            ${statusText}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                        <div class="font-bold">${day.work_time}</div>
-                                        <div class="w-24 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 mt-1">
-                                            <div class="h-1.5 rounded-full ${day.status === 'Present' ? 'bg-green-500' : 'bg-red-400'}" style="width: ${day.progress_percent}%"></div>
+                                <tr class="group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all duration-300">
+                                    <td class="px-6 py-6 whitespace-nowrap">
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-gray-900 dark:text-white">${dayShort}</span>
+                                            <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">${dayName}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <td class="px-6 py-6 whitespace-nowrap">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-300 bg-gradient-to-br ${statusConfig.color}">
+                                            <i class="fas ${statusConfig.icon} text-[10px]"></i>
+                                            ${statusConfig.text}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-6 whitespace-nowrap">
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-end gap-1.5">
+                                                <span class="text-lg font-black text-gray-900 dark:text-white leading-none">${day.work_time.split(':')[0]}</span>
+                                                <span class="text-xs font-bold text-gray-400 dark:text-gray-500 pb-0.5">hours</span>
+                                                <span class="text-lg font-black text-gray-900 dark:text-white leading-none ml-1">${day.work_time.split(':')[1]}</span>
+                                                <span class="text-xs font-bold text-gray-400 dark:text-gray-500 pb-0.5">mins</span>
+                                            </div>
+                                            <div class="w-32 bg-gray-100 dark:bg-gray-700/50 rounded-full h-2.5 overflow-hidden border border-gray-100 dark:border-gray-800">
+                                                <div class="h-full bg-blue-600 dark:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all duration-1000" 
+                                                    style="width: ${day.status === 'Present' ? '100' : (parseFloat(day.progress_percent) > 0 ? Math.max(parseFloat(day.progress_percent), 15) : 0)}%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6">
                                         ${taskList}
                                     </td>
                                 </tr>
@@ -207,26 +278,32 @@ include_once "./include/headerLinks.php";
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
                         `;
                         
                         attendanceContainer.innerHTML = html;
                         
-                        // Initialize DataTables
+                        // Initialize DataTables with Modern Styling
                         setTimeout(() => {
-                            $('#attendanceTable').DataTable({
+                            const table = $('#attendanceTable').DataTable({
                                 "pageLength": 10,
                                 "order": [[0, "desc"]],
                                 "language": {
-                                    "search": "Search records:",
+                                    "search": "_INPUT_",
+                                    "searchPlaceholder": "Filter attendance...",
                                     "paginate": {
-                                        "previous": "Previous",
-                                        "next": "Next"
+                                        "previous": '<i class="fas fa-chevron-left text-xs"></i>',
+                                        "next": '<i class="fas fa-chevron-right text-xs"></i>'
                                     }
                                 },
-                                "dom": '<"top"f>t<"bottom"lip>',
+                                "dom": '<"flex flex-col md:flex-row md:items-center justify-between px-6 py-4 gap-4"f<"flex items-center gap-2 text-xs font-bold text-gray-400 font-bold"l>><"overflow-x-auto"t><"flex flex-col md:flex-row items-center justify-between px-6 py-8 gap-4"ip>',
                                 "drawCallback": function() {
-                                    // Optional: Custom styling after draw
+                                    // Style pagination
+                                    $('.dataTables_paginate').addClass('flex items-center gap-2');
+                                    $('.paginate_button').addClass('flex items-center justify-center w-8 h-8 rounded-xl border border-gray-100 dark:border-gray-700 text-sm font-bold transition-all duration-200 cursor-pointer');
+                                    $('.paginate_button.current').addClass('bg-indigo-600 text-white border-indigo-600').removeClass('border-gray-100 dark:border-gray-700');
+                                    $('.dataTables_info').addClass('text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest');
+                                    $('.dataTables_length select').addClass('bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-xs font-bold p-2 focus:ring-0 cursor-pointer shadow-sm');
+                                    $('.dataTables_filter input').addClass('bg-gray-50 dark:bg-gray-800 border-none rounded-[1.25rem] text-sm font-medium px-6 py-3 w-64 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm');
                                 }
                             });
                         }, 100);

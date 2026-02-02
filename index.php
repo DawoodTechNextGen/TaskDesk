@@ -24,7 +24,7 @@ if ($user_role == 1) {
     $pending_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'pending'")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
     $working_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'working'")->fetch_assoc()['total'];
-    $overdue_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status IN ('pending', 'working') AND due_date < CURDATE()")->fetch_assoc()['total'];
+    $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired' OR (status IN ('pending', 'working') AND due_date < CURDATE())")->fetch_assoc()['total'];
 
     // Monthly task trends
     $monthly_tasks = $conn->query("SELECT 
@@ -67,18 +67,19 @@ if ($user_role == 1) {
     $pending_tasks->execute();
     $pending_tasks = $pending_tasks->get_result()->fetch_assoc()['total'];
 
-    $overdue_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status IN ('pending', 'working') AND due_date < CURDATE()");
-    $overdue_tasks->bind_param("i", $user_id);
-    $overdue_tasks->execute();
-    $overdue_tasks = $overdue_tasks->get_result()->fetch_assoc()['total'];
+    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND (status = 'expired' OR (status IN ('pending', 'working') AND due_date < CURDATE()))");
+    $expired_tasks->bind_param("i", $user_id);
+    $expired_tasks->execute();
+    $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
 
     // Fetch intern details for progress calculation
-    $intern_details_query = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    $intern_details_query = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $intern_details_query->bind_param("i", $user_id);
     $intern_details_query->execute();
     $intern_details = $intern_details_query->get_result()->fetch_assoc();
     $joining_date = $intern_details['created_at'];
     $internship_type = $intern_details['internship_type'];
+    $internship_duration = $intern_details['internship_duration'];
 } elseif ($user_role == 3) {
     // Supervisor data
     $generated_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE created_by = ?");
@@ -91,13 +92,14 @@ if ($user_role == 1) {
     $managed_interns->execute();
     $managed_interns = $managed_interns->get_result()->fetch_assoc()['total'];
 
-    $overdue_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks 
+    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks 
         WHERE (assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)) 
-        AND ((status != 'complete' AND due_date < CURDATE()) 
+        AND (status = 'expired' 
+             OR (status != 'complete' AND due_date < CURDATE()) 
              OR (status = 'complete' AND completed_at > due_date))");
-    $overdue_tasks->bind_param("i", $user_id);
-    $overdue_tasks->execute();
-    $overdue_tasks = $overdue_tasks->get_result()->fetch_assoc()['total'];
+    $expired_tasks->bind_param("i", $user_id);
+    $expired_tasks->execute();
+    $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
 }
 ?>
 <!DOCTYPE html>
@@ -267,19 +269,19 @@ include_once "./include/headerLinks.php"; ?>
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-red-500">
+                            <a href="tasks.php?status=expired" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-red-500 hover:shadow-lg transition-all group">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire</p>
-                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $overdue_tasks ?></h3>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium group-hover:text-red-500 transition-colors">Expired</p>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $expired_tasks ?></h3>
                                     </div>
-                                    <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg">
+                                    <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-800 transition-all">
                                         <svg class="w-5 h-5 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
 
                         <!-- Modern Charts Section -->
@@ -553,23 +555,21 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
 
-                            <!-- Removed Pending Tasks Card as requested -->
-                            <!-- Expired Tasks -->
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                            <a href="assignedTasks.php?status=expired" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all group">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire</p>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium group-hover:text-red-500 transition-colors">Expired</p>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
-                                            <?= $overdue_tasks ?>
+                                            <?= $expired_tasks ?>
                                         </h3>
                                     </div>
-                                    <div class="bg-red-100 dark:bg-red-900 p-3 rounded-lg">
+                                    <div class="bg-red-100 dark:bg-red-900 p-3 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-800 transition-all">
                                         <svg class="w-6 h-6 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
 
                         <!-- Internship Duration Progress -->
@@ -583,7 +583,16 @@ include_once "./include/headerLinks.php"; ?>
                             <?php
                             $start = new DateTime($joining_date);
                             $now = new DateTime();
-                            $weeks = ($internship_type == 0) ? 4 : 12;
+                            
+                            $weeks = 12; // Default
+                            if (!empty($internship_duration)) {
+                                if ($internship_duration === '4 weeks') $weeks = 4;
+                                elseif ($internship_duration === '8 weeks') $weeks = 8;
+                                elseif ($internship_duration === '12 weeks') $weeks = 12;
+                            } else {
+                                $weeks = ($internship_type == 0) ? 4 : 12;
+                            }
+                            
                             $end = clone $start;
                             $end->modify("+$weeks weeks");
                             
@@ -776,22 +785,21 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
 
-                            <!-- Overdue Tasks -->
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                            <a href="tasks.php?status=expired" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all group">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Expire Tasks</p>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium group-hover:text-red-500 transition-colors">Expired Tasks</p>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
-                                            <?= $overdue_tasks ?>
+                                            <?= $expired_tasks ?>
                                         </h3>
                                     </div>
-                                    <div class="bg-red-100 dark:bg-red-900 p-3 rounded-lg">
+                                    <div class="bg-red-100 dark:bg-red-900 p-3 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-800 transition-all">
                                         <svg class="w-6 h-6 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
 
                         <!-- Charts Section -->
@@ -1221,257 +1229,9 @@ include_once "./include/headerLinks.php"; ?>
                         </div>
                     </div>
                 <?php endif; ?>
-                <?php if ($user_role == 3): ?>
-                    <div class="mt-8">
-                        <button class="open-modal bg-indigo-600 text-white px-4 py-2 rounded-lg m-2"
-                            data-modal="create-task-modal">Create New Task</button>
-                        <!-- Your Generate Tasks Table -->
-                        <div
-                            class="my-5 bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 border border-gray-100 dark:border-gray-700">
-                            <div
-                                class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                                <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Your Generated Tasks</h2>
-                            </div>
-                            <div class="overflow-x-auto p-4">
-                                <table id="tasksTable"
-                                    class="min-w-full">
-                                    <thead class="bg-indigo-200 dark:bg-indigo-500">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Id#
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Sr#
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Title
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Assign To
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Status
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Assign On
-                                            </th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white text-black dark:bg-gray-800 dark:text-white text-xs">
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </main>
             <?php if ($_SESSION['user_role'] == 3): ?>
-                <!-- Create Task Modal -->
-                <div id="create-task-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
-                    <div class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white mx-auto mt-[3%] p-6 rounded-lg w-11/12 max-w-2xl relative max-h-[90vh] flex flex-col">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                            class="w-5 h-6 absolute top-2 right-2 cursor-pointer close-btn">
-                            <path fill-rule="evenodd"
-                                d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <h2 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100 dark:border-gray-600">Create New Task</h2>
-
-                        <div class="modal-body flex-1 overflow-y-auto custom-scrollbar px-2" style="overflow-y: auto !important;">
-                            <!-- Inside create-task-modal -->
-                            <form id="create-task" class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Title:</label>
-                                    <input type="text" id="title" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700" placeholder="Title here">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Due Date:</label>
-                                    <input type="date" id="due_date" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700  text-gray-900 dark:text-gray-100">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Assign To:</label>
-                                    <div class="searchable-wrapper relative w-full">
-
-                                        <!-- original select -->
-                                        <select id="user_id"
-                                            class="searchable-select hidden"
-                                            name="hireTrainer">
-                                            <option value="">Select Intern</option>
-                                            <?php
-                                                                                        $userQuery = "SELECT id, name FROM users 
-                                                          WHERE user_role = 2 
-                                                            AND supervisor_id = $user_id 
-                                                            AND freeze_status = 'active'
-                                                            AND DATE_ADD(created_at, INTERVAL IF(internship_type = 0, 4, 12) WEEK) > NOW()
-                                                          ORDER BY name ASC";
-
-                                            $userResult = mysqli_query($conn, $userQuery);
-                                            while ($user = mysqli_fetch_assoc($userResult)) {
-                                                echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
-                                            }
-                                            ?>
-                                        </select>
-
-                                        <!-- input + arrow -->
-                                        <div class="relative">
-                                            <input type="text"
-                                                class="searchable-input w-full px-3 py-2 pr-10 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
-                                                placeholder="Select Intern"
-                                                autocomplete="off">
-
-                                            <!-- dropdown arrow -->
-                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500 dark:text-gray-300">
-                                                <svg class="size-2" fill="currentColor" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                                    <g id="SVGRepo_iconCarrier">
-                                                        <path d="M0.256 8.606c0-0.269 0.106-0.544 0.313-0.75 0.412-0.412 1.087-0.412 1.5 0l14.119 14.119 13.913-13.912c0.413-0.412 1.087-0.412 1.5 0s0.413 1.088 0 1.5l-14.663 14.669c-0.413 0.413-1.088 0.413-1.5 0l-14.869-14.869c-0.213-0.213-0.313-0.481-0.313-0.756z"></path>
-                                                    </g>
-                                                </svg>
-                                            </span>
-                                        </div>
-
-                                        <!-- dropdown -->
-                                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-60 overflow-y-auto"></ul>
-
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Description:</label>
-                                    <div id="create-description-editor" class="min-h-[150px] dark:bg-gray-700 bg-gray-100"></div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div class="modal-footer flex justify-end gap-3 pt-4 border-t mt-4">
-                            <button type="button" class="close-modal px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">Cancel</button>
-                            <button type="submit" form="create-task" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">Create Task</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Edit Task Modal -->
-                <div id="edit-task-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
-                    <div class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white mx-auto mt-[3%] p-6 rounded-lg w-11/12 max-w-4xl relative max-h-[90vh] flex flex-col">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                            class="w-5 h-6 absolute top-2 right-2 cursor-pointer close-btn">
-                            <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                        </svg>
-                        <h2 class="text-xl font-bold mb-4 pb-2 border-b">Edit Task</h2>
-
-                        <div class="modal-body flex-1 overflow-y-auto custom-scrollbar px-2" style="overflow-y: auto !important;">
-                            <form id="edit-task" class="space-y-4">
-                                <input type="hidden" id="edit_task_id">
-
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Title:</label>
-                                    <input type="text" id="edit_title" required class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-2">Due Date:</label>
-                                        <input type="date" id="edit_due_date" class="w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:text-gray-100 dark:bg-gray-700">
-                                    </div>
-                                </div>
-
-                                <!-- Assign To with Searchable Dropdown -->
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Assign To:</label>
-                                    <div class="searchable-wrapper relative">
-                                        <input type="text"
-                                            class="searchable-input w-full p-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white cursor-pointer"
-                                            placeholder="Type to search interns..."
-                                            readonly>
-                                        <select id="edit_user_id" class="searchable-select hidden">
-                                            <option value="">Select Intern</option>
-                                            <?php
-                                                                                        $userQuery = "SELECT id, name FROM users 
-                                                          WHERE user_role = 2 
-                                                            AND supervisor_id = $user_id 
-                                                            AND freeze_status = 'active'
-                                                            AND DATE_ADD(created_at, INTERVAL IF(internship_type = 0, 4, 12) WEEK) > NOW()
-                                                          ORDER BY name ASC";
-
-                                            $userResult = mysqli_query($conn, $userQuery);
-                                            while ($user = mysqli_fetch_assoc($userResult)) {
-                                                echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                        <ul class="searchable-dropdown absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"></ul>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Description:</label>
-                                    <div id="edit-description-editor" class="min-h-[200px]"></div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div class="modal-footer flex justify-end gap-3 pt-4 border-t">
-                            <button type="button" class="close-modal px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">Cancel</button>
-                            <button type="submit" form="edit-task" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">Update Task</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Supervisor Dashboard elements remain, but the detailed table is removed -->
             <?php endif; ?>
-            <!-- View Task Modal -->
-            <div id="view-task-modal" class="modal hidden fixed inset-0 z-50 w-full h-full bg-black bg-opacity-50 backdrop-blur-sm">
-                <div
-                    class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white mx-auto mt-[3%] p-6 rounded-lg w-11/12 max-w-6xl relative">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                        class="w-5 h-6 absolute top-2 right-2 cursor-pointer close-btn">
-                        <path fill-rule="evenodd"
-                            d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z"
-                            clip-rule="evenodd" />
-                    </svg>
-                    <h2 class="text-xl font-bold mb-4 pb-2 border-b border-gray-100 dark:border-gray-600">View Task</h2>
-                    <!-- <p class="mb-4 text-gray-600 dark:text-gray-300"></p> -->
-                    <div class="modal-body max-h-[400px] overflow-y-auto custom-scrollbar" style="overflow-y: auto !important;">
-                        <div class="view-data"></div>
-                        <div class="grid grid-cols-1">
-                            <div class="hidden border-t border-gray-200 dark:border-gray-600" id="time-logs">
-                                <div class="flex justify-between items-center px-4">
-                                    <h4 class="py-1 font-extrabold text-2xl text-center">Time Logs</h4>
-                                    <span id="total-time">Total Time: </span>
-                                </div>
-                                <div class="container mx-auto p-4">
-                                    <div class="max-h-[200px] overflow-y-auto custom-scrollbar mb-3 shadow-md rounded-lg">
-                                        <table class="min-w-full bg-white border text-gray-700 dark:border-gray-600 border-gray-200 dark:bg-gray-700 dark:text-white">
-                                            <thead class="bg-gray-100 dark:bg-gray-800">
-                                                <tr>
-                                                    <th class="py-3 px-6 text-left text-sm font-semibold">Start Time</th>
-                                                    <th class="py-3 px-6 text-left text-sm font-semibold">Stop Time</th>
-                                                    <th class="py-3 px-6 text-left text-sm font-semibold">Duration</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="logs-body" class="text-gray-600 dark:bg-gray-700 dark:text-white">
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer pt-2 view-urls">
-                        <button type="button" class="close-modal px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">Close</button>
-                    </div>
-                </div>
-            </div>
 
             <?php include_once "./include/footer.php"; ?>
         </div>

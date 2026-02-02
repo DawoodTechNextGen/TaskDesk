@@ -772,8 +772,11 @@ switch ($action) {
         $status = 1;
         $newStatus = 'hire';
 
-        if ($id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+        $duration = $_POST['hireDuration'] ?? '';
+        $internshipType = ($duration === '4 weeks') ? 0 : 1; // 4 weeks = free (0), 8/12 weeks = paid (1)
+
+        if ($id <= 0 || empty($duration)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters: Duration is required']);
             break;
         }
 
@@ -781,9 +784,9 @@ switch ($action) {
         $conn->begin_transaction();
 
         try {
-            // Update registration status
-            $u = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
-            $u->bind_param('si', $newStatus, $id);
+            // Update registration status and duration/type
+            $u = $conn->prepare("UPDATE registrations SET status = ?, internship_type = ? WHERE id = ?");
+            $u->bind_param('sii', $newStatus, $internshipType, $id);
 
             if (!$u->execute()) {
                 throw new Exception('Failed to update registration status');
@@ -807,8 +810,8 @@ switch ($action) {
             }
 
             // Create user record
-            $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id, internship_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $insertHire->bind_param('ssssiiiis', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $registration['internship_type']);
+            $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id, internship_type, internship_duration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertHire->bind_param('ssssiiiiss', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $internshipType, $duration);
 
             if (!$insertHire->execute()) {
                 throw new Exception('Failed to create user');
@@ -861,9 +864,7 @@ switch ($action) {
 
             // Generate Offer Letter PDF
             $startDate = date('d-M-Y');
-            $endDate = ($registration['internship_type'] == 0) 
-                ? date('d-M-Y', strtotime('+4 weeks')) 
-                : date('d-M-Y', strtotime('+12 weeks'));
+            $endDate = date('d-M-Y', strtotime('+' . $duration));
             $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
 
             // Send notification with fallback

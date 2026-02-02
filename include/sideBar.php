@@ -4,7 +4,7 @@
             /* Tailwind gray-700 hex */
         }
 
-        .dark #registrations-arrow {
+        .dark #registrations-arrow, .dark #tasks-arrow {
             color: #E5E7EB;
             /* Tailwind gray-200 hex */
         }
@@ -103,6 +103,70 @@
                             </a>
                         </li>
                         <?php } ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
+                            <li>
+                                <?php
+                                $currentPage = basename($_SERVER['SCRIPT_NAME']);
+                                $currentStatus = $_GET['status'] ?? '';
+                                // List of all task-related pages to keep parent active
+                                $taskPages = ['tasks.php', 'tasks_create.php'];
+                                $isTasksActive = in_array($currentPage, $taskPages);
+                                ?>
+                                <button type="button" onclick="document.getElementById('tasks-submenu').classList.toggle('hidden'); document.getElementById('tasks-arrow').classList.toggle('rotate-180');"
+                                    class="w-full flex items-center justify-between p-2 rounded-lg sidebar-link <?php echo $isTasksActive ? 'active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M11 19.5H21M9 19H3M11 12.5H21M9 12H3M11 5.5H21M9 5H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Tasks</span>
+                                    </div>
+                                    <svg
+                                        id="tasks-arrow"
+                                        class="w-4 h-4 transition-transform duration-200 <?php echo $isTasksActive ? 'rotate-180' : '' ?>"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <ul id="tasks-submenu" class="<?php echo $isTasksActive ? '' : 'hidden' ?> py-2 space-y-2">
+                                    <li>
+                                        <a href="tasks_create.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks_create.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Create New</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tasks.php?status=pending" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'pending') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Pending</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tasks.php?status=working" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'working') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Working</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tasks.php?status=pending_review" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'pending_review') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Review</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tasks.php?status=complete" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'complete') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Complete</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="tasks.php?status=expired" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'expired') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <span class="sidebar-item">Expired</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        <?php } ?>
+
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
                             <li>
                                 <?php

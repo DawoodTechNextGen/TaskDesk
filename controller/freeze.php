@@ -34,14 +34,21 @@ if ($data['action'] === 'request_freeze') {
     $today->setTime(0, 0, 0);
 
     // Check if internship is already complete
-    $stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $stmt->bind_result($user_created_at, $internship_type);
+    $stmt->bind_result($user_created_at, $internship_type, $internship_duration);
     $stmt->fetch();
     $stmt->close();
 
-    $duration_weeks = ($internship_type == 0) ? 4 : 12;
+    $duration_weeks = 12;
+    if (!empty($internship_duration)) {
+        if ($internship_duration === '4 weeks') $duration_weeks = 4;
+        elseif ($internship_duration === '8 weeks') $duration_weeks = 8;
+        elseif ($internship_duration === '12 weeks') $duration_weeks = 12;
+    } else {
+        $duration_weeks = ($internship_type == 0) ? 4 : 12;
+    }
     $internship_end_date = new DateTime($user_created_at);
     $internship_end_date->modify("+{$duration_weeks} weeks");
 
@@ -523,7 +530,7 @@ if ($data['action'] === 'get_freeze_status') {
 
     $stmt = $conn->prepare("
         SELECT freeze_status, freeze_start_date, freeze_end_date, 
-               freeze_reason, freeze_requested_at, created_at, internship_type
+               freeze_reason, freeze_requested_at, created_at, internship_type, internship_duration
         FROM users 
         WHERE id = ?
     ");
@@ -533,7 +540,14 @@ if ($data['action'] === 'get_freeze_status') {
 
     if ($row = $result->fetch_assoc()) {
         // Check if internship is complete
-        $duration_weeks = ($row['internship_type'] == 0) ? 4 : 12;
+        $duration_weeks = 12;
+        if (!empty($row['internship_duration'])) {
+            if ($row['internship_duration'] === '4 weeks') $duration_weeks = 4;
+            elseif ($row['internship_duration'] === '8 weeks') $duration_weeks = 8;
+            elseif ($row['internship_duration'] === '12 weeks') $duration_weeks = 12;
+        } else {
+            $duration_weeks = ($row['internship_type'] == 0) ? 4 : 12;
+        }
         $internship_end_date = new DateTime($row['created_at']);
         $internship_end_date->modify("+{$duration_weeks} weeks");
         $today = new DateTime();

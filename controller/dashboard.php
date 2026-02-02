@@ -88,24 +88,42 @@ if ($action === 'intern_stats') {
     $total_hours = round($hours_result['total_seconds'] / 3600);
 
     // Calculate attendance percentage and week info
-    // Get user creation date and internship type
-    $stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    // Get user creation date, duration and type
+    $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
     $created_at = new DateTime($user_res['created_at']);
     $created_at->setTime(0, 0, 0); // Normalize to start of day
+
+    // Calculate completion date
+    $duration_weeks = 12;
+    if (!empty($user_res['internship_duration'])) {
+        if ($user_res['internship_duration'] === '4 weeks') $duration_weeks = 4;
+        elseif ($user_res['internship_duration'] === '8 weeks') $duration_weeks = 8;
+        elseif ($user_res['internship_duration'] === '12 weeks') $duration_weeks = 12;
+    } else {
+        $duration_weeks = ($user_res['internship_type'] == 0) ? 4 : 12;
+    }
+    
+    $completion_date = clone $created_at;
+    $completion_date->modify("+$duration_weeks weeks");
+
     $now = new DateTime();
     $now->setTime(0, 0, 0); // Normalize to start of today
-    $interval = $created_at->diff($now);
-    $total_days = $interval->days + 1; // Include today
+
+    // End date for calculation is earlier of today or completion date
+    $calc_end_date = min($now, $completion_date);
     
-    // Calculate current week
-    $days_since_start = $interval->days;
-    $current_week = floor($days_since_start / 7) + 1;
+    $interval = $created_at->diff($calc_end_date);
+    $total_days = $interval->days + 1; // Days since start up to today or completion
     
-    // Total weeks (Type 0 = 4, Type 1 = 12)
-    $total_weeks = ($user_res['internship_type'] == 0) ? 4 : 12;
+    // Calculate current week (cap at total weeks)
+    $days_since_start = $created_at->diff($now)->days;
+    $current_week = min(floor($days_since_start / 7) + 1, $duration_weeks);
+    
+    // Total weeks
+    $total_weeks = $duration_weeks;
     
     // Cap current week at total weeks if needed, or let it exceed to show overtime? 
     // Usually "Week 5 of 4" is informative. Let's keep it real.
@@ -750,19 +768,40 @@ if ($action === "intern_attendance_logs") {
 }
 
 if ($action === "intern_daily_history") {
-    // Get user creation date
-    $stmt = $conn->prepare("SELECT created_at FROM users WHERE id = ?");
+    // Get user creation date and duration
+    $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
+    
     $start_date = new DateTime($user_res['created_at']);
     $start_date->setTime(0, 0, 0); // Start of day
-    $end_date = new DateTime(); // Today
-    $end_date->setTime(0, 0, 0);
-    $end_date->modify('+1 day'); // Start of tomorrow (to include today in period)
+
+    // Calculate completion date
+    $duration_weeks = 12;
+    if (!empty($user_res['internship_duration'])) {
+        if ($user_res['internship_duration'] === '4 weeks') $duration_weeks = 4;
+        elseif ($user_res['internship_duration'] === '8 weeks') $duration_weeks = 8;
+        elseif ($user_res['internship_duration'] === '12 weeks') $duration_weeks = 12;
+    } else {
+        $duration_weeks = ($user_res['internship_type'] == 0) ? 4 : 12;
+    }
+    
+    $completion_date = clone $start_date;
+    $completion_date->modify("+$duration_weeks weeks");
+
+    $today = new DateTime();
+    $today->setTime(0, 0, 0);
+
+    // End date is the earlier of today or completion date
+    $end_display_date = min($today, $completion_date);
+    
+    // For DatePeriod, the end date is exclusive, so add 1 day to include the last day
+    $iter_end_date = clone $end_display_date;
+    $iter_end_date->modify('+1 day');
 
     $interval = new DateInterval('P1D');
-    $period = new DatePeriod($start_date, $interval, $end_date);
+    $period = new DatePeriod($start_date, $interval, $iter_end_date);
 
 
 
@@ -799,9 +838,15 @@ if ($action === "intern_daily_history") {
         if (!isset($tasks_map[$date])) {
             $tasks_map[$date] = [];
         }
+        $seconds = $row['duration'];
+        $h = floor($seconds / 3600);
+        $m = floor(($seconds % 3600) / 60);
+        $s = $seconds % 60;
+        $duration_str = "$h hour: $m min: $s sec";
         $tasks_map[$date][] = [
             'name' => $row['task_name'],
-            'duration' => gmdate("H:i", $row['duration'])
+            'duration' => $duration_str,
+            'seconds' => $seconds
         ];
     }
 
@@ -851,14 +896,25 @@ if ($action === "intern_daily_history") {
 
         if (isset($attendance_map[$date_str])) {
             $total_seconds = $attendance_map[$date_str]['total_work_seconds'];
-            $work_time = gmdate("H:i:s", $total_seconds);
-            $progress = min(($total_seconds / 10800) * 100, 100);
-            
-            if ($total_seconds >= 10800 || isset($completed_dates[$date_str])) {
-                $status = 'Present';
-            } else {
-                $status = 'Absent';
+            $status = ($attendance_map[$date_str]['status'] === 'Present') ? 'Present' : $status;
+        }
+
+        // Add task duration sum if not already included
+        $task_seconds = 0;
+        if (isset($tasks_map[$date_str])) {
+            foreach ($tasks_map[$date_str] as $t) {
+                if (isset($t['seconds'])) {
+                    $task_seconds += $t['seconds'];
+                }
             }
+        }
+        
+        $total_seconds = max($total_seconds, $task_seconds);
+        $work_time = gmdate("H:i:s", $total_seconds);
+        $progress = min(($total_seconds / 10800) * 100, 100);
+        
+        if ($total_seconds >= 10800 || isset($completed_dates[$date_str])) {
+            $status = 'Present';
         }
 
         // Logic override: If weekend and no work, skip or mark as 'Weekend' instead of Absent?

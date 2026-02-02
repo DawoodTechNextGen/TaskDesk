@@ -1,5 +1,14 @@
 // Task Review and Management Functions for Supervisors
 
+// Use global showToast if available, otherwise define a simple one
+const notify = (type, msg) => {
+    if (typeof showToast === 'function') {
+        showToast(type, msg);
+    } else {
+        alert(msg);
+    }
+};
+
 // Review Task Modal
 function showReviewModal(taskId, taskTitle) {
     const modal = document.createElement('div');
@@ -59,15 +68,15 @@ async function reviewTask(taskId, action) {
         const result = await response.json();
         
         if (result.success) {
-            showToast(result.message, 'success');
+            notify('success', result.message);
             document.querySelector('.fixed')?.remove();
-            // Reload tasks
-            location.reload();
+            // Reload tasks after a short delay to see the toast
+            setTimeout(() => location.reload(), 1000);
         } else {
-            showToast(result.message, 'error');
+            notify('error', result.message);
         }
     } catch (error) {
-        showToast('Error reviewing task', 'error');
+        notify('error', 'Error reviewing task');
     }
 }
 
@@ -112,7 +121,7 @@ async function reactivateTask(taskId) {
     const newDueDate = document.getElementById('newDueDate')?.value;
     
     if (!newDueDate) {
-        showToast('Please select a new due date', 'error');
+        notify('error', 'Please select a new due date');
         return;
     }
     
@@ -130,29 +139,14 @@ async function reactivateTask(taskId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast(result.message, 'success');
+            notify('success', result.message);
             document.querySelector('.fixed')?.remove();
-            location.reload();
+            setTimeout(() => location.reload(), 1000);
         } else {
-            showToast(result.message, 'error');
+            notify('error', result.message);
         }
     } catch (error) {
-        showToast('Error reactivating task', 'error');
+        notify('error', 'Error reactivating task');
     }
 }
 
-// Toast Notification
-function showToast(message, type = 'info') {
-    const colors = {
-        success: 'bg-green-500',
-        error: 'bg-red-500',
-        info: 'bg-blue-500'
-    };
-    
-    const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => toast.remove(), 3000);
-}

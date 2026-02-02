@@ -16,7 +16,7 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch user data and calculate internship duration
 include_once './include/connection.php';
-$user_query = $conn->prepare("SELECT name, tech_id, created_at, internship_type FROM users WHERE id = ?");
+$user_query = $conn->prepare("SELECT name, tech_id, created_at, internship_type, internship_duration FROM users WHERE id = ?");
 $user_query->bind_param("i", $user_id);
 $user_query->execute();
 $user_result = $user_query->get_result();
@@ -24,9 +24,12 @@ $user_result = $user_query->get_result();
 if ($user_result->num_rows > 0) {
     $user_data = $user_result->fetch_assoc();
 
-    // Calculate dates based on internship type
-    // 0 = 4 weeks (Participation), 1 = 12 weeks (Standard)
-    $duration_str = ($user_data['internship_type'] == 0) ? '+4 weeks' : '+3 months';
+    // Calculate dates based on internship duration or type fallback
+    $duration = $user_data['internship_duration'];
+    if (empty($duration)) {
+        $duration = ($user_data['internship_type'] == 0) ? '4 weeks' : '12 weeks';
+    }
+    $duration_str = '+' . $duration;
     
     $start_date = date('d-M-Y', strtotime($user_data['created_at']));
     $end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' ' . $duration_str));

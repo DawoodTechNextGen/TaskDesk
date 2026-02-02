@@ -5,8 +5,8 @@ tailwind.config = {
 
 const toggleSidebar = document.getElementById('toggle-sidebar');
 const sidebar = document.getElementById('sidebar');
-const openIcon = toggleSidebar.querySelector('.sidebar-open');
-const closeIcon = toggleSidebar.querySelector('.sidebar-close');
+const openIcon = toggleSidebar ? toggleSidebar.querySelector('.sidebar-open') : null;
+const closeIcon = toggleSidebar ? toggleSidebar.querySelector('.sidebar-close') : null;
 const sidebarItems = document.querySelectorAll('.sidebar-item');
 const logoText = document.getElementById('logo-text');
 const menuTitle = document.getElementById('menu-title');
@@ -73,41 +73,45 @@ if (localStorage.getItem('usersCollapsed') === 'true') {
     usersItems.classList.add('hidden');
 }
 
-toggleSidebar.addEventListener('click', toggleSidebarState);
+if (toggleSidebar && sidebar) {
+    toggleSidebar.addEventListener('click', toggleSidebarState);
 
-if (localStorage.getItem('sidebarCollapsed') === 'true') {
-    toggleSidebarState();
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        toggleSidebarState();
+    }
 }
 
 const userMenuButton = document.getElementById('user-menu-button');
 const userMenu = document.getElementById('user-menu');
 const arrow = document.getElementById("userArrow");
-userMenuButton.addEventListener('click', () => {
-    const isHidden = userMenu.classList.contains('hidden');
+if (userMenuButton && userMenu) {
+    userMenuButton.addEventListener('click', () => {
+        const isHidden = userMenu.classList.contains('hidden');
 
-    arrow.classList.toggle("rotate-180");
+        if (arrow) arrow.classList.toggle("rotate-180");
 
-    if (isHidden) {
-        // Prepare to animate
-        userMenu.classList.remove("hidden");
+        if (isHidden) {
+            // Prepare to animate
+            userMenu.classList.remove("hidden");
 
-        // Slide down + fade in
-        requestAnimationFrame(() => {
-            userMenu.classList.remove("opacity-0", "-translate-y-2");
-            userMenu.classList.add("opacity-100", "translate-y-0");
-        });
+            // Slide down + fade in
+            requestAnimationFrame(() => {
+                userMenu.classList.remove("opacity-0", "-translate-y-2");
+                userMenu.classList.add("opacity-100", "translate-y-0");
+            });
 
-    } else {
-        // Slide up + fade out
-        userMenu.classList.remove("opacity-100", "translate-y-0");
-        userMenu.classList.add("opacity-0", "-translate-y-2");
+        } else {
+            // Slide up + fade out
+            userMenu.classList.remove("opacity-100", "translate-y-0");
+            userMenu.classList.add("opacity-0", "-translate-y-2");
 
-        // After animation ends → hide
-        setTimeout(() => {
-            userMenu.classList.add("hidden");
-        }, 300); // same as duration-300
-    }
-});
+            // After animation ends → hide
+            setTimeout(() => {
+                userMenu.classList.add("hidden");
+            }, 300); // same as duration-300
+        }
+    });
+}
 
 const tabs = document.querySelectorAll(".tab-btn");
 const sections = {
@@ -141,7 +145,7 @@ tabs.forEach(tab => {
 
 
 document.addEventListener('click', (e) => {
-    if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+    if (userMenuButton && userMenu && !userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
         userMenu.classList.add('hidden');
     }
 });
@@ -370,10 +374,14 @@ function initDarkMode() {
 initDarkMode();
 
 const darkModeToggle = document.getElementById('dark-mode-toggle');
-darkModeToggle.addEventListener('click', toggleDarkMode);
+if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', toggleDarkMode);
+}
 
 const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
-sidebarThemeToggle.addEventListener('click', toggleDarkMode);
+if (sidebarThemeToggle) {
+    sidebarThemeToggle.addEventListener('click', toggleDarkMode);
+}
 
 function showToast(type, message) {
     const toastContainer = document.getElementById('toast-container');

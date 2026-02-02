@@ -65,7 +65,7 @@ if ($data['action'] === 'create') {
             // Professional HTML Content
             $html_content = "
                 <div style='font-family: Arial, sans-serif; color: #333;'>
-                    <h2>Hello " . htmlspecialchars($user_data['name']) . ",</h2>
+                    <h2>Assalam O Alaikum " . htmlspecialchars($user_data['name']) . ",</h2>
                     <p>You have been assigned a new task: <strong>" . htmlspecialchars($title) . "</strong></p>
                     <p><strong>Due Date:</strong> " . htmlspecialchars($due_date) . "</p>
                     <p>Please log in to your dashboard to start working on it.</p>
@@ -92,13 +92,31 @@ if ($data['action'] === 'create') {
 }
 if ($data['action'] === 'get') {
     $user_id = $_SESSION['user_id'];
+    $status = $data['status'] ?? null;
 
-    $stmt = $conn->prepare("SELECT t.*, u.name as assign_to, u.id as assign_id, tech.name as technology_name, tech.id as tech_id FROM tasks t LEFT JOIN users u ON t.assign_to = u.id LEFT JOIN technologies tech ON u.tech_id = tech.id where created_by = ?");
-    $stmt->bind_param("s", $user_id);
+    $sql = "SELECT t.*, u.name as assign_to, u.id as assign_id, tech.name as technology_name, tech.id as tech_id 
+            FROM tasks t 
+            LEFT JOIN users u ON t.assign_to = u.id 
+            LEFT JOIN technologies tech ON u.tech_id = tech.id 
+            WHERE t.created_by = ?";
+    
+    if ($status) {
+        if ($status === 'expired') {
+            $sql .= " AND (t.status = 'expired' OR (t.status IN ('pending', 'working') AND t.due_date < CURDATE()))";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("s", $user_id);
+        } else {
+            $sql .= " AND t.status = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ss", $user_id, $status);
+        }
+    } else {
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_id);
+    }
 
     if ($stmt->execute()) {
         $result = $stmt->get_result();
-
         $tasks = [];
         while ($row = $result->fetch_assoc()) {
             $tasks[] = $row;
@@ -117,6 +135,27 @@ if ($data['action'] === 'get') {
     }
 
     $stmt->close();
+}
+if ($data['action'] === 'get_task') {
+    $task_id = (int)($data['task_id'] ?? 0);
+    $stmt = $conn->prepare("SELECT t.*, u.name as assign_to_name, c.name as created_by_name 
+                            FROM tasks t 
+                            LEFT JOIN users u ON t.assign_to = u.id 
+                            LEFT JOIN users c ON t.created_by = c.id 
+                            WHERE t.id = ?");
+    $stmt->bind_param("i", $task_id);
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            echo json_encode(["success" => true, "data" => $row]);
+        } else {
+            echo json_encode(["success" => false, "message" => "Task not found"]);
+        }
+    } else {
+        echo json_encode(["success" => false, "message" => "Query failed"]);
+    }
+    $stmt->close();
+    exit;
 }
 // ====================== UPDATE TASK (now with due_date) ======================
 if ($data['action'] === 'update') {
@@ -161,11 +200,23 @@ if ($data['action'] === 'update') {
 }
 if ($data['action'] === 'getAssignedTask') {
     $user_id = $_SESSION['user_id'];
-
-    $stmt = $conn->prepare("select t.id, t.title,t.description, t.due_date, t.status,t.created_at,t.started_at,
+    $status = $data['status'] ?? null;
+    $sql = "select t.id, t.title,t.description, t.due_date, t.status,t.created_at,t.started_at,
     t.completed_at,u.id as assign_id, 
-    u.name as assign_by from tasks t JOIN users u on u.id = t.created_by where assign_to = ? ORDER BY id DESC");
-    $stmt->bind_param("s", $user_id);
+    u.name as assign_by from tasks t JOIN users u on u.id = t.created_by where assign_to = ?";
+
+    if ($status === 'expired') {
+        $sql .= " AND (t.status = 'expired' OR (t.status IN ('pending', 'working') AND t.due_date < CURDATE()))";
+        $stmt = $conn->prepare($sql . " ORDER BY id DESC");
+        $stmt->bind_param("s", $user_id);
+    } elseif ($status) {
+        $sql .= " AND t.status = ?";
+        $stmt = $conn->prepare($sql . " ORDER BY id DESC");
+        $stmt->bind_param("ss", $user_id, $status);
+    } else {
+        $stmt = $conn->prepare($sql . " ORDER BY id DESC");
+        $stmt->bind_param("s", $user_id);
+    }
 
     if ($stmt->execute()) {
         $result = $stmt->get_result();
@@ -365,7 +416,7 @@ if ($data['action'] === 'review_task') {
     if ($review_action === 'approved') {
         $new_status = 'complete';
     } elseif ($review_action === 'rejected') {
-        $new_status = 'expired'; // As requested
+        $new_status = 'rejected';
     } elseif ($review_action === 'needs_improvement') {
         $new_status = 'working'; // Re-open loop
     }
@@ -375,7 +426,7 @@ if ($data['action'] === 'review_task') {
     
     if ($stmt->execute()) {
         $message = $review_action === 'approved' ? 'Task approved and marked as complete' : 
-                   ($review_action === 'rejected' ? 'Task rejected and marked as expired' : 'Task returned for improvements');
+                   ($review_action === 'rejected' ? 'Task rejected and marked as rejected' : 'Task returned for improvements');
         echo json_encode(["success" => true, "message" => $message]);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to review task"]);

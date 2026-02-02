@@ -647,29 +647,10 @@ unset($_SESSION['error']);
   <?php if (!empty($error)): ?>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        showToast("<?= $error ?>", "error");
+        showToast("error", "<?= $error ?>");
       });
     </script>
   <?php endif; ?>
-
-  <script>
-    function showToast(message, type = "error") {
-      const container = document.getElementById("toast-container");
-
-      const toast = document.createElement("div");
-      toast.className = `p-3 rounded shadow text-white ${
-        type === "success" ? "bg-green-500" : "bg-red-500"
-    }`;
-
-      toast.innerText = message;
-      container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.add("opacity-0");
-        setTimeout(() => toast.remove(), 300);
-      }, 2500);
-    }
-  </script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
 

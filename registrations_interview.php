@@ -633,9 +633,19 @@ include_once "./include/headerLinks.php";
                                 <input type="text" id="hireName" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
                             </div>
 
-                            <div>
+                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Technology</label>
                                 <input type="text" id="hireTechnology" class="w-full px-3 py-2.5 border rounded-lg text-gray-800 dark:text-gray-200" readonly>
+                            </div>
+
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Internship Duration <span class="text-red-500">*</span></label>
+                                <select id="hireDuration" name="hireDuration" class="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200" required>
+                                    <option value="">Select Duration</option>
+                                    <option value="4 weeks">4 weeks</option>
+                                    <option value="8 weeks">8 weeks</option>
+                                    <option value="12 weeks">12 weeks</option>
+                                </select>
                             </div>
 
                             <div>
@@ -1381,6 +1391,9 @@ include_once "./include/headerLinks.php";
                     }
                 },
                 {
+                    data: 'experience_text'
+                },
+                {
                     data: null,
                     orderable: false,
                     className: 'space-x-1',
@@ -1762,8 +1775,8 @@ include_once "./include/headerLinks.php";
         $('#hireForm').on('submit', async function(e) {
             e.preventDefault();
 
-            if (!$('#hireTrainer').val()) {
-                showToast('error', 'Please select a supervisor');
+            if (!$('#hireTrainer').val() || !$('#hireDuration').val()) {
+                showToast('error', 'Please fill all required fields');
                 return;
             }
 

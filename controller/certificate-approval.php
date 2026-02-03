@@ -7,7 +7,7 @@ if ($_POST['action'] === 'approve') {
     $intern_id = $_POST['id'];
 
     // Validation: Check if internship duration is completed
-    $check_stmt = $conn->prepare("SELECT created_at, internship_type FROM users WHERE id = ?");
+    $check_stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $check_stmt->bind_param("i", $intern_id);
     $check_stmt->execute();
     $user_data = $check_stmt->get_result()->fetch_assoc();
@@ -16,7 +16,14 @@ if ($_POST['action'] === 'approve') {
     if ($user_data) {
         $created_at = new DateTime($user_data['created_at']);
         $now = new DateTime();
-        $duration_weeks = ($user_data['internship_type'] == 0) ? 4 : 12;
+        $duration_weeks = 12; // Default
+        if (!empty($user_data['internship_duration'])) {
+            if ($user_data['internship_duration'] === '4 weeks') $duration_weeks = 4;
+            elseif ($user_data['internship_duration'] === '8 weeks') $duration_weeks = 8;
+            elseif ($user_data['internship_duration'] === '12 weeks') $duration_weeks = 12;
+        } else {
+            $duration_weeks = ($user_data['internship_type'] == 0) ? 4 : 12;
+        }
         $required_end_date = clone $created_at;
         $required_end_date->modify("+$duration_weeks weeks");
 

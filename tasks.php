@@ -71,7 +71,7 @@ $page_title = ($statusTitles[$status] ?? 'Task Management') . ' - TaskDesk';
                                             <th class="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm text-black dark:text-gray-300">
                                         <!-- Data populated by DataTables -->
                                     </tbody>
                                 </table>

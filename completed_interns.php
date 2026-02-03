@@ -229,6 +229,7 @@ include_once "./include/headerLinks.php"; ?>
                                     data-months="${u.months_completed || 0}"
                                     data-days-left="${u.days_left || 0}"
                                     data-type="${u.internship_type || 0}"
+                                    data-duration="${u.internship_duration || ''}"
                                     data-approved="${u.approve_status || 0}"
                                     title="View Details">
                                 <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -248,6 +249,7 @@ include_once "./include/headerLinks.php"; ?>
                                         data-months="${u.months_completed || 0}"
                                         data-days-left="${u.days_left || 0}"
                                         data-type="${u.internship_type || 0}"
+                                        data-duration="${u.internship_duration || ''}"
                                         title="Approve Certificate">
                                     <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="12" cy="16" r="3" stroke="currentColor" stroke-width="1.5"></circle>
@@ -339,7 +341,10 @@ include_once "./include/headerLinks.php"; ?>
             }
 
             // Duration Eligibility
-            const targetWeeks = type == 0 ? 4 : 12;
+            let targetWeeks = type == 0 ? 4 : 12;
+            if (d.duration && d.duration.includes('weeks')) {
+                targetWeeks = parseInt(d.duration);
+            }
             if (daysLeft <= 0) {
                 monthsEligibility.innerHTML = `<span class="text-green-600 dark:text-green-400">✓ Met (${targetWeeks} weeks reached)</span>`;
             } else {
@@ -367,8 +372,12 @@ include_once "./include/headerLinks.php"; ?>
             const attendance = parseInt(btn.dataset.attendance);
             const daysLeft = parseInt(btn.dataset.daysLeft);
             const type = parseInt(btn.dataset.type);
+            const duration = btn.dataset.duration;
 
-            const targetWeeks = type == 0 ? 4 : 12;
+            let targetWeeks = type == 0 ? 4 : 12;
+            if (duration && duration.includes('weeks')) {
+                targetWeeks = parseInt(duration);
+            }
             let confirmMsg = `Approve certificate for ${internName}?`;
             
             if (completion < 75 || attendance < 75 || daysLeft > 0) {

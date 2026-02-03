@@ -10,7 +10,7 @@ include_once './include/connection.php';
 <html lang="en">
 
 <?php
-$page_title = 'Internees Management - TaskDesk';
+$page_title = 'Interns Management - TaskDesk';
 include_once "./include/headerLinks.php"; ?>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -374,6 +374,7 @@ include_once "./include/headerLinks.php"; ?>
                                 data-months="${u.months_completed || 0}"
                                 data-days-left="${u.days_left || 0}"
                                 data-type="${u.internship_type || 0}"
+                                data-duration="${u.internship_duration || ''}"
                                 data-approved="${u.approve_status || 0}"
                                 data-total-tasks="${u.total_tasks || 0}"
                                 data-completed-tasks="${u.completed_tasks || 0}"
@@ -468,6 +469,7 @@ include_once "./include/headerLinks.php"; ?>
             const months = parseInt(btn.dataset.months) || 0;
             const daysLeft = parseInt(btn.dataset.daysLeft) || 0;
             const type = parseInt(btn.dataset.type) || 0;
+            const duration = btn.dataset.duration;
             const approved = parseInt(btn.dataset.approved) || 0;
 
             // Update personal info
@@ -513,7 +515,11 @@ include_once "./include/headerLinks.php"; ?>
             }
 
             // Duration Eligibility
-            const targetWeeks = type == 0 ? 4 : 12;
+            let targetWeeks = type == 0 ? 4 : 12;
+            if (duration && duration.includes('weeks')) {
+                targetWeeks = parseInt(duration);
+            }
+
             if (daysLeft <= 0) {
                 monthsEligibility.innerHTML = `<span class="text-green-600 dark:text-green-400">✓ Met (${targetWeeks} weeks reached)</span>`;
             } else {

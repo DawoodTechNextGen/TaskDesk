@@ -55,6 +55,7 @@ switch ($action) {
             u.tech_id,
             u.plain_password,
             u.internship_type,
+            u.internship_duration,
             t.name AS tech_name,
             s.id AS supervisor_id,
             s.name AS supervisor_name,
@@ -78,7 +79,12 @@ switch ($action) {
                   AND ca.date >= DATE(u.created_at)
                   AND ca.date <= CURDATE()
             ) as attendance_rate,
-            DATEDIFF(DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK), NOW()) as days_left,
+            DATEDIFF(DATE_ADD(u.created_at, INTERVAL (CASE 
+                WHEN u.internship_duration = '4 weeks' THEN 4
+                WHEN u.internship_duration = '8 weeks' THEN 8
+                WHEN u.internship_duration = '12 weeks' THEN 12
+                ELSE IF(u.internship_type = 0, 4, 12)
+            END) WEEK), NOW()) as days_left,
             c.approve_status
         FROM users u
         LEFT JOIN technologies t ON u.tech_id = t.id
@@ -86,7 +92,12 @@ switch ($action) {
         LEFT JOIN users s ON u.supervisor_id = s.id
         WHERE u.user_role = 2
           AND u.freeze_status = 'active'
-          AND DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK) > NOW()
+          AND DATE_ADD(u.created_at, INTERVAL (CASE 
+                WHEN u.internship_duration = '4 weeks' THEN 4
+                WHEN u.internship_duration = '8 weeks' THEN 8
+                WHEN u.internship_duration = '12 weeks' THEN 12
+                ELSE IF(u.internship_type = 0, 4, 12)
+            END) WEEK) > NOW()
     ";
 
         // Apply supervisor condition ONLY if role == 3
@@ -149,10 +160,15 @@ switch ($action) {
 
         $sql = "
         SELECT
-            u.id, u.name, u.email, u.tech_id, u.internship_type, t.name AS tech_name,
+            u.id, u.name, u.email, u.tech_id, u.internship_type, u.internship_duration, t.name AS tech_name,
             s.id AS supervisor_id, s.name AS supervisor_name,
             DATE(u.created_at) AS joining_date,
-            DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK) AS completion_date,
+            DATE_ADD(u.created_at, INTERVAL (CASE 
+                WHEN u.internship_duration = '4 weeks' THEN 4
+                WHEN u.internship_duration = '8 weeks' THEN 8
+                WHEN u.internship_duration = '12 weeks' THEN 12
+                ELSE IF(u.internship_type = 0, 4, 12)
+            END) WEEK) AS completion_date,
             (
                 SELECT ROUND(
                     (COUNT(CASE WHEN status = 'complete' THEN 1 END) / COUNT(*)) * 100
@@ -161,9 +177,19 @@ switch ($action) {
                 WHERE assign_to = u.id
             ) AS completion_rate,
             TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
-            DATEDIFF(DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK), NOW()) as days_left,
+            DATEDIFF(DATE_ADD(u.created_at, INTERVAL (CASE 
+                WHEN u.internship_duration = '4 weeks' THEN 4
+                WHEN u.internship_duration = '8 weeks' THEN 8
+                WHEN u.internship_duration = '12 weeks' THEN 12
+                ELSE IF(u.internship_type = 0, 4, 12)
+            END) WEEK), NOW()) as days_left,
             (
-                SELECT ROUND((COUNT(DISTINCT ca.date) / (TIMESTAMPDIFF(DAY, u.created_at, DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK)) + 1)) * 100)
+                SELECT ROUND((COUNT(DISTINCT ca.date) / (TIMESTAMPDIFF(DAY, u.created_at, DATE_ADD(u.created_at, INTERVAL (CASE 
+                    WHEN u.internship_duration = '4 weeks' THEN 4
+                    WHEN u.internship_duration = '8 weeks' THEN 8
+                    WHEN u.internship_duration = '12 weeks' THEN 12
+                    ELSE IF(u.internship_type = 0, 4, 12)
+                END) WEEK)) + 1)) * 100)
                 FROM (
                     SELECT DATE(date) as date, user_id FROM attendance WHERE total_work_seconds >= 10800
                     UNION
@@ -171,7 +197,12 @@ switch ($action) {
                 ) as ca
                 WHERE ca.user_id = u.id
                   AND ca.date >= DATE(u.created_at)
-                  AND ca.date <= DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK)
+                  AND ca.date <= DATE_ADD(u.created_at, INTERVAL (CASE 
+                        WHEN u.internship_duration = '4 weeks' THEN 4
+                        WHEN u.internship_duration = '8 weeks' THEN 8
+                        WHEN u.internship_duration = '12 weeks' THEN 12
+                        ELSE IF(u.internship_type = 0, 4, 12)
+                    END) WEEK)
             ) as attendance_rate,
             c.approve_status
         FROM users u
@@ -179,7 +210,12 @@ switch ($action) {
         LEFT JOIN users s ON u.supervisor_id = s.id
         LEFT JOIN certificate c ON c.intern_id = u.id
         WHERE u.user_role = 2
-          AND DATE_ADD(u.created_at, INTERVAL IF(u.internship_type = 0, 4, 12) WEEK) <= NOW()
+          AND DATE_ADD(u.created_at, INTERVAL (CASE 
+                WHEN u.internship_duration = '4 weeks' THEN 4
+                WHEN u.internship_duration = '8 weeks' THEN 8
+                WHEN u.internship_duration = '12 weeks' THEN 12
+                ELSE IF(u.internship_type = 0, 4, 12)
+            END) WEEK) <= NOW()
         ";
 
         if ($user_role == 3) {

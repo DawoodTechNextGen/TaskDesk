@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require "/home2/dawoodte/public_html/taskdesk/include/connection.php";
+require_once __DIR__ . "/include/connection.php";
 // This file should be called by cron job
 function markAutoAttendance() {
     global $conn;
@@ -16,7 +16,7 @@ function markAutoAttendance() {
         $userId = $user['id'];
         
         // Check if user has any time logs for today
-        $timeLogSql = "SELECT * FROM time_logs WHERE user_id = ? AND DATE(started_at) = ?";
+        $timeLogSql = "SELECT * FROM time_logs WHERE user_id = ? AND DATE(start_time) = ?";
         $timeLogStmt = $conn->prepare($timeLogSql);
         $timeLogStmt->bind_param("is", $userId, $currentDate);
         $timeLogStmt->execute();
@@ -31,7 +31,7 @@ function markAutoAttendance() {
         
         // If no time logs and no attendance record, mark as absent
         if ($timeLogResult->num_rows == 0 && $attendanceResult->num_rows == 0) {
-            $insertSql = "INSERT INTO attendance (user_id, date, status, total_time, formatted_time) VALUES (?, ?, 'absent', 0, '00:00:00')";
+            $insertSql = "INSERT INTO attendance (user_id, task_id, date, status, total_work_seconds) VALUES (?, 0, ?, 'absent', 0)";
             $insertStmt = $conn->prepare($insertSql);
             $insertStmt->bind_param("is", $userId, $currentDate);
             $insertStmt->execute();

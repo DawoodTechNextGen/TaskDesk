@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 27, 2026 at 05:40 PM
+-- Generation Time: Feb 03, 2026 at 04:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -47,9 +47,8 @@ CREATE TABLE `attendance` (
   `user_id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL,
   `date` date NOT NULL,
-  `status` enum('present','absent','half_day') DEFAULT 'absent',
+  `status` enum('present','absent','half_day','frozen') DEFAULT 'absent',
   `total_work_seconds` int(11) DEFAULT 0 COMMENT 'Total seconds worked',
-  `formatted_time` time DEFAULT '00:00:00',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -58,39 +57,8 @@ CREATE TABLE `attendance` (
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`id`, `user_id`, `task_id`, `date`, `status`, `total_work_seconds`, `formatted_time`, `created_at`, `updated_at`) VALUES
-(1, 7, 1, '2025-12-15', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(2, 7, 1, '2025-12-16', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(3, 7, 1, '2025-12-17', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(4, 7, 1, '2025-12-18', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(5, 7, 1, '2025-12-19', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(6, 7, 1, '2025-12-22', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(7, 7, 1, '2025-12-23', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(8, 7, 1, '2025-12-24', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(9, 7, 1, '2025-12-25', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(10, 7, 1, '2025-12-26', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(11, 7, 1, '2025-12-29', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(12, 7, 1, '2025-12-30', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(13, 7, 1, '2025-12-31', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(14, 7, 1, '2026-01-01', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(15, 7, 1, '2026-01-02', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(16, 7, 1, '2026-01-05', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(17, 7, 1, '2026-01-06', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(18, 7, 1, '2026-01-07', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(19, 7, 1, '2026-01-08', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(20, 7, 1, '2026-01-09', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(21, 7, 1, '2026-01-12', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(22, 7, 1, '2026-01-13', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(23, 7, 1, '2026-01-14', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(24, 7, 1, '2026-01-15', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(25, 7, 1, '2026-01-16', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(26, 7, 1, '2026-01-19', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(27, 7, 1, '2026-01-20', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(28, 7, 1, '2026-01-21', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(29, 7, 1, '2026-01-22', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(30, 7, 1, '2026-01-23', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(31, 7, 1, '2026-01-26', 'absent', 0, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 15:11:57'),
-(32, 7, 1, '2026-01-27', 'absent', 4913, '00:00:00', '2026-01-27 15:11:57', '2026-01-27 16:33:50');
+INSERT INTO `attendance` (`id`, `user_id`, `task_id`, `date`, `status`, `total_work_seconds`, `created_at`, `updated_at`) VALUES
+(35, 54, 7, '2026-02-02', 'absent', 1566, '2026-02-02 17:23:53', '2026-02-02 18:01:31');
 
 -- --------------------------------------------------------
 
@@ -114,7 +82,7 @@ INSERT INTO `certificate` (`id`, `intern_id`, `approve_status`, `created_at`) VA
 (2, 4, 0, '2025-12-08 15:11:14'),
 (3, 5, 0, '2025-12-08 15:12:18'),
 (4, 6, 0, '2025-12-12 15:39:46'),
-(5, 7, 0, '2025-12-13 19:06:56'),
+(5, 7, 1, '2025-12-13 19:06:56'),
 (6, 8, 0, '2025-12-19 06:33:45'),
 (7, 9, 0, '2025-12-25 13:20:59'),
 (8, 11, 0, '2025-12-25 13:26:12'),
@@ -150,7 +118,11 @@ INSERT INTO `certificate` (`id`, `intern_id`, `approve_status`, `created_at`) VA
 (38, 46, 0, '2026-01-25 17:57:10'),
 (39, 47, 0, '2026-01-25 18:19:03'),
 (40, 48, 0, '2026-01-25 18:37:33'),
-(41, 49, 0, '2026-01-26 15:20:45');
+(41, 49, 0, '2026-01-26 15:20:45'),
+(42, 50, 0, '2026-01-27 17:11:38'),
+(43, 52, 0, '2026-02-02 15:34:32'),
+(44, 53, 0, '2026-02-02 15:39:53'),
+(45, 54, 0, '2026-02-02 15:43:27');
 
 -- --------------------------------------------------------
 
@@ -343,7 +315,7 @@ INSERT INTO `registrations` (`id`, `name`, `email`, `country`, `mbl_number`, `ci
 (132, 'Syed Qumber Ali Naqvi', 'syednaqviqumber55@gmail.com', 'Pakistan', '+923345923971', 'Islamabad', '35202-9362599-1', 4, 0, 0, 'contact', '2026-01-23 19:47:43', '2026-01-26 12:33:10', NULL, NULL, NULL, NULL),
 (133, 'Sarah Chaudary', 'chaudharysarah71@gmail.com', 'Pakistan', '+923172003181', 'Lahore', '34101-9502629-8', 2, 0, 0, 'contact', '2026-01-23 20:26:09', '2026-01-26 12:33:05', NULL, NULL, NULL, NULL),
 (134, 'Raksha Devi', 'rakshadara11@gmail.com', 'Pakistan', '+9203368082084', 'Karachi', '43504-0662391-8', 2, 0, 0, 'interview', '2026-01-23 22:35:20', '2026-01-26 14:46:42', '2026-01-26 22:00:00', '2026-01-26 22:15:00', 'Google Meet', NULL),
-(135, 'Muneeza Mehboob', 'muneezamehboob3@gmail.com', 'Pakistan', '+923290314424', 'Multan', '36302-5924091-4', 4, 0, 1, 'interview', '2026-01-23 22:44:52', '2026-01-26 19:15:44', '2026-01-28 21:30:00', '2026-01-28 21:45:00', 'Google Meet', NULL),
+(135, 'Muneeza Mehboob', 'muneezamehboob3@gmail.com', 'Pakistan', '+923290314424', 'Multan', '36302-5924091-4', 4, 0, 1, 'interview', '2026-01-23 22:44:52', '2026-01-28 18:06:03', '2026-01-28 21:30:00', '2026-01-28 21:45:00', 'Google Meet', NULL),
 (136, 'Iqra Jamali', 'iqrajamali67@gmail.com', 'Pakistan', '+923093714140', 'NAWAB SHAH', '45403-5044824-8', 2, 0, 2, 'contact', '2026-01-23 23:24:18', '2026-01-26 12:32:54', NULL, NULL, NULL, NULL),
 (140, 'Uzair ', 'uzairofficials001@gmail.com', 'Pakistan', '+923706264133', 'Lahore ', '33102-1400771-1', 2, 0, 0, 'interview', '2026-01-24 10:51:10', '2026-01-26 19:27:23', '2026-01-27 21:00:00', '2026-01-27 21:15:00', 'Google Meet', NULL),
 (141, 'Muhammad Saffan', 'muhammadsaffan60@gmail.com', 'Pakistan', '+923378043053', 'Jhelum', '37302-1937073-5', 4, 0, 2, 'rejected', '2026-01-24 15:40:09', '2026-01-26 21:28:26', '2026-01-26 21:15:00', '2026-01-26 21:30:00', 'Google Meet', ''),
@@ -353,13 +325,14 @@ INSERT INTO `registrations` (`id`, `name`, `email`, `country`, `mbl_number`, `ci
 (145, 'Mahnoor adil', 'nooradildar7864@gmail.com', 'Pakistan', '+923164172383', 'Gujranwala', '34101-1713681-2', 2, 0, 2, 'rejected', '2026-01-25 19:11:55', '2026-01-26 21:43:50', '2026-01-26 21:30:00', '2026-01-26 21:45:00', 'Google Meet', 'We regret to inform you that your application has not been selected, as the interview was left incomplete and the behavior did not meet our professional standards.'),
 (146, 'Bushra', 'bushra.msaleem@gmail.com', 'Pakistan', '+923347241497', 'Daharki', '45101-6909543-0', 9, 0, 0, 'contact', '2026-01-25 22:23:29', '2026-01-25 23:17:19', NULL, NULL, NULL, NULL),
 (147, 'Ahsan Ali Leghari', 'ak7111master@gmail.com', 'Pakistan', '+923191646922', 'Ghotki', '45102-7904088-5', 8, 0, 0, 'interview', '2026-01-26 07:32:11', '2026-01-26 14:31:57', '2026-01-26 21:45:00', '2026-01-26 22:00:00', 'Google Meet', NULL),
-(148, 'Malik Farhan', 'faree.one5@gmail.com', 'Pakistan', '+923077778751', 'Faisalabad', '33102-7659087-3', 4, 0, 2, 'contact', '2026-01-26 09:43:43', '2026-01-26 12:32:16', NULL, NULL, NULL, NULL),
+(148, 'Malik Farhan', 'arimran7315@gmail.com', 'Pakistan', '+923061061544', 'Faisalabad', '33102-7659087-3', 4, 1, 2, 'hire', '2026-01-26 09:43:43', '2026-02-02 20:43:27', NULL, NULL, NULL, NULL),
 (149, 'Muhammed Noman', 'iamnoman8361@gmail.com', 'Pakistan', '+923220298361', 'Dunyapur', '36201-7227036-7', 4, 0, 2, 'new', '2026-01-26 13:09:15', '2026-01-26 13:09:15', NULL, NULL, NULL, NULL),
 (150, 'zahra tariq', 'zahratariq142@gmail.com', 'Pakistan', '+923403209234', 'Rawalpindi', '37405-1265062-8', 5, 0, 0, 'new', '2026-01-26 16:53:04', '2026-01-26 16:53:04', NULL, NULL, NULL, NULL),
 (152, 'Ronik Kumar', 'ronikkumar98@gmail.com', 'Pakistan', '+923419682094', 'Karachi', '45102-1671099-3', 8, 0, 0, 'new', '2026-01-26 19:08:31', '2026-01-26 19:08:31', NULL, NULL, NULL, NULL),
-(153, 'Hafsa umair', 'hafsaalam95@gmail.com', 'Pakistan', '+923302425851', 'karachi', '42101-8574251-2', 5, 0, 2, 'hire', '2026-01-26 19:41:29', '2026-01-26 20:20:45', NULL, NULL, NULL, NULL),
+(153, 'Hafsa umair', 'arimran', 'Pakistan', '+923061061544', 'karachi', '42101-8574251-2', 5, 0, 2, 'hire', '2026-01-26 19:41:29', '2026-01-28 14:22:30', NULL, NULL, NULL, NULL),
 (154, 'Prena Goindani', 'goindaniprerna20@gmail.com', 'Pakistan', '+923152487833', 'DEHARKI', '45101-9519991-2', 8, 0, 0, 'new', '2026-01-26 20:45:27', '2026-01-26 20:45:27', NULL, NULL, NULL, NULL),
-(155, 'Nasim Ahmad', 'nasimshazad002@gmail.com', 'Pakistan', '+923259951510', 'Peshawar City ', '21708-3452591-7', 5, 0, 0, 'new', '2026-01-26 21:47:10', '2026-01-26 21:47:10', NULL, NULL, NULL, NULL);
+(155, 'Nasim Ahmad', 'nasimshazad002@gmail.com', 'Pakistan', '+923259951510', 'Peshawar City ', '21708-3452591-7', 5, 0, 0, 'new', '2026-01-26 21:47:10', '2026-01-26 21:47:10', NULL, NULL, NULL, NULL),
+(156, 'Abdulrehman', 'arimran1058@gmail.com', 'Pakistan', '923061061544', 'Faisalabad', '3310061224605', 2, 0, 0, 'hire', '2026-01-27 22:08:56', '2026-01-27 22:11:38', '2026-01-27 23:15:00', '2026-01-27 23:30:00', 'Google Meet', NULL);
 
 -- --------------------------------------------------------
 
@@ -393,7 +366,13 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `title`, `description`, `created_by`, `assign_to`, `notification`, `status`, `created_at`, `updated_at`, `started_at`, `completed_at`, `due_date`, `live_url`, `github_repo`, `additional_notes`, `review_notes`, `reviewed_at`, `reviewed_by`) VALUES
-(1, 'Testing 1', '<p>Testing</p>', 2, 7, 1, '', '2026-01-27 15:11:28', '2026-01-27 20:11:28', '2026-01-27 20:11:57', '2026-01-27 21:33:50', '2026-02-03', 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=task_management&table=tasks', 'https://github.com/', '', NULL, NULL, NULL);
+(1, 'Testing 1', '<p>Testing</p>', 2, 7, 1, 'complete', '2026-01-27 15:11:28', '2026-01-27 20:11:28', '2026-01-27 20:11:57', '2026-01-27 21:33:50', '2026-02-03', 'http://localhost/phpmyadmin/index.php?route=/sql&pos=0&db=task_management&table=tasks', 'https://github.com/', '', '', '2026-01-27 22:13:32', 2),
+(2, 'Testing 2', '<p>Testing</p>', 2, 50, 1, 'pending', '2026-01-28 05:39:47', '2026-01-28 10:39:47', '2026-01-28 10:40:06', NULL, '2026-02-04', '', '', '', NULL, NULL, NULL),
+(3, 'Test Email Notification Task', 'This is a test task to verify that email notifications are working correctly when a task is created.', 1, 3, 0, 'pending', '2026-01-28 09:07:51', '2026-01-28 14:07:51', NULL, NULL, '2026-02-15', '', '', '', NULL, NULL, NULL),
+(4, 'Test Email Notification Task', 'This is a test task to verify that email notifications are working correctly when a task is created.', 1, 3, 0, 'pending', '2026-01-28 09:12:35', '2026-01-28 14:12:35', NULL, NULL, '2026-02-15', '', '', '', NULL, NULL, NULL),
+(5, 'Test 4', '<p>Test</p>', 2, 49, 1, 'pending', '2026-01-28 09:26:52', '2026-01-28 14:26:52', NULL, NULL, '2026-02-04', '', '', '', NULL, NULL, NULL),
+(6, 'okah', '<p>dsnas</p>', 2, 54, 1, 'rejected', '2026-02-02 16:02:59', '2026-02-02 21:02:59', '2026-02-03 21:03:15', '2026-02-03 21:04:08', '2026-02-09', 'skdjsad/lsa', 'dskbkabsa', '', '', '2026-02-02 23:11:21', 2),
+(7, 'test', '<p>asdnaoso;adbsd; ashas0h sah 0as8&nbsp;</p>\n<ul>\n<li>dsnsosand</li>\n</ul>\n<ol>\n<li><strong>dsbso;alsn\'psadhnosla</strong></li>\n</ol>', 2, 54, 1, 'working', '2026-02-02 16:59:54', '2026-02-02 21:59:54', '2026-02-02 23:01:45', NULL, '2026-12-31', '', '', '', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -443,7 +422,13 @@ CREATE TABLE `time_logs` (
 --
 
 INSERT INTO `time_logs` (`id`, `task_id`, `user_id`, `start_time`, `end_time`, `duration`) VALUES
-(1, 1, 7, '2026-01-27 20:11:57', '2026-01-27 21:33:50', 4913);
+(1, 1, 7, '2026-01-27 20:11:57', '2026-01-27 21:33:50', 4913),
+(2, 2, 50, '2026-01-28 10:40:06', '2026-01-28 13:41:57', 10911),
+(3, 7, 54, '2026-02-02 22:23:53', '2026-02-02 22:24:11', 18),
+(4, 7, 54, '2026-02-02 22:31:37', '2026-02-02 22:31:50', 13),
+(5, 7, 54, '2026-02-02 22:35:48', '2026-02-02 22:36:28', 40),
+(6, 7, 54, '2026-02-02 22:36:36', '2026-02-02 23:01:31', 1495),
+(7, 7, 54, '2026-02-02 23:01:45', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -463,31 +448,39 @@ CREATE TABLE `users` (
   `supervisor_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `temp_col` varchar(255) DEFAULT NULL,
-  `internship_type` int(11) DEFAULT NULL
+  `internship_type` int(11) DEFAULT NULL,
+  `internship_duration` enum('4 weeks','8 weeks','12 weeks','') DEFAULT NULL,
+  `freeze_status` enum('active','freeze_requested','frozen') DEFAULT 'active',
+  `freeze_start_date` date DEFAULT NULL,
+  `freeze_end_date` date DEFAULT NULL,
+  `freeze_reason` text DEFAULT NULL,
+  `freeze_requested_at` datetime DEFAULT NULL,
+  `freeze_approved_by` int(11) DEFAULT NULL,
+  `freeze_approved_at` datetime DEFAULT NULL,
+  `freeze_count` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `plain_password`, `password`, `user_role`, `status`, `tech_id`, `supervisor_id`, `created_at`, `temp_col`, `internship_type`) VALUES
-(1, 'Admin', 'admin@taskdesk.org', 'GenNext@@0099', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 1, 1, 0, NULL, '2025-12-08 14:55:31', NULL, 1),
-(2, 'Qamar Naveed', 'qamargill427@gmail.com', '1122', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 3, 1, 0, NULL, '2025-12-08 14:56:47', NULL, 1),
-(3, 'Muhammad Mudassir', 'muhammadmudassir8877@gmail.com', '5aLJms47gu1', '$2y$10$72h8iSO5RRV3MEvjUEFZNew9TaEgTv9ruMbUX/WBJ.UnMjnhyJJv2', 2, 1, 3, 2, '2025-12-08 15:06:49', NULL, 1),
-(4, 'Fiza', 'fizaa7343@gmail.com', '5aLJms47gu1', '$2y$10$H7b5eSIHn0xAJ4ok2WyXmOTNicnmketc3JLUYkT0bMig3dlJiPw9m', 2, 1, 7, 2, '2025-12-08 15:11:14', NULL, 1),
-(5, 'Faryal Naz', 'faryalnaz711@gmail.com', '5aLJms47gu1', '$2y$10$Z3wrp18h7fG3zgCrrqKjNefDNSi4UOGg/GoTPFtxZCHl7N5/WDBBe', 2, 1, 4, 2, '2025-12-08 15:12:18', NULL, 1),
-(6, 'Vandna', 'wandhnarejhra@gmail.com', 'AFPYI&2af3]E', '$2y$10$UBtEeIyBO2gCqPoc.o7Wl.9Pw3hvcIpptUkrhiYjOAy2LRwNn5y66', 2, 1, 8, 2, '2025-12-12 15:39:46', NULL, 1),
-(7, 'Abdul Rehman', 'arimran7315@gmail.com', 'c]j0%OxipKCq', '$2y$10$HH2dDM6Nus0dba0c7lc8JOHECypd0NRhJWYXg40t7/kK0LP4VHQO.', 2, 1, 6, 2, '2025-12-13 19:06:56', NULL, 0),
-(14, 'Fajar Shakeel', 'manhalhads@gmail.com', '?zuE;t]zp~$?GS8', '$2y$10$o2y/ydBySoC52QNBkDVmqONTKQCFVcMTiHKgiJT28wY1CdZimGZQO', 2, 1, 4, 2, '2025-12-26 05:22:49', NULL, 1),
-(16, 'Mehwish Zahra', 'mehwishzahra086@gmail.com', 'VHA$FJAkio37', '$2y$10$HnMIV6UIV5VmkV33hj79ruVEjkbfh1FR2oN8yzp/dhbBoaGfMo3B.', 2, 1, 7, 2, '2025-12-29 05:33:43', NULL, 1),
-(18, 'Munazza Akhlaq', 'munazzamunazza229@gmail.com', '(_I[0L72pbH%', '$2y$10$seTiN.RdGEDoAjoNHfK/eu8hIhlxduzBa4O4561NCQLtg3P4XboAa', 2, 1, 10, 2, '2025-12-30 14:24:53', NULL, 1),
-(19, 'Areesha Arain', 'areeshaarain2006@gmail.com', 'a@_TA76[wGyJ', '$2y$10$3n391BQKZm0kTfPZ5JmojeoNyaf9uSHa7NmbX1Ps1kd3XJMPpoJ5W', 2, 1, 7, 2, '2025-12-31 14:04:15', NULL, 1),
-(20, 'Fatima Manzoor', 'fatemahmnzor@gmail.com', 'b9=6LSW]6Ccx', '$2y$10$GaRFS.55dlC6ESEisABrIOWaIPRcDE/IvAux6aESkuPELu6Q0aPnu', 2, 1, 4, 21, '2026-01-07 06:08:37', NULL, 1),
-(21, 'Ahmed Naeem', 'ahmednaeemnaeemgulzar521@gmail.com', '7WkoQJ&Mz[nq', '$2y$10$ggGWqo2dXP.gVunp2/cPwuldAQW6sxEtpbtLMRAHZj9J.lQMfGKxy', 3, 1, 0, NULL, '2026-01-07 06:31:00', NULL, 1),
-(22, 'Iqra Arshad', 'chaudharyiqra105@gmail.com', 'RHaf&^^moc9C', '$2y$10$qIcgwbrW1MBAADNTy6V4BejCgaEGjJRmV3WIvE5yCUnuZlfcrbi.2', 2, 1, 5, 2, '2026-01-14 17:14:13', NULL, 1),
-(23, 'Manager', 'manager@taskdesk.org', 'TaskDesk@345', '$2y$10$Zgz13iXGsRyiwvKG74qOL.wLfEFgwPEg7Y7Lm41glJmX77d7WVqr6', 4, 1, 0, 0, '2026-01-19 08:42:17', NULL, 1),
-(46, 'Qamar Naveed', 'code.learners.edu.pk@gmail.com', '&+f7O&9z3h@3', '$2y$10$cfzx8yqGgMOKbujOfPD8eOg5tyJJWFfzvDHxh/SjcggEfSO.LYSbC', 2, 1, 3, 2, '2026-01-25 17:57:10', NULL, 1),
-(49, 'Hafsa umair', 'hafsaalam95@gmail.com', 'u*7ZJcYTztaP', '$2y$10$w13dIeGVMzF9xf2J72GSoea2iL.2ap1hug4aBSnLsBVEVhfwok.R.', 2, 1, 5, 2, '2026-01-26 15:20:45', NULL, 1);
+INSERT INTO `users` (`id`, `name`, `email`, `plain_password`, `password`, `user_role`, `status`, `tech_id`, `supervisor_id`, `created_at`, `temp_col`, `internship_type`, `internship_duration`, `freeze_status`, `freeze_start_date`, `freeze_end_date`, `freeze_reason`, `freeze_requested_at`, `freeze_approved_by`, `freeze_approved_at`, `freeze_count`) VALUES
+(1, 'Admin', 'admin@taskdesk.org', 'GenNext@@0099', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 1, 1, 0, NULL, '2025-12-08 14:55:31', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(2, 'Qamar Naveed', 'qamargill427@gmail.com', '1122', '$2y$10$g4fapOYFN.YzSCuWgUch7uodI/zHRRhMtfysNb8AN/tIOyAID1PT2', 3, 1, 0, NULL, '2025-12-08 14:56:47', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(3, 'Muhammad Mudassir', 'muhammadmudassir8877@gmail.com', '5aLJms47gu1', '$2y$10$72h8iSO5RRV3MEvjUEFZNew9TaEgTv9ruMbUX/WBJ.UnMjnhyJJv2', 2, 1, 3, 2, '2025-12-08 15:06:49', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(4, 'Fiza', 'fizaa7343@gmail.com', '5aLJms47gu1', '$2y$10$H7b5eSIHn0xAJ4ok2WyXmOTNicnmketc3JLUYkT0bMig3dlJiPw9m', 2, 1, 7, 2, '2025-12-08 15:11:14', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(5, 'Faryal Naz', 'faryalnaz711@gmail.com', '5aLJms47gu1', '$2y$10$Z3wrp18h7fG3zgCrrqKjNefDNSi4UOGg/GoTPFtxZCHl7N5/WDBBe', 2, 1, 4, 2, '2025-12-08 15:12:18', NULL, 1, '8 weeks', 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(6, 'Vandna', 'wandhnarejhra@gmail.com', 'AFPYI&2af3]E', '$2y$10$UBtEeIyBO2gCqPoc.o7Wl.9Pw3hvcIpptUkrhiYjOAy2LRwNn5y66', 2, 1, 8, 2, '2025-12-12 15:39:46', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(14, 'Fajar Shakeel', 'manhalhads@gmail.com', '?zuE;t]zp~$?GS8', '$2y$10$o2y/ydBySoC52QNBkDVmqONTKQCFVcMTiHKgiJT28wY1CdZimGZQO', 2, 1, 4, 2, '2025-12-26 05:22:49', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(16, 'Mehwish Zahra', 'mehwishzahra086@gmail.com', 'VHA$FJAkio37', '$2y$10$HnMIV6UIV5VmkV33hj79ruVEjkbfh1FR2oN8yzp/dhbBoaGfMo3B.', 2, 1, 7, 2, '2025-12-29 05:33:43', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(18, 'Munazza Akhlaq', 'munazzamunazza229@gmail.com', '(_I[0L72pbH%', '$2y$10$seTiN.RdGEDoAjoNHfK/eu8hIhlxduzBa4O4561NCQLtg3P4XboAa', 2, 1, 10, 2, '2025-12-30 14:24:53', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(19, 'Areesha Arain', 'areeshaarain2006@gmail.com', 'a@_TA76[wGyJ', '$2y$10$3n391BQKZm0kTfPZ5JmojeoNyaf9uSHa7NmbX1Ps1kd3XJMPpoJ5W', 2, 1, 7, 2, '2025-12-31 14:04:15', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(20, 'Fatima Manzoor', 'fatemahmnzor@gmail.com', 'b9=6LSW]6Ccx', '$2y$10$GaRFS.55dlC6ESEisABrIOWaIPRcDE/IvAux6aESkuPELu6Q0aPnu', 2, 1, 4, 21, '2026-01-07 06:08:37', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(21, 'Ahmed Naeem', 'ahmednaeemnaeemgulzar521@gmail.com', '7WkoQJ&Mz[nq', '$2y$10$ggGWqo2dXP.gVunp2/cPwuldAQW6sxEtpbtLMRAHZj9J.lQMfGKxy', 3, 1, 0, NULL, '2026-01-07 06:31:00', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(22, 'Iqra Arshad', 'chaudharyiqra105@gmail.com', 'RHaf&^^moc9C', '$2y$10$qIcgwbrW1MBAADNTy6V4BejCgaEGjJRmV3WIvE5yCUnuZlfcrbi.2', 2, 1, 5, 2, '2026-01-14 17:14:13', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(23, 'Manager', 'manager@taskdesk.org', 'TaskDesk@345', '$2y$10$Zgz13iXGsRyiwvKG74qOL.wLfEFgwPEg7Y7Lm41glJmX77d7WVqr6', 4, 1, 0, 0, '2026-01-19 08:42:17', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(46, 'Qamar Naveed', 'code.learners.edu.pk@gmail.com', '&+f7O&9z3h@3', '$2y$10$cfzx8yqGgMOKbujOfPD8eOg5tyJJWFfzvDHxh/SjcggEfSO.LYSbC', 2, 1, 3, 2, '2026-01-25 17:57:10', NULL, 1, NULL, 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(54, 'Malik Farhan', 'arimran7315@gmail.com', '}_7{Miuwb}$l', '$2y$10$Vn7ImiImlnOfFIzZS6hTge5/HuPJVdLYPffXIzJ4WzRVsQPDbHL0O', 2, 1, 4, 2, '2026-02-02 15:43:27', NULL, 1, '12 weeks', 'active', NULL, NULL, NULL, NULL, NULL, NULL, 0);
 
 --
 -- Indexes for dumped tables
@@ -558,13 +551,13 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `certificate`
 --
 ALTER TABLE `certificate`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `email_queue`
@@ -576,13 +569,13 @@ ALTER TABLE `email_queue`
 -- AUTO_INCREMENT for table `registrations`
 --
 ALTER TABLE `registrations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=156;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=157;
 
 --
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `technologies`
@@ -594,13 +587,13 @@ ALTER TABLE `technologies`
 -- AUTO_INCREMENT for table `time_logs`
 --
 ALTER TABLE `time_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- Constraints for dumped tables

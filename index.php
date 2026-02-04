@@ -24,7 +24,7 @@ if ($user_role == 1) {
     $pending_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'pending'")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
     $working_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'working'")->fetch_assoc()['total'];
-    $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired' OR (status IN ('pending', 'working') AND due_date < CURDATE())")->fetch_assoc()['total'];
+    $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired'")->fetch_assoc()['total'];
 
     // Monthly task trends
     $monthly_tasks = $conn->query("SELECT 

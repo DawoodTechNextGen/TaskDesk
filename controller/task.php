@@ -109,7 +109,7 @@ if ($data['action'] === 'get') {
     
     if ($status) {
         if ($status === 'expired') {
-            $sql .= " AND (t.status = 'expired' OR (t.status IN ('pending', 'working') AND t.due_date < CURDATE()))";
+            $sql .= " AND t.status = 'expired'";
         } elseif (in_array($status, ['pending', 'working'])) {
             $sql .= " AND t.status = ? AND t.due_date >= CURDATE()";
         } else {

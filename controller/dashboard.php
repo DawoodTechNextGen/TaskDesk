@@ -7,6 +7,20 @@ $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'];
 
+function getWorkingDays($startDate, $endDate) {
+    if ($startDate > $endDate) return 0;
+    $workingDays = 0;
+    $currentDate = clone $startDate;
+    while ($currentDate <= $endDate) {
+        $dayOfWeek = (int)$currentDate->format('N');
+        if ($dayOfWeek < 6) { // 1=Mon, 5=Fri. Excludes Sat(6) and Sun(7)
+            $workingDays++;
+        }
+        $currentDate->modify('+1 day');
+    }
+    return $workingDays;
+}
+
 if ($action === 'admin_task_stats') {
     // Get task status distribution
     $stmt = $conn->query("
@@ -132,8 +146,7 @@ if ($action === 'intern_stats') {
     // End date for calculation is earlier of today or completion date
     $calc_end_date = min($now, $completion_date);
     
-    $interval = $created_at->diff($calc_end_date);
-    $total_days = $interval->days + 1; // Days since start up to today or completion
+    $total_days = getWorkingDays($created_at, $calc_end_date);
     
     // Calculate current week (cap at total weeks)
     $days_since_start = $created_at->diff($now)->days;
@@ -168,6 +181,9 @@ if ($action === 'intern_stats') {
         'avg_completion_time' => $avg_time,
         'total_hours' => $total_hours,
         'attendance_percentage' => $attendance_percentage,
+        'present_days' => $present_days,
+        'working_days_passed' => $total_days, // renaming for clarity in JS if needed, but total_days is working days passed
+        'total_working_days' => getWorkingDays($created_at, $completion_date),
         'current_week' => $current_week,
         'total_weeks' => $total_weeks
     ]);
@@ -795,7 +811,8 @@ if ($action === 'supervisor_intern_attendance') {
                 u.name, 
                 u.email,
                 t.name as technology,
-                COUNT(DISTINCT a.id) as total_days,
+                u.created_at,
+                COUNT(DISTINCT a.id) as total_attendance_rows,
                 COUNT(DISTINCT CASE 
                     WHEN a.total_work_seconds >= 10800 OR task.id IS NOT NULL THEN a.date 
                     ELSE NULL 
@@ -821,9 +838,19 @@ if ($action === 'supervisor_intern_attendance') {
     $result = $stmt->get_result();
     
     $interns = [];
+    $today = new DateTime();
+    $today->setTime(0, 0, 0);
+
     while ($row = $result->fetch_assoc()) {
-        $row['attendance_percentage'] = $row['total_days'] > 0 
-            ? round(($row['present_days'] / $row['total_days']) * 100) 
+        $createdAt = new DateTime($row['created_at']);
+        $createdAt->setTime(0, 0, 0);
+        
+        // Calculate total working days up to today
+        $total_working_days = getWorkingDays($createdAt, $today);
+        
+        $row['total_days'] = $total_working_days;
+        $row['attendance_percentage'] = $total_working_days > 0 
+            ? round(($row['present_days'] / $total_working_days) * 100) 
             : 0;
         $interns[] = $row;
     }

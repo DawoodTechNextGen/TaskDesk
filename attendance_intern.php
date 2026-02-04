@@ -141,8 +141,19 @@ include_once "./include/headerLinks.php";
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                    if (data.success) {
                         document.getElementById('attendancePercent').textContent = data.attendance_percentage + '%';
+                        
+                        // Update Progress Text (Present/Working Days Passed)
+                        const progressText = document.getElementById('progressText');
+                        if (progressText) {
+                            progressText.textContent = `${data.present_days}/${data.working_days_passed} Days`;
+                        }
+                        
+                        // Update Progress Bar
+                        const progressBar = document.getElementById('progressBar');
+                        if (progressBar) {
+                            progressBar.style.width = data.attendance_percentage + '%';
+                        }
                         
                         // Update Week Info
                         const weekInfo = document.getElementById('weekInfo');
@@ -151,7 +162,6 @@ include_once "./include/headerLinks.php";
                         } else {
                              weekInfo.textContent = 'Week info unavailable';
                         }
-                    }
                     }
                 });
 

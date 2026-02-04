@@ -55,38 +55,9 @@ include_once "./include/headerLinks.php";
                                             <span>Internship Progress</span>
                                             <span id="progressText">0/0 Days</span>
                                         </div>
-                                        <div class="relative w-full h-2.5 rounded-full backdrop-blur-md bg-white/20 dark:bg-gray-800/20 border border-gray/50 dark:border-gray-700/40 shadow-inner overflow-hidden">
-                                            <!-- Continuous shimmer background -->
-                                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-gray-300/40 to-transparent animate-[shimmer_2s_infinite]"></div>
-
-                                            <!-- Progress bar - fills once then stays full -->
-                                            <div class="relative h-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 dark:from-sky-500 dark:via-blue-600 dark:to-indigo-700 shadow-[0_0_15px_rgba(59,130,246,0.4)] dark:shadow-[0_0_15px_rgba(29,78,216,0.5)] animate-[fillOnce_4s_ease-out_forwards]">
-                                                <div class="absolute inset-0 bg-gradient-to-b from-white/30 dark:from-white/20 to-transparent"></div>
-                                                <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-400 dark:bg-gray-200 rounded-full shadow-md dark:shadow-gray-300/50"></div>
-                                            </div>
+                                        <div class="h-3 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 shadow-inner">
+                                            <div id="progressBar" class="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
                                         </div>
-
-                                        <style>
-                                            @keyframes shimmer {
-                                                0% {
-                                                    transform: translateX(-100%);
-                                                }
-
-                                                100% {
-                                                    transform: translateX(100%);
-                                                }
-                                            }
-
-                                            @keyframes fillOnce {
-                                                0% {
-                                                    width: 0%;
-                                                }
-
-                                                100% {
-                                                    width: 100%;
-                                                }
-                                            }
-                                        </style>
                                     </div>
                                 </div>
                             </div>
@@ -147,7 +118,7 @@ include_once "./include/headerLinks.php";
                             <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Daily History</h2>
                             </div>
-
+                            
                             <div id="tasksContainer" class="min-h-[400px]">
                                 <!-- Table will be injected here -->
                             </div>
@@ -172,13 +143,13 @@ include_once "./include/headerLinks.php";
                     console.log('Attendance Stats Data:', data);
                     if (data.success) {
                         document.getElementById('attendancePercent').textContent = data.attendance_percentage + '%';
-
+                        
                         // Update Progress Text (Present Days / Total Working Days Passed)
                         const progressText = document.getElementById('progressText');
                         if (progressText) {
                             progressText.textContent = `${data.present_days}/${data.working_days_passed} Days`;
                         }
-
+                        
                         // Update Progress Bar to match Attendance Percentage
                         const progressBar = document.getElementById('progressBar');
                         if (progressBar) {
@@ -186,13 +157,13 @@ include_once "./include/headerLinks.php";
                             progressBar.style.width = percent + '%';
                             console.log('Progress Bar Updated:', percent + '%');
                         }
-
+                        
                         // Update Week Info
                         const weekInfo = document.getElementById('weekInfo');
                         if (data.current_week && data.total_weeks) {
                             weekInfo.textContent = `Week ${data.current_week} of ${data.total_weeks}`;
                         } else {
-                            weekInfo.textContent = 'Week info unavailable';
+                             weekInfo.textContent = 'Week info unavailable';
                         }
                     }
                 });
@@ -200,11 +171,11 @@ include_once "./include/headerLinks.php";
             // Load daily attendance history
             const attendanceContainer = document.getElementById('tasksContainer');
             attendanceContainer.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div></div>';
-
+            
             const urlParams = new URLSearchParams(window.location.search);
             const targetUserId = urlParams.get('id');
             const fetchUrl = targetUserId ? `controller/dashboard.php?action=intern_daily_history&target_userid=${targetUserId}` : 'controller/dashboard.php?action=intern_daily_history';
-
+            
             fetch(fetchUrl)
                 .then(response => response.json())
                 .then(data => {
@@ -213,7 +184,7 @@ include_once "./include/headerLinks.php";
                         let totalPresent = 0;
                         let totalAbsent = 0;
                         let totalHolidays = 0;
-
+                        
                         data.history.forEach(day => {
                             if (day.is_weekend) {
                                 totalHolidays++;
@@ -223,12 +194,12 @@ include_once "./include/headerLinks.php";
                                 totalAbsent++;
                             }
                         });
-
+                        
                         // Update total stats
                         document.getElementById('totalPresent').textContent = totalPresent;
                         document.getElementById('totalAbsent').textContent = totalAbsent;
                         document.getElementById('totalHolidays').textContent = totalHolidays;
-
+                        
                         let html = `
                             <div class="p-1 md:p-4 border border-gray-100 dark:border-gray-700/50 rounded-[2.5rem] bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl shadow-sm">
                                 <table id="attendanceTable" class="w-full text-left border-collapse">
@@ -242,23 +213,18 @@ include_once "./include/headerLinks.php";
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
                         `;
-
+                        
                         data.history.forEach(day => {
                             const dateObj = new Date(day.date);
-                            const dayName = dateObj.toLocaleDateString('en-US', {
-                                weekday: 'long'
-                            });
-                            const dayShort = dateObj.toLocaleDateString('en-US', {
-                                day: 'numeric',
-                                month: 'short'
-                            });
-
+                            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                            const dayShort = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                            
                             let statusConfig = {
                                 color: 'from-rose-500/10 to-orange-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30',
                                 icon: 'fa-user-times',
                                 text: day.status
                             };
-
+                            
                             if (day.status === 'Present') {
                                 statusConfig = {
                                     color: 'from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30',
@@ -272,7 +238,7 @@ include_once "./include/headerLinks.php";
                                     text: 'Holiday'
                                 };
                             }
-
+                            
                             // Ensure Present text if work duration exists
                             if (day.status === 'Present') {
                                 statusConfig.text = 'Present';
@@ -328,22 +294,20 @@ include_once "./include/headerLinks.php";
                                 </tr>
                             `;
                         });
-
+                        
                         html += `
                                         </tbody>
                                     </table>
                                 </div>
                         `;
-
+                        
                         attendanceContainer.innerHTML = html;
-
+                        
                         // Initialize DataTables with Modern Styling
                         setTimeout(() => {
                             const table = $('#attendanceTable').DataTable({
                                 "pageLength": 10,
-                                "order": [
-                                    [0, "desc"]
-                                ],
+                                "order": [[0, "desc"]],
                                 "language": {
                                     "search": "_INPUT_",
                                     "searchPlaceholder": "Filter attendance...",
@@ -365,7 +329,7 @@ include_once "./include/headerLinks.php";
                             });
                         }, 100);
                     } else {
-                        attendanceContainer.innerHTML = `
+                         attendanceContainer.innerHTML = `
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center border border-gray-100 dark:border-gray-700">
                                 <p class="text-gray-500 dark:text-gray-400">No attendance records found.</p>
                             </div>
@@ -383,5 +347,4 @@ include_once "./include/headerLinks.php";
         });
     </script>
 </body>
-
 </html>

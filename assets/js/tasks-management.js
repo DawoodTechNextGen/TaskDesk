@@ -42,7 +42,11 @@ async function initTaskManagement(statusFilter = 'all') {
 
 async function loadTasks(statusFilter) {
     const loader = document.getElementById('table-loader');
-    if (loader) loader.classList.remove('hidden', 'opacity-0');
+    if (loader) {
+        loader.style.display = 'flex';
+        loader.classList.remove('hidden');
+        setTimeout(() => loader.classList.remove('opacity-0'), 10);
+    }
 
     try {
         const response = await fetch('controller/task.php', {
@@ -50,31 +54,41 @@ async function loadTasks(statusFilter) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'get', status: statusFilter === 'all' ? null : statusFilter })
         });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         const result = await response.json();
 
         if (result.success) {
             taskDataTable.clear();
-            result.data.forEach((task, index) => {
-                const actions = generateTaskActions(task);
-                taskDataTable.row.add([
-                    index + 1,
-                    `#${task.id}`,
-                    `<span class="font-medium text-gray-800 dark:text-white">${task.title}</span>`,
-                    task.assign_to || 'Unassigned',
-                    getStatusBadge(task.status),
-                    formatDateTime(task.created_at),
-                    actions
-                ]);
-            });
+            if (result.data && Array.isArray(result.data)) {
+                result.data.forEach((task, index) => {
+                    const actions = generateTaskActions(task);
+                    taskDataTable.row.add([
+                        index + 1,
+                        `#${task.id}`,
+                        `<span class="font-medium text-gray-800 dark:text-white">${task.title}</span>`,
+                        task.assign_to || 'Unassigned',
+                        getStatusBadge(task.status),
+                        formatDateTime(task.created_at),
+                        actions
+                    ]);
+                });
+            }
             taskDataTable.draw();
+        } else {
+            showToast('error', result.message || 'Failed to fetch tasks');
         }
     } catch (error) {
         console.error('Error loading tasks:', error);
-        showToast('error', 'Failed to load tasks');
+        showToast('error', 'Failed to load tasks. Please try again.');
     } finally {
         if (loader) {
             loader.classList.add('opacity-0');
-            setTimeout(() => loader.classList.add('hidden'), 300);
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                loader.style.display = 'none'; // Added explicit display
+            }, 300);
         }
     }
 }

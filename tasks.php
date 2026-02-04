@@ -60,7 +60,7 @@ $page_title = ($statusTitles[$status] ?? 'Task Management') . ' - TaskDesk';
                         <div class="p-6">
                             <div class="overflow-x-auto relative min-h-[400px]">
                                 <!-- Table Loader -->
-                                <div id="table-loader" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 backdrop-blur-[1px] z-10 hidden opacity-0 flex items-center justify-center transition-opacity duration-300">
+                                <div id="table-loader" style="display: none;" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 backdrop-blur-[1px] z-[100] flex items-center justify-center transition-opacity duration-300">
                                     <div class="flex flex-col items-center">
                                         <svg class="w-10 h-10 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

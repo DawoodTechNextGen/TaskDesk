@@ -41,11 +41,9 @@ async function initTaskManagement(statusFilter = 'all') {
 }
 
 async function loadTasks(statusFilter) {
-    const loader = document.getElementById('table-loader');
-    if (loader) {
-        loader.style.display = 'flex';
-        loader.classList.remove('hidden');
-        setTimeout(() => loader.classList.remove('opacity-0'), 10);
+    const $loader = $('#table-loader');
+    if ($loader.length) {
+        $loader.css('display', 'flex').hide().fadeIn(200);
     }
 
     try {
@@ -83,12 +81,8 @@ async function loadTasks(statusFilter) {
         console.error('Error loading tasks:', error);
         showToast('error', 'Failed to load tasks. Please try again.');
     } finally {
-        if (loader) {
-            loader.classList.add('opacity-0');
-            setTimeout(() => {
-                loader.classList.add('hidden');
-                loader.style.display = 'none'; // Added explicit display
-            }, 300);
+        if ($loader.length) {
+            $loader.fadeOut(300);
         }
     }
 }

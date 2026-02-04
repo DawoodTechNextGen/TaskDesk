@@ -55,8 +55,8 @@ include_once "./include/headerLinks.php";
                                             <span>Internship Progress</span>
                                             <span id="progressText">0/0 Days</span>
                                         </div>
-                                        <div class="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                            <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                        <div class="h-2.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                                            <div id="progressBar" class="h-full bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_0_10px_rgba(37,99,235,0.4)] transition-all duration-1000 ease-out" style="width: 0%"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -153,7 +153,9 @@ include_once "./include/headerLinks.php";
                         // Update Progress Bar to match Attendance Percentage
                         const progressBar = document.getElementById('progressBar');
                         if (progressBar) {
-                            progressBar.style.setProperty('width', data.attendance_percentage + '%', 'important');
+                            const percent = parseFloat(data.attendance_percentage) || 0;
+                            progressBar.style.width = percent + '%';
+                            console.log('Progress Bar Updated:', percent + '%');
                         }
                         
                         // Update Week Info

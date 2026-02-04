@@ -19,6 +19,17 @@ include_once "./include/headerLinks.php";
         <div class="flex-1 flex flex-col overflow-hidden">
             <?php include_once "./include/header.php" ?>
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
+                <!-- Loader -->
+                <div id="loader-container" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/10 backdrop-blur-[2px] transition-all duration-300">
+                    <div class="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white/80 dark:bg-gray-800/80 shadow-2xl border border-white dark:border-gray-700">
+                        <div class="relative w-16 h-16">
+                            <div class="absolute inset-0 border-4 border-indigo-200 dark:border-indigo-900 rounded-full"></div>
+                            <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                        </div>
+                        <p class="text-sm font-bold text-gray-600 dark:text-gray-300 animate-pulse uppercase tracking-widest">Fetching Attendance...</p>
+                    </div>
+                </div>
+
                 <div class="mb-8">
                     <div class="flex justify-between items-center mb-6">
                         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Intern Attendance</h1>
@@ -57,7 +68,8 @@ include_once "./include/headerLinks.php";
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tableBody = document.querySelector('#attendanceTable tbody');
-            
+            const loader = document.getElementById('loader-container');
+
             fetch('controller/dashboard.php?action=supervisor_intern_attendance')
                 .then(response => response.json())
                 .then(data => {
@@ -103,14 +115,28 @@ include_once "./include/headerLinks.php";
                             tableBody.appendChild(row);
                         });
                         
-                        $('#attendanceTable').DataTable({
-                            responsive: true,
-                            pageLength: 10,
-                            ordering: true
-                        });
+                        setTimeout(() => {
+                            $('#attendanceTable').DataTable({
+                                responsive: true,
+                                pageLength: 10,
+                                ordering: true,
+                                "dom": '<"flex flex-col md:flex-row md:items-center justify-between px-6 py-4 gap-4"f<"flex items-center gap-2 text-xs font-bold text-gray-400 font-bold"l>><"overflow-x-auto"t><"flex flex-col md:flex-row items-center justify-between px-6 py-8 gap-4"ip>',
+                            });
+                            
+                            // Hide loader with a slight fade
+                            if(loader) {
+                                loader.classList.add('opacity-0', 'pointer-events-none');
+                                setTimeout(() => loader.style.display = 'none', 300);
+                            }
+                        }, 100);
+                    } else {
+                        if(loader) loader.style.display = 'none';
                     }
                 })
-                .catch(error => console.error('Error fetching attendance:', error));
+                .catch(error => {
+                    console.error('Error fetching attendance:', error);
+                    if(loader) loader.style.display = 'none';
+                });
         });
     </script>
 </body>

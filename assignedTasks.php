@@ -33,7 +33,17 @@ include_once "./include/headerLinks.php"; ?>
                         class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Tasks Assigned to you</h2>
                     </div>
-                    <div class="overflow-x-auto p-4">
+                    <div class="overflow-x-auto p-4 relative min-h-[300px]">
+                        <!-- Table Loader -->
+                        <div id="assigned-table-loader" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 backdrop-blur-[1px] z-10 flex items-center justify-center transition-opacity duration-300">
+                            <div class="flex flex-col items-center">
+                                <svg class="w-10 h-10 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">Loading your tasks...</span>
+                            </div>
+                        </div>
                         <table id="assignedTasksTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-indigo-200 dark:bg-indigo-500 text-white ">
                                 <tr>
@@ -95,12 +105,17 @@ include_once "./include/headerLinks.php"; ?>
             setInterval(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const currentStatus = urlParams.get('status') || null;
-                getAssignedTasks(currentStatus);
+                getAssignedTasks(currentStatus, false);
                 updateStartButtonAvailability();
             }, 60000);
         });
 
-        async function getAssignedTasks(status = null) {
+        async function getAssignedTasks(status = null, showLoader = true) {
+            const loader = document.getElementById('assigned-table-loader');
+            if (showLoader && loader) {
+                loader.classList.remove('hidden', 'opacity-0');
+            }
+
             try {
                 const response = await fetch('controller/task.php', {
                     method: 'POST',
@@ -156,6 +171,11 @@ include_once "./include/headerLinks.php"; ?>
                 }
             } catch (error) {
                 console.error('Error loading tasks:', error);
+            } finally {
+                if (loader) {
+                    loader.classList.add('opacity-0');
+                    setTimeout(() => loader.classList.add('hidden'), 300);
+                }
             }
         }
 

@@ -8,5 +8,7 @@
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/libs/dataTables.css">
     <script src="<?= BASE_URL ?>assets/js/libs/jQuery.js"></script>
     <script src="<?= BASE_URL ?>assets/js/libs/dataTables.js"></script>
-    <script src="https://cdn.tiny.cloud/1/5y10vk2n50v0jsjxoe9g9p7av1cbwvl3qxxcuxj53l4sur7p/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <!-- Quill Rich Text Editor (Locally Hosted) -->
+    <link href="<?= BASE_URL ?>assets/css/libs/quill.snow.css" rel="stylesheet">
+    <script src="<?= BASE_URL ?>assets/js/libs/quill.min.js"></script>
 </head>

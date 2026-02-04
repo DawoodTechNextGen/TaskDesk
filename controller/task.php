@@ -92,27 +92,43 @@ if ($data['action'] === 'create') {
 }
 if ($data['action'] === 'get') {
     $user_id = $_SESSION['user_id'];
+    $user_role = $_SESSION['user_role'];
     $status = $data['status'] ?? null;
 
     $sql = "SELECT t.*, u.name as assign_to, u.id as assign_id, tech.name as technology_name, tech.id as tech_id 
             FROM tasks t 
             LEFT JOIN users u ON t.assign_to = u.id 
-            LEFT JOIN technologies tech ON u.tech_id = tech.id 
-            WHERE t.created_by = ?";
+            LEFT JOIN technologies tech ON u.tech_id = tech.id";
+    
+    // Admins and Managers see all tasks, others see only their own creations
+    if ($user_role != 1 && $user_role != 4) {
+        $sql .= " WHERE t.created_by = ?";
+    } else {
+        $sql .= " WHERE 1=1";
+    }
     
     if ($status) {
         if ($status === 'expired') {
             $sql .= " AND (t.status = 'expired' OR (t.status IN ('pending', 'working') AND t.due_date < CURDATE()))";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("s", $user_id);
+        } elseif (in_array($status, ['pending', 'working'])) {
+            $sql .= " AND t.status = ? AND t.due_date >= CURDATE()";
         } else {
             $sql .= " AND t.status = ?";
-            $stmt = $conn->prepare($sql);
+        }
+    }
+
+    $stmt = $conn->prepare($sql);
+    
+    if ($user_role != 1 && $user_role != 4) {
+        if ($status && $status !== 'expired') {
             $stmt->bind_param("ss", $user_id, $status);
+        } else {
+            $stmt->bind_param("s", $user_id);
         }
     } else {
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $user_id);
+        if ($status && $status !== 'expired') {
+            $stmt->bind_param("s", $status);
+        }
     }
 
     if ($stmt->execute()) {
@@ -183,10 +199,16 @@ if ($data['action'] === 'update') {
         $sql .= ", due_date = NULL";
     }
 
-    $sql .= " WHERE id = ? AND created_by = ?";
-    $types .= "ii";
+    $sql .= " WHERE id = ?";
+    $types .= "i";
     $params[] = $id;
-    $params[] = $_SESSION['user_id'];
+
+    // Restrict to creator unless Admin or Manager
+    if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+        $sql .= " AND created_by = ?";
+        $types .= "i";
+        $params[] = $_SESSION['user_id'];
+    }
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param($types, ...$params);
@@ -209,6 +231,10 @@ if ($data['action'] === 'getAssignedTask') {
         $sql .= " AND (t.status = 'expired' OR (t.status IN ('pending', 'working') AND t.due_date < CURDATE()))";
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
         $stmt->bind_param("s", $user_id);
+    } elseif (in_array($status, ['pending', 'working'])) {
+        $sql .= " AND t.status = ? AND t.due_date >= CURDATE()";
+        $stmt = $conn->prepare($sql . " ORDER BY id DESC");
+        $stmt->bind_param("ss", $user_id, $status);
     } elseif ($status) {
         $sql .= " AND t.status = ?";
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
@@ -355,6 +381,64 @@ if ($data['action'] === 'getPendingTasks') {
     $stmt->close();
 }
 
+// --- Delete Task Action ---
+if ($data['action'] === 'delete') {
+    $task_id = (int)($data['task_id'] ?? 0);
+    $user_id = $_SESSION['user_id'];
+    $user_role = $_SESSION['user_role'];
+
+    if ($task_id <= 0) {
+        echo json_encode(["success" => false, "message" => "Invalid task ID"]);
+        exit;
+    }
+
+    // Authorization: Admin (1), Manager (4) or the one who created it
+    $check_stmt = $conn->prepare("SELECT created_by FROM tasks WHERE id = ?");
+    $check_stmt->bind_param("i", $task_id);
+    $check_stmt->execute();
+    $result = $check_stmt->get_result();
+    if ($result->num_rows === 0) {
+        echo json_encode(["success" => false, "message" => "Task not found"]);
+        exit;
+    }
+    $task = $result->fetch_assoc();
+    $check_stmt->close();
+
+    if ($user_role != 1 && $user_role != 4 && $user_role != 3 && $task['created_by'] != $user_id) {
+        echo json_encode(["success" => false, "message" => "Unauthorized to delete this task"]);
+        exit;
+    }
+
+    // Begin transaction to delete related logs too (if any)
+    $conn->begin_transaction();
+    try {
+        // Delete time logs
+        $stmt_logs = $conn->prepare("DELETE FROM time_logs WHERE task_id = ?");
+        $stmt_logs->bind_param("i", $task_id);
+        $stmt_logs->execute();
+        $stmt_logs->close();
+
+        // Delete attendance records linked to this task
+        $stmt_att = $conn->prepare("DELETE FROM attendance WHERE task_id = ?");
+        $stmt_att->bind_param("i", $task_id);
+        $stmt_att->execute();
+        $stmt_att->close();
+
+        // Delete the task itself
+        $stmt_task = $conn->prepare("DELETE FROM tasks WHERE id = ?");
+        $stmt_task->bind_param("i", $task_id);
+        $stmt_task->execute();
+        $stmt_task->close();
+
+        $conn->commit();
+        echo json_encode(["success" => true, "message" => "Task and related records deleted successfully"]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(["success" => false, "message" => "Failed to delete task: " . $e->getMessage()]);
+    }
+    exit;
+}
+
 // ====================== COMPLETE TASK (Intern Action) ======================
 if ($data['action'] === 'complete_task') {
     $task_id = (int)($data['task_id'] ?? 0);
@@ -401,12 +485,14 @@ if ($data['action'] === 'review_task') {
         exit;
     }
     
-    // Verify supervisor created this task (or is admin/manager?)
-    // For now assuming creator is supervisor
+    // Verify supervisor created this task (or is admin/manager)
     $check_stmt = $conn->prepare("SELECT id FROM tasks WHERE id = ? AND created_by = ?");
     $check_stmt->bind_param("ii", $task_id, $supervisor_id);
     $check_stmt->execute();
-    if ($check_stmt->get_result()->num_rows === 0 && $_SESSION['user_role'] != 1) { // Allow admin too maybe?
+    $not_creator = $check_stmt->get_result()->num_rows === 0;
+    $check_stmt->close();
+
+    if ($not_creator && $_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) { 
         echo json_encode(["success" => false, "message" => "Unauthorized"]);
         exit;
     }
@@ -446,9 +532,10 @@ if ($data['action'] === 'reactivate_task') {
         exit;
     }
     
-    // Verify supervisor created this task
-    $check_stmt = $conn->prepare("SELECT id FROM tasks WHERE id = ? AND created_by = ? AND status = 'expired'");
-    $check_stmt->bind_param("ii", $task_id, $supervisor_id);
+    // Verify supervisor created this task (or is Admin/Manager)
+    $check_stmt = $conn->prepare("SELECT id FROM tasks WHERE id = ? AND status = 'expired' AND (created_by = ? OR ? IN (1, 4))");
+    $check_role = $_SESSION['user_role'];
+    $check_stmt->bind_param("iii", $task_id, $supervisor_id, $check_role);
     $check_stmt->execute();
     if ($check_stmt->get_result()->num_rows === 0) {
         echo json_encode(["success" => false, "message" => "Task not found or not expired"]);
@@ -467,3 +554,6 @@ if ($data['action'] === 'reactivate_task') {
     $stmt->close();
     exit;
 }
+
+$conn->close();
+?>

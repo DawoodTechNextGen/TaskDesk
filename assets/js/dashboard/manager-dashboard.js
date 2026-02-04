@@ -2,10 +2,10 @@
 // Modern Manager Charts with Enhanced Styling
 function initializeManagerCharts() {
     const { isDarkMode, textColor, gridColor, backgroundColor } = getThemeColors();
-    
+
     // Load overview stats first
     loadManagerOverviewStats();
-    
+
     // Registration Status Distribution - Modern Donut Chart
     fetch("controller/dashboard.php?action=manager_registration_stats")
         .then((response) => response.json())
@@ -18,12 +18,15 @@ function initializeManagerCharts() {
                         labels: data.labels,
                         datasets: [{
                             data: data.values.map(Number),
-                            backgroundColor: [
-                                "#3B82F6", // New - Blue
-                                "#F59E0B", // Contacted - Yellow
-                                "#10B981", // Hired - Green
-                                "#EF4444"  // Rejected - Red
-                            ],
+                            backgroundColor: data.labels.map(label => {
+                                const regColors = {
+                                    'New': '#3B82F6',        // Blue
+                                    'Contacted': '#F59E0B',  // Yellow
+                                    'Hired': '#10B981',      // Green
+                                    'Rejected': '#EF4444'    // Red
+                                };
+                                return regColors[label] || '#6B7280';
+                            }),
                             borderWidth: 0,
                             borderRadius: 8,
                             spacing: 4,
@@ -44,19 +47,18 @@ function initializeManagerCharts() {
                                 borderColor: gridColor,
                                 borderWidth: 1,
                                 callbacks: {
-                                    label: function(context) {
+                                    label: function (context) {
                                         const label = context.label || "";
                                         const value = context.raw || 0;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = Math.round((value / total) * 100);
-                                        return `${label}: ${value} (${percentage}%)`;
+                                        const ratio = data.ratios ? data.ratios[context.dataIndex] : (total > 0 ? ((value / total) * 100).toFixed(1) : 0);
+                                        return `${label}: ${value} (${ratio}%)`;
                                     }
                                 }
                             }
                         }
                     },
                     plugins: [{
-                        afterDraw: function(chart) {
+                        afterDraw: function (chart) {
                             const ctx = chart.ctx;
                             const width = chart.width;
                             const height = chart.height;
@@ -65,10 +67,10 @@ function initializeManagerCharts() {
                             ctx.textBaseline = "middle";
                             ctx.font = "bold 24px sans-serif";
                             ctx.fillStyle = textColor;
-                            
+
                             const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                             ctx.fillText(total, width / 2, height / 2);
-                            
+
                             ctx.font = "12px sans-serif";
                             ctx.fillStyle = isDarkMode ? "#9CA3AF" : "#6B7280";
                             ctx.fillText("Total", width / 2, height / 2 + 24);
@@ -110,7 +112,7 @@ function initializeManagerCharts() {
         .then((data) => {
             if (data.success) {
                 const monthlyRegistrationsCtx = document.getElementById("monthlyRegistrationsChart").getContext("2d");
-                
+
                 // Create gradient
                 const gradient = monthlyRegistrationsCtx.createLinearGradient(0, 0, 0, 400);
                 if (isDarkMode) {
@@ -157,8 +159,15 @@ function initializeManagerCharts() {
                                 cornerRadius: 8,
                                 displayColors: false,
                                 callbacks: {
-                                    label: function(context) {
-                                        return `Registrations: ${context.parsed.y}`;
+                                    label: function (context) {
+                                        let label = `Registrations: ${context.parsed.y}`;
+                                        if (data.percentages && context.dataIndex > 0) {
+                                            const percentage = data.percentages[context.dataIndex];
+                                            const arrow = percentage >= 0 ? "↑" : "↓";
+                                            const color = percentage >= 0 ? "🟢" : "🔴";
+                                            label += ` ${color} ${arrow} ${Math.abs(percentage)}% MoM`;
+                                        }
+                                        return label;
                                     }
                                 }
                             }
@@ -232,7 +241,15 @@ function initializeManagerCharts() {
                                 titleColor: textColor,
                                 bodyColor: textColor,
                                 borderColor: gridColor,
-                                borderWidth: 1
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || "";
+                                        const value = context.raw || 0;
+                                        const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
+                                        return `${label}: ${value} (${ratio}%)`;
+                                    }
+                                }
                             }
                         }
                     }
@@ -300,7 +317,15 @@ function initializeManagerCharts() {
                                 titleColor: textColor,
                                 bodyColor: textColor,
                                 borderColor: gridColor,
-                                borderWidth: 1
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.dataset.label || "";
+                                        const value = context.raw || 0;
+                                        const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
+                                        return `${label}: ${value} (${ratio}%)`;
+                                    }
+                                }
                             }
                         },
                         scales: {
@@ -351,7 +376,7 @@ function loadManagerOverviewStats() {
                 document.getElementById("newRegistrations").textContent = data.counts.new;
                 document.getElementById("contactedRegistrations").textContent = data.counts.contact;
                 document.getElementById("hiredRegistrations").textContent = data.counts.hire;
-                
+
                 document.getElementById("totalRegistrationsCount").textContent = data.counts.total;
                 document.getElementById("newRegistrationsCount").textContent = data.counts.new;
                 document.getElementById("contactedCount").textContent = data.counts.contact;
@@ -367,7 +392,7 @@ function loadRecentRegistrations() {
             if (data.success) {
                 const tableBody = document.getElementById("recentRegistrationsTable");
                 tableBody.innerHTML = "";
-                
+
                 data.registrations.forEach(reg => {
                     const statusColors = {
                         'new': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -375,14 +400,14 @@ function loadRecentRegistrations() {
                         'hire': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
                         'rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                     };
-                    
+
                     const statusText = {
                         'new': 'New',
                         'contact': 'Contacted',
                         'hire': 'Hired',
                         'rejected': 'Rejected'
                     };
-                    
+
                     const row = document.createElement("tr");
                     row.className = "border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700";
                     row.innerHTML = `

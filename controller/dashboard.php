@@ -19,49 +19,69 @@ if ($action === 'admin_task_stats') {
         FROM tasks
         GROUP BY status_group
     ");
-    $task_stats = [];
-    $labels = [];
-    $values = [];
-
+    $total_tasks = 0;
     while ($row = $stmt->fetch_assoc()) {
-        $labels[] = ucfirst($row['status_group']);
-        $values[] = $row['count'];
+        $task_stats[$row['status_group']] = $row['count'];
+        $total_tasks += $row['count'];
+    }
+
+    $desired_order = ['pending', 'working', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
+    foreach ($desired_order as $status) {
+        if (isset($task_stats[$status]) || in_array($status, ['pending', 'working', 'complete', 'expired'])) {
+            $count = $task_stats[$status] ?? 0;
+            $labels[] = ucfirst(str_replace('_', ' ', $status));
+            $values[] = $count;
+            $ratios[] = $total_tasks > 0 ? round(($count / $total_tasks) * 100, 1) : 0;
+        }
     }
 
     echo json_encode([
         'success' => true,
         'labels' => $labels,
-        'values' => $values
+        'values' => $values,
+        'ratios' => $ratios
     ]);
 }
 
 if ($action === 'admin_role_stats') {
     // Get user role distribution
     $stmt = $conn->query("SELECT user_role, COUNT(*) as count FROM users WHERE status = 1 GROUP BY user_role");
-    $role_stats = [];
-    $labels = [];
-    $values = [];
-
+    $total_users = 0;
+    $temp_stats = [];
     while ($row = $stmt->fetch_assoc()) {
-        $role_name = $row['user_role'] == 1 ? 'Admins' : ($row['user_role'] == 2 ? 'Interns' : ($row['user_role'] == 3 ? 'Supervisors' : 'Managers'));
+        $temp_stats[$row['user_role']] = $row['count'];
+        $total_users += $row['count'];
+    }
+
+    $role_map = [1 => 'Admins', 2 => 'Interns', 3 => 'Supervisors', 4 => 'Managers'];
+    foreach ($role_map as $role_id => $role_name) {
+        $count = $temp_stats[$role_id] ?? 0;
         $labels[] = $role_name;
-        $values[] = $row['count'];
+        $values[] = $count;
+        $ratios[] = $total_users > 0 ? round(($count / $total_users) * 100, 1) : 0;
     }
 
     echo json_encode([
         'success' => true,
         'labels' => $labels,
-        'values' => $values
+        'values' => $values,
+        'ratios' => $ratios
     ]);
 }
 
 if ($action === 'intern_stats') {
+    $requested_id = $_GET['target_userid'] ?? null;
+    $calc_user_id = $user_id;
+    if ($requested_id && in_array($user_role, [1, 3, 4])) {
+        $calc_user_id = $requested_id;
+    }
+    
     $stmt = $conn->prepare("SELECT 
         COUNT(*) as total_tasks,
         SUM(CASE WHEN status = 'complete' THEN 1 ELSE 0 END) as completed_tasks,
         SUM(CASE WHEN status = 'complete' AND (completed_at <= due_date OR due_date IS NULL) THEN 1 ELSE 0 END) as timely_completed_tasks
         FROM tasks WHERE assign_to = ?");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
 
@@ -74,7 +94,7 @@ if ($action === 'intern_stats') {
     // Calculate average completion time (in days)
     $stmt = $conn->prepare("SELECT AVG(DATEDIFF(completed_at, created_at)) as avg_days 
                            FROM tasks WHERE assign_to = ? AND status = 'complete'");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $time_result = $stmt->get_result()->fetch_assoc();
     $avg_time = $time_result['avg_days'] ? round($time_result['avg_days']) : 0;
@@ -82,7 +102,7 @@ if ($action === 'intern_stats') {
     // Calculate total hours
     $stmt = $conn->prepare("SELECT COALESCE(SUM(duration), 0) as total_seconds 
                            FROM time_logs WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $hours_result = $stmt->get_result()->fetch_assoc();
     $total_hours = round($hours_result['total_seconds'] / 3600);
@@ -90,7 +110,7 @@ if ($action === 'intern_stats') {
     // Calculate attendance percentage and week info
     // Get user creation date, duration and type
     $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
     $created_at = new DateTime($user_res['created_at']);
@@ -136,7 +156,7 @@ if ($action === 'intern_stats') {
             SELECT DATE(completed_at) as date FROM tasks WHERE assign_to = ? AND status = 'complete'
         ) as combined_attendance
     ");
-    $stmt->bind_param("ii", $user_id, $user_id);
+    $stmt->bind_param("ii", $calc_user_id, $calc_user_id);
     $stmt->execute();
     $attendance_result = $stmt->get_result()->fetch_assoc();
     $present_days = $attendance_result['present_days'];
@@ -157,6 +177,12 @@ if ($action === 'intern_stats') {
 }
 
 if ($action === 'intern_monthly_stats') {
+    $requested_id = $_GET['target_userid'] ?? null;
+    $calc_user_id = $user_id;
+    if ($requested_id && in_array($user_role, [1, 3, 4])) {
+        $calc_user_id = $requested_id;
+    }
+    
     // Get monthly task completion data for the last 6 months
     $stmt = $conn->prepare("SELECT 
         DATE_FORMAT(completed_at, '%b') as month,
@@ -166,26 +192,47 @@ if ($action === 'intern_monthly_stats') {
         AND completed_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
         GROUP BY MONTH(completed_at), YEAR(completed_at)
         ORDER BY YEAR(completed_at), MONTH(completed_at)");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
     $months = [];
     $tasks = [];
+    $percentages = [];
 
     while ($row = $result->fetch_assoc()) {
         $months[] = $row['month'];
-        $tasks[] = $row['tasks'];
+        $current_tasks = $row['tasks'];
+        $tasks[] = $current_tasks;
+        
+        $index = count($tasks) - 1;
+        if ($index > 0) {
+            $prev = $tasks[$index - 1];
+            if ($prev > 0) {
+                $percentages[] = round((($current_tasks - $prev) / $prev) * 100, 1);
+            } else {
+                $percentages[] = $current_tasks > 0 ? 100 : 0;
+            }
+        } else {
+            $percentages[] = 0;
+        }
     }
 
     echo json_encode([
         'success' => true,
         'months' => $months,
-        'tasks' => $tasks
+        'tasks' => $tasks,
+        'percentages' => $percentages
     ]);
 }
 
 if ($action === 'intern_weekly_hours') {
+    $requested_id = $_GET['target_userid'] ?? null;
+    $calc_user_id = $user_id;
+    if ($requested_id && in_array($user_role, [1, 3, 4])) {
+        $calc_user_id = $requested_id;
+    }
+    
     // Get weekly hours for the current week
     $stmt = $conn->prepare("SELECT 
     DAYNAME(start_time) AS day,
@@ -197,7 +244,7 @@ WHERE user_id = ?
 GROUP BY DAYOFWEEK(start_time)
 ORDER BY DAYOFWEEK(start_time);
 ");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -245,50 +292,68 @@ if ($action === 'supervisor_stats') {
 
 if ($action === 'supervisor_task_stats') {
     // First: Count statuses but exclude overdue pending tasks from 'pending'
-    $stmt = $conn->prepare("
-        SELECT
+    $sql = "SELECT
             CASE 
                 WHEN (status != 'complete' AND due_date < CURDATE()) 
                      OR (status = 'complete' AND completed_at > due_date) THEN 'expired'
                 ELSE status
             END AS status_group,
             COUNT(*) as count
-        FROM tasks
-        WHERE assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)
-        GROUP BY status_group
-    ");
-    $stmt->bind_param("i", $user_id);
+        FROM tasks";
+    
+    if ($user_role != 1 && $user_role != 4) {
+        $sql .= " WHERE assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)";
+    } else {
+        $sql .= " WHERE 1=1";
+    }
+    
+    $sql .= " GROUP BY status_group";
+    $stmt = $conn->prepare($sql);
+    
+    if ($user_role != 1 && $user_role != 4) {
+        $stmt->bind_param("i", $user_id);
+    }
     $stmt->execute();
     $result = $stmt->get_result();
 
     $labels = [];
     $values = [];
+    $ratios = [];
+    $total_tasks = 0;
 
     // Initialize counts with zero
     $status_counts = [
         'complete' => 0,
         'working' => 0,
         'pending' => 0,
-        'expired' => 0
+        'expired' => 0,
+        'needs_improvement' => 0,
+        'pending_review' => 0,
+        'approved' => 0,
+        'rejected' => 0
     ];
 
     while ($row = $result->fetch_assoc()) {
         $status_counts[$row['status_group']] = $row['count'];
+        $total_tasks += $row['count'];
     }
 
     // Prepare labels and values in desired order
-    $labels = ['Complete', 'Working', 'Pending', 'Expire'];
-    $values = [
-        $status_counts['complete'],
-        $status_counts['working'],
-        $status_counts['pending'],
-        $status_counts['expired']
-    ];
+    $ordered_statuses = ['pending', 'working', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
+    foreach ($ordered_statuses as $status) {
+        if (isset($status_counts[$status]) || in_array($status, ['pending', 'working', 'complete', 'expired'])) {
+            $count = $status_counts[$status] ?? 0;
+            $labels[] = ucfirst(str_replace('_', ' ', $status));
+            $values[] = $count;
+            $ratios[] = $total_tasks > 0 ? round(($count / $total_tasks) * 100, 1) : 0;
+        }
+    }
 
     echo json_encode([
         'success' => true,
         'labels' => $labels,
-        'values' => $values
+        'values' => $values,
+        'ratios' => $ratios
     ]);
 }
 if ($action === 'supervisor_team_performance') {
@@ -388,16 +453,31 @@ ORDER BY
 
     $months = [];
     $tasks = [];
+    $percentages = [];
 
     while ($row = $stmt->fetch_assoc()) {
         $months[] = $row['month'];
-        $tasks[] = $row['task_count'];
+        $current_tasks = $row['task_count'];
+        $tasks[] = $current_tasks;
+        
+        $index = count($tasks) - 1;
+        if ($index > 0) {
+            $prev = $tasks[$index - 1];
+            if ($prev > 0) {
+                $percentages[] = round((($current_tasks - $prev) / $prev) * 100, 1);
+            } else {
+                $percentages[] = $current_tasks > 0 ? 100 : 0;
+            }
+        } else {
+            $percentages[] = 0;
+        }
     }
 
     echo json_encode([
         'success' => true,
         'months' => $months,
-        'tasks' => $tasks
+        'tasks' => $tasks,
+        'percentages' => $percentages
     ]);
 }
 
@@ -415,16 +495,27 @@ LIMIT 5");
 
     $technologies = [];
     $tasks = [];
+    $ratios = [];
+    $total_tasks = 0;
 
+    $captured_data = [];
     while ($row = $stmt->fetch_assoc()) {
+        $captured_data[] = $row;
+        $total_tasks += $row['task_count'];
+    }
+
+    foreach ($captured_data as $row) {
         $technologies[] = $row['tech_name'];
-        $tasks[] = $row['task_count'];
+        $count = $row['task_count'];
+        $tasks[] = $count;
+        $ratios[] = $total_tasks > 0 ? round(($count / $total_tasks) * 100, 1) : 0;
     }
 
     echo json_encode([
         'success' => true,
         'technologies' => $technologies,
-        'tasks' => $tasks
+        'tasks' => $tasks,
+        'ratios' => $ratios
     ]);
 }
 // dashboard.php میں existing actions کے بعد اضافہ کریں
@@ -456,7 +547,9 @@ if ($action === 'manager_registration_stats') {
         }
     }
 
-    // Reorder values according to labels
+    $total_registrations = 0;
+    foreach($values as $v) $total_registrations += $v;
+
     $ordered_values = [
         $values['new'],
         $values['contact'],
@@ -464,11 +557,17 @@ if ($action === 'manager_registration_stats') {
         $values['rejected']
     ];
 
+    $ratios = [];
+    foreach ($ordered_values as $val) {
+        $ratios[] = $total_registrations > 0 ? round(($val / $total_registrations) * 100, 1) : 0;
+    }
+
     echo json_encode([
         'success' => true,
         'labels' => $labels,
         'values' => $ordered_values,
-        'raw_values' => $values
+        'raw_values' => $values,
+        'ratios' => $ratios
     ]);
 }
 
@@ -504,16 +603,31 @@ if ($action === 'manager_monthly_registrations') {
 
     $months = [];
     $registrations = [];
+    $percentages = [];
 
     while ($row = $stmt->fetch_assoc()) {
         $months[] = $row['month'];
-        $registrations[] = $row['reg_count'];
+        $current_reg = $row['reg_count'];
+        $registrations[] = $current_reg;
+        
+        $index = count($registrations) - 1;
+        if ($index > 0) {
+            $prev = $registrations[$index - 1];
+            if ($prev > 0) {
+                $percentages[] = round((($current_reg - $prev) / $prev) * 100, 1);
+            } else {
+                $percentages[] = $current_reg > 0 ? 100 : 0;
+            }
+        } else {
+            $percentages[] = 0;
+        }
     }
 
     echo json_encode([
         'success' => true,
         'months' => $months,
-        'registrations' => $registrations
+        'registrations' => $registrations,
+        'percentages' => $percentages
     ]);
 }
 
@@ -530,16 +644,27 @@ if ($action === 'manager_tech_registrations') {
 
     $technologies = [];
     $registrations = [];
+    $ratios = [];
+    $total_registrations = 0;
 
+    $captured_data = [];
     while ($row = $stmt->fetch_assoc()) {
+        $captured_data[] = $row;
+        $total_registrations += $row['reg_count'];
+    }
+
+    foreach ($captured_data as $row) {
         $technologies[] = $row['tech_name'] ?? 'Not Specified';
-        $registrations[] = $row['reg_count'];
+        $count = $row['reg_count'];
+        $registrations[] = $count;
+        $ratios[] = $total_registrations > 0 ? round(($count / $total_registrations) * 100, 1) : 0;
     }
 
     echo json_encode([
         'success' => true,
         'technologies' => $technologies,
-        'registrations' => $registrations
+        'registrations' => $registrations,
+        'ratios' => $ratios
     ]);
 }
 
@@ -561,10 +686,17 @@ if ($action === 'manager_internship_type_stats') {
         }
     }
 
+    $total = array_sum($values);
+    $ratios = [];
+    foreach ($values as $val) {
+        $ratios[] = $total > 0 ? round(($val / $total) * 100, 1) : 0;
+    }
+
     echo json_encode([
         'success' => true,
         'labels' => $labels,
-        'values' => $values
+        'values' => $values,
+        'ratios' => $ratios
     ]);
 }
 
@@ -679,11 +811,19 @@ if ($action === 'supervisor_intern_attendance') {
             LEFT JOIN technologies t ON u.tech_id = t.id
             LEFT JOIN attendance a ON u.id = a.user_id
             LEFT JOIN tasks task ON u.id = task.assign_to AND task.status = 'complete' AND DATE(task.completed_at) = DATE(a.date)
-            WHERE u.supervisor_id = ? AND u.user_role = 2
-            GROUP BY u.id";
+            WHERE u.user_role = 2";
+            
+    if ($user_role != 1 && $user_role != 4) {
+        $sql .= " AND u.supervisor_id = ?";
+    }
+            
+    $sql .= " GROUP BY u.id";
             
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
+    
+    if ($user_role != 1 && $user_role != 4) {
+        $stmt->bind_param("i", $user_id);
+    }
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -768,9 +908,21 @@ if ($action === "intern_attendance_logs") {
 }
 
 if ($action === "intern_daily_history") {
+    // If Admin/Manager/Supervisor, they can view specific intern's history
+    $requested_id = $_GET['target_userid'] ?? null;
+    $target_user_id = $user_id; // default to self
+
+    if ($requested_id && in_array($user_role, [1, 3, 4])) {
+        $target_user_id = $requested_id;
+    }
+    
+    // Use target_user_id for all queries below, but keep $user_id for session-based logic if needed
+    // Actually, let's just override $user_id for this block locally
+    $calc_user_id = $target_user_id;
+
     // Get user creation date and duration
     $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $user_res = $stmt->get_result()->fetch_assoc();
     
@@ -808,7 +960,7 @@ if ($action === "intern_daily_history") {
     // Get attendance records
     $att_sql = "SELECT date, total_work_seconds, status FROM attendance WHERE user_id = ?";
     $stmt = $conn->prepare($att_sql);
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $att_result = $stmt->get_result();
     
@@ -828,7 +980,7 @@ if ($action === "intern_daily_history") {
     GROUP BY DATE(tl.start_time), t.id";
     
     $stmt = $conn->prepare($tasks_sql);
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $tasks_result = $stmt->get_result();
 
@@ -853,7 +1005,7 @@ if ($action === "intern_daily_history") {
     // Get completed tasks dates and titles
     $completed_tasks_sql = "SELECT DATE(completed_at) as date, title FROM tasks WHERE assign_to = ? AND status = 'complete'";
     $stmt = $conn->prepare($completed_tasks_sql);
-    $stmt->bind_param("i", $user_id);
+    $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $completed_result = $stmt->get_result();
     $completed_dates = [];

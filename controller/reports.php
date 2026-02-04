@@ -47,13 +47,29 @@ if ($action === 'get_report_data') {
         }
         $labels = getLast6MonthsLabels();
         $reg_counts = [];
-        foreach ($labels as $lbl) {
-            $reg_counts[] = $results[$lbl] ?? 0;
+        $reg_percentages = []; // Store percentage change for each month
+        foreach ($labels as $index => $lbl) {
+            $current = $results[$lbl] ?? 0;
+            $reg_counts[] = $current;
+            
+            // Calculate percentage change from previous month
+            if ($index > 0) {
+                $previous = $reg_counts[$index - 1];
+                if ($previous > 0) {
+                    $change = round((($current - $previous) / $previous) * 100, 1);
+                } else {
+                    $change = $current > 0 ? 100 : 0; // If previous was 0 and current > 0, show 100% increase
+                }
+                $reg_percentages[] = $change;
+            } else {
+                $reg_percentages[] = 0; // First month has no comparison
+            }
         }
         $data['charts']['registrations'] = [
             'type' => 'line',
             'label' => 'New Registrations',
             'data' => $reg_counts,
+            'percentages' => $reg_percentages, // Add percentage data
             'backgroundColor' => 'rgba(59, 130, 246, 0.2)',
             'borderColor' => 'rgb(59, 130, 246)'
         ];
@@ -126,11 +142,31 @@ if ($action === 'get_report_data') {
 
         $hired_counts = [];
         $hiring_ratios = [];
+        $hired_percentages = []; // MoM change in hired count
+        $ratio_changes = []; // MoM change in hiring ratio
         foreach ($labels as $index => $lbl) {
             $hired = $hired_results[$lbl] ?? 0;
             $total_reg = $reg_counts[$index];
             $hired_counts[] = $hired;
-            $hiring_ratios[] = $total_reg > 0 ? round(($hired / $total_reg) * 100, 1) : 0;
+            $current_ratio = $total_reg > 0 ? round(($hired / $total_reg) * 100, 1) : 0;
+            $hiring_ratios[] = $current_ratio;
+            
+            // Calculate MoM percentage change for hired count
+            if ($index > 0) {
+                $prev_hired = $hired_counts[$index - 1];
+                if ($prev_hired > 0) {
+                    $hired_percentages[] = round((($hired - $prev_hired) / $prev_hired) * 100, 1);
+                } else {
+                    $hired_percentages[] = $hired > 0 ? 100 : 0;
+                }
+                
+                // Calculate change in hiring ratio
+                $prev_ratio = $hiring_ratios[$index - 1];
+                $ratio_changes[] = round($current_ratio - $prev_ratio, 1); // Absolute difference
+            } else {
+                $hired_percentages[] = 0;
+                $ratio_changes[] = 0;
+            }
         }
 
         $data['charts']['hiring_performance'] = [
@@ -141,6 +177,8 @@ if ($action === 'get_report_data') {
                     'type' => 'bar',
                     'label' => 'Interns Hired',
                     'data' => $hired_counts,
+                    'percentages' => $hired_percentages, // Add MoM percentage
+                    'registrations' => $reg_counts, // Add total registrations for context
                     'backgroundColor' => 'rgba(16, 185, 129, 0.6)',
                     'borderColor' => 'rgb(16, 185, 129)',
                     'yAxisID' => 'y'
@@ -149,12 +187,102 @@ if ($action === 'get_report_data') {
                     'type' => 'line',
                     'label' => 'Hiring Ratio (%)',
                     'data' => $hiring_ratios,
+                    'changes' => $ratio_changes, // Add ratio changes
                     'backgroundColor' => 'rgba(245, 158, 11, 0.2)',
                     'borderColor' => 'rgb(245, 158, 11)',
                     'tension' => 0.4,
                     'yAxisID' => 'y1'
                 ]
             ]
+        ];
+
+        // --- NEW: Global versions of Supervisor charts for Admin/Manager ---
+        
+        // 5. Global Team Task Completion (Last 6 Months)
+        $stmt = $conn->query("
+            SELECT 
+                DATE_FORMAT(completed_at, '%b %Y') as month,
+                COUNT(*) as count,
+                DATE_FORMAT(completed_at, '%Y-%m') as sort_key
+            FROM tasks 
+            WHERE status = 'complete'
+            AND completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY month, sort_key
+            ORDER BY sort_key ASC
+        ");
+        $results = [];
+        while ($row = $stmt->fetch_assoc()) {
+            $results[$row['month']] = (int)$row['count'];
+        }
+        $counts = [];
+        $percentages = [];
+        foreach ($labels as $index => $lbl) {
+            $current = $results[$lbl] ?? 0;
+            $counts[] = $current;
+            if ($index > 0) {
+                $previous = $counts[$index - 1];
+                $percentages[] = $previous > 0 ? round((($current - $previous) / $previous) * 100, 1) : ($current > 0 ? 100 : 0);
+            } else {
+                $percentages[] = 0;
+            }
+        }
+        $data['charts']['team_performance'] = [
+            'type' => 'bar',
+            'label' => 'Total Tasks Completed',
+            'data' => $counts,
+            'percentages' => $percentages,
+            'backgroundColor' => 'rgba(16, 185, 129, 0.6)',
+            'borderColor' => 'rgb(16, 185, 129)'
+        ];
+
+        // 6. Global Attendance Summary
+        $stmt = $conn->query("
+            SELECT 
+                SUM(CASE WHEN total_work_seconds >= 10800 THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN total_work_seconds < 10800 THEN 1 ELSE 0 END) as late_absent
+            FROM attendance 
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+        ");
+        $att_res = $stmt->fetch_assoc();
+        $present = (int)($att_res['present'] ?? 0);
+        $absent = (int)($att_res['late_absent'] ?? 0);
+        $total_att = $present + $absent;
+        $data['charts']['attendance'] = [
+            'type' => 'pie',
+            'labels' => ['Present (>=3h)', 'Short/Absent'],
+            'data' => [$present, $absent],
+            'ratios' => [
+                $total_att > 0 ? round(($present / $total_att) * 100, 1) : 0,
+                $total_att > 0 ? round(($absent / $total_att) * 100, 1) : 0
+            ]
+        ];
+
+        // 7. Global Task Approval Rate
+        $approval_data = array_fill_keys(['approved', 'rejected', 'needs_improvement', 'pending_review'], 0);
+        $stmt = $conn->query("
+            SELECT status, COUNT(*) as count 
+            FROM tasks 
+            WHERE status IN ('approved', 'rejected', 'needs_improvement', 'pending_review')
+            GROUP BY status
+        ");
+        $total_reviewed = 0;
+        while ($row = $stmt->fetch_assoc()) {
+            if (isset($approval_data[$row['status']])) {
+                $approval_data[$row['status']] = (int)$row['count'];
+                $total_reviewed += $row['count'];
+            }
+        }
+        $approval_counts = [];
+        $approval_ratios = [];
+        foreach ($approval_data as $status => $count) {
+            $approval_counts[] = $count;
+            $approval_ratios[] = $total_reviewed > 0 ? round(($count / $total_reviewed) * 100, 1) : 0;
+        }
+        $data['charts']['task_approval_rate'] = [
+            'type' => 'doughnut',
+            'labels' => ['Approved', 'Rejected', 'Needs Improvement', 'Pending Review'],
+            'data' => $approval_counts,
+            'ratios' => $approval_ratios
         ];
 
     } elseif ($user_role == 3) { // Supervisor
@@ -182,13 +310,28 @@ if ($action === 'get_report_data') {
         $labels = getLast6MonthsLabels();
         $data['months'] = $labels;
         $counts = [];
-        foreach ($labels as $lbl) {
-            $counts[] = $results[$lbl] ?? 0;
+        $percentages = [];
+        foreach ($labels as $index => $lbl) {
+            $current = $results[$lbl] ?? 0;
+            $counts[] = $current;
+            
+            // Calculate MoM percentage change
+            if ($index > 0) {
+                $previous = $counts[$index - 1];
+                if ($previous > 0) {
+                    $percentages[] = round((($current - $previous) / $previous) * 100, 1);
+                } else {
+                    $percentages[] = $current > 0 ? 100 : 0;
+                }
+            } else {
+                $percentages[] = 0;
+            }
         }
         $data['charts']['team_performance'] = [
             'type' => 'bar',
             'label' => 'Tasks Completed',
             'data' => $counts,
+            'percentages' => $percentages,
             'backgroundColor' => 'rgba(16, 185, 129, 0.6)',
             'borderColor' => 'rgb(16, 185, 129)'
         ];
@@ -205,10 +348,18 @@ if ($action === 'get_report_data') {
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $att_res = $stmt->get_result()->fetch_assoc();
+        $present = (int)($att_res['present'] ?? 0);
+        $absent = (int)($att_res['late_absent'] ?? 0);
+        $total_att = $present + $absent;
+        $att_ratios = [
+            $total_att > 0 ? round(($present / $total_att) * 100, 1) : 0,
+            $total_att > 0 ? round(($absent / $total_att) * 100, 1) : 0
+        ];
         $data['charts']['attendance'] = [
             'type' => 'pie',
             'labels' => ['Present (>=3h)', 'Short/Absent'],
-            'data' => [(int)($att_res['present'] ?? 0), (int)($att_res['late_absent'] ?? 0)]
+            'data' => [$present, $absent],
+            'ratios' => $att_ratios
         ];
 
         // 3. Task Status Distribution (Supervisor's interns only)
@@ -248,32 +399,43 @@ if ($action === 'get_report_data') {
             'ratios' => $status_ratios
         ];
 
-        // 3. Intern-wise Performance
-        $intern_labels = [];
-        $intern_tasks = [];
+        // 4. Task Approval Rate - Quality Metrics
+        $approval_categories = ['approved', 'rejected', 'needs_improvement', 'pending_review'];
+        $approval_data = array_fill_keys($approval_categories, 0);
+        
         $stmt = $conn->prepare("
-            SELECT u.name, COUNT(t.id) as count 
-            FROM users u 
-            LEFT JOIN tasks t ON u.id = t.assign_to AND t.status = 'complete'
-            WHERE u.supervisor_id = ? AND u.user_role = 2
-            GROUP BY u.id
-            ORDER BY count DESC
-            LIMIT 10
+            SELECT status, COUNT(*) as count 
+            FROM tasks 
+            WHERE assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)
+            AND status IN ('approved', 'rejected', 'needs_improvement', 'pending_review')
+            GROUP BY status
         ");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
-        $intern_res = $stmt->get_result();
-        while ($row = $intern_res->fetch_assoc()) {
-            $intern_labels[] = $row['name'];
-            $intern_tasks[] = (int)$row['count'];
+        $approval_res = $stmt->get_result();
+        $total_reviewed = 0;
+        while ($row = $approval_res->fetch_assoc()) {
+            if (isset($approval_data[$row['status']])) {
+                $approval_data[$row['status']] = (int)$row['count'];
+                $total_reviewed += $row['count'];
+            }
         }
-        $data['charts']['intern_performance'] = [
-            'type' => 'bar',
-            'label' => 'Total Tasks Completed',
-            'labels' => $intern_labels,
-            'data' => $intern_tasks,
-            'backgroundColor' => 'rgba(139, 92, 246, 0.6)',
-            'borderColor' => 'rgb(139, 92, 246)'
+        
+        $approval_labels = [];
+        $approval_counts = [];
+        $approval_ratios = [];
+        foreach ($approval_data as $status => $count) {
+            $approval_labels[] = ucfirst(str_replace('_', ' ', $status));
+            $approval_counts[] = $count;
+            $approval_ratios[] = $total_reviewed > 0 ? round(($count / $total_reviewed) * 100, 1) : 0;
+        }
+        
+        $data['charts']['task_approval_rate'] = [
+            'type' => 'doughnut',
+            'label' => 'Task Approval Rate',
+            'labels' => $approval_labels,
+            'data' => $approval_counts,
+            'ratios' => $approval_ratios
         ];
     }
 

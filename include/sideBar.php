@@ -199,17 +199,17 @@
                                     <li>
                                         <a href="tasks.php?status=pending_review" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'pending_review') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
                                             <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
-                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                                <g id="SVGRepo_iconCarrier">
-                                                    <path d="M19.8978 16H7.89778C6.96781 16 6.50282 16 6.12132 16.1022C5.08604 16.3796 4.2774 17.1883 4 18.2235" stroke="currentColor" stroke-width="1.5"></path>
-                                                    <path d="M8 7H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-                                                    <path d="M8 10.5H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-                                                    <path d="M19.5 19H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-                                                    <path d="M10 22C7.17157 22 5.75736 22 4.87868 21.1213C4 20.2426 4 18.8284 4 16V8C4 5.17157 4 3.75736 4.87868 2.87868C5.75736 2 7.17157 2 10 2H14C16.8284 2 18.2426 2 19.1213 2.87868C20 3.75736 20 5.17157 20 8M14 22C16.8284 22 18.2426 22 19.1213 21.1213C20 20.2426 20 18.8284 20 16V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-                                                </g>
-                                            </svg>
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M19.8978 16H7.89778C6.96781 16 6.50282 16 6.12132 16.1022C5.08604 16.3796 4.2774 17.1883 4 18.2235" stroke="currentColor" stroke-width="1.5"></path>
+                                                        <path d="M8 7H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M8 10.5H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M19.5 19H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                        <path d="M10 22C7.17157 22 5.75736 22 4.87868 21.1213C4 20.2426 4 18.8284 4 16V8C4 5.17157 4 3.75736 4.87868 2.87868C5.75736 2 7.17157 2 10 2H14C16.8284 2 18.2426 2 19.1213 2.87868C20 3.75736 20 5.17157 20 8M14 22C16.8284 22 18.2426 22 19.1213 21.1213C20 20.2426 20 18.8284 20 16V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    </g>
+                                                </svg>
                                             </div>
                                             <span class="sidebar-item">Review</span>
                                         </a>
@@ -483,7 +483,7 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Completed Interns</span>
                                 </a>
                             </li>
-                            <?php if ($_SESSION['user_role'] == 3) { ?>
+                            <?php if ($_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 1) { ?>
                                 <li>
                                     <a href="attendance_supervisor.php" onclick="window.location=this.href"
                                         class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -591,6 +591,53 @@
                                 </a>
                             </li>
                         <?php } ?>
+                        <?php
+                        if ($_SESSION['user_role'] == 1) {
+                        ?>
+                            <li>
+                                <a href="generate_manual_certificate.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'generate_manual_certificate.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <circle cx="12" cy="16" r="3" stroke="currentColor" stroke-width="1.5"></circle>
+                                                <path d="M12 19.2599L9.73713 21.4293C9.41306 21.74 9.25102 21.8953 9.1138 21.9491C8.80111 22.0716 8.45425 21.9667 8.28977 21.7C8.21758 21.583 8.19509 21.3719 8.1501 20.9496C8.1247 20.7113 8.112 20.5921 8.07345 20.4922C7.98715 20.2687 7.80579 20.0948 7.57266 20.0121C7.46853 19.9751 7.3442 19.963 7.09553 19.9386C6.65512 19.8955 6.43491 19.8739 6.31283 19.8047C6.03463 19.647 5.92529 19.3145 6.05306 19.0147C6.10913 18.8832 6.27116 18.7278 6.59523 18.4171L8.07345 16.9999L9.1138 15.9596" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M12 19.2599L14.2629 21.4294C14.5869 21.7401 14.749 21.8954 14.8862 21.9492C15.1989 22.0717 15.5457 21.9668 15.7102 21.7001C15.7824 21.5831 15.8049 21.372 15.8499 20.9497C15.8753 20.7113 15.888 20.5921 15.9265 20.4923C16.0129 20.2688 16.1942 20.0949 16.4273 20.0122C16.5315 19.9752 16.6558 19.9631 16.9045 19.9387C17.3449 19.8956 17.5651 19.874 17.6872 19.8048C17.9654 19.6471 18.0747 19.3146 17.9469 19.0148C17.8909 18.8832 17.7288 18.7279 17.4048 18.4172L15.9265 17L15 16.0735" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M17.3197 17.9957C19.2921 17.9748 20.3915 17.8512 21.1213 17.1213C22 16.2426 22 14.8284 22 12V9M7 17.9983C4.82497 17.9862 3.64706 17.8897 2.87868 17.1213C2 16.2426 2 14.8284 2 12L2 8C2 5.17157 2 3.75736 2.87868 2.87868C3.75736 2 5.17157 2 8 2L16 2C18.8284 2 20.2426 2 21.1213 2.87868C21.6112 3.36857 21.828 4.02491 21.9239 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M9 6L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M7 9.5H9M17 9.5H12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Certificate</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="generate_manual_offerletter.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'generate_manual_offerletter.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                            <g id="SVGRepo_iconCarrier">
+                                                <path d="M19 16C19 18.8284 19 20.2426 18.1213 21.1213C17.2426 22 15.8284 22 13 22H11C8.17157 22 6.75736 22 5.87868 21.1213C5 20.2426 5 18.8284 5 16V12M5 8C5 5.17157 5 3.75736 5.87868 2.87868C6.75736 2 8.17157 2 11 2H13C15.8284 2 17.2426 2 18.1213 2.87868C19 3.75736 19 5.17157 19 8V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M5 4.07617C4.02491 4.17208 3.36857 4.38885 2.87868 4.87873C2 5.75741 2 7.17163 2 10.0001V14.0001C2 16.8285 2 18.2427 2.87868 19.1214C3.36857 19.6113 4.02491 19.828 5 19.9239" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M19 4.07617C19.9751 4.17208 20.6314 4.38885 21.1213 4.87873C22 5.75741 22 7.17163 22 10.0001V14.0001C22 16.8285 22 18.2427 21.1213 19.1214C20.6314 19.6113 19.9751 19.828 19 19.9239" stroke="currentColor" stroke-width="1.5"></path>
+                                                <path d="M9 13H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M9 9H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                <path d="M9 17H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </g>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Offer Letter</span>
+                                </a>
+                            </li>
+                        <?php
+                        } ?>
                     </ul>
                 </div>
             </nav>

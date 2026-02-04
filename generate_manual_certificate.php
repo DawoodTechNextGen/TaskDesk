@@ -5,9 +5,10 @@ if (!isset($_SESSION['user_id'])) {
     header('Location:' . BASE_URL . 'login');
     exit;
 }
-// if($_SESSION['approval_status'] == 0){
-//     header('Location:'.BASE_URL.'index.php');
-// }
+if($_SESSION['user_role'] !== 1){
+    header('Location:' . BASE_URL . 'index.php');
+    exit;
+}
 $page_title = 'Generate Certificate';
 include_once "./include/headerLinks.php";
 
@@ -16,7 +17,7 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch user data and calculate internship duration
 include_once './include/connection.php';
-$user_query = $conn->prepare("SELECT name, tech_id, created_at, internship_type, internship_duration FROM users WHERE id = ?");
+$user_query = $conn->prepare("SELECT name, tech_id, created_at FROM users WHERE id = ?");
 $user_query->bind_param("i", $user_id);
 $user_query->execute();
 $user_result = $user_query->get_result();
@@ -24,19 +25,12 @@ $user_result = $user_query->get_result();
 if ($user_result->num_rows > 0) {
     $user_data = $user_result->fetch_assoc();
 
-    // Calculate dates based on internship duration or type fallback
-    $duration = $user_data['internship_duration'];
-    if (empty($duration)) {
-        $duration = ($user_data['internship_type'] == 0) ? '4 weeks' : '12 weeks';
-    }
-    $duration_str = '+' . $duration;
-    
-    $start_date = date('d-M-Y', strtotime($user_data['created_at']));
-    $end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' ' . $duration_str));
+    // Calculate dates - these are defaults that can be overridden by user input
+    $default_start_date = date('d-M-Y', strtotime($user_data['created_at']));
+    $default_end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' + 3 months'));
+    $default_issue_date = $default_end_date; // Issue date same as end date by default
 
-    $issue_date = $end_date;
-
-    // Get technology name  
+    // Get technology name
     $tech_query = $conn->prepare("SELECT name FROM technologies WHERE id = ?");
     $tech_query->bind_param("i", $user_data['tech_id']);
     $tech_query->execute();
@@ -230,6 +224,56 @@ if ($user_result->num_rows > 0) {
                         color: var(--dark);
                     }
 
+                    .form-group {
+                        margin-bottom: 20px;
+                    }
+
+                    .form-group label {
+                        display: block;
+                        margin-bottom: 8px;
+                        font-weight: 600;
+                        color: var(--dark);
+                    }
+
+                    .form-control {
+                        width: 100%;
+                        padding: 12px 16px;
+                        border: 2px solid #e9ecef;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        transition: var(--transition);
+                        background: white;
+                    }
+
+                    .form-control:focus {
+                        outline: none;
+                        border-color: var(--primary);
+                        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+                    }
+
+                    .form-control[readonly] {
+                        background-color: #f8f9fa;
+                        cursor: not-allowed;
+                        opacity: 0.8;
+                    }
+
+                    .form-row {
+                        display: flex;
+                        gap: 15px;
+                        margin-bottom: 20px;
+                    }
+
+                    .form-row .form-group {
+                        flex: 1;
+                        margin-bottom: 0;
+                    }
+
+                    .form-actions {
+                        display: flex;
+                        gap: 15px;
+                        margin-top: 25px;
+                    }
+
                     .btn {
                         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
                         border: none;
@@ -263,6 +307,21 @@ if ($user_result->num_rows > 0) {
                         font-size: 1.1rem;
                     }
 
+                    .btn-secondary {
+                        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+                        box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+                    }
+
+                    .btn-secondary:hover {
+                        background: linear-gradient(135deg, #7f8c8d 0%, #636e72 100%);
+                        box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+                    }
+
+                    .btn-sm {
+                        padding: 10px 20px;
+                        font-size: 16px;
+                    }
+
                     .status {
                         display: flex;
                         align-items: center;
@@ -287,6 +346,13 @@ if ($user_result->num_rows > 0) {
                         display: none !important;
                     }
 
+                    .date-hint {
+                        font-size: 12px;
+                        color: #666;
+                        margin-top: 4px;
+                        font-style: italic;
+                    }
+
                     @media (max-width: 768px) {
                         .content {
                             flex-direction: column;
@@ -299,13 +365,18 @@ if ($user_result->num_rows > 0) {
                         h1 {
                             font-size: 2rem;
                         }
+
+                        .form-row {
+                            flex-direction: column;
+                            gap: 20px;
+                        }
                     }
                 </style>
 
                 <div class="certificate-container">
                     <header>
-                        <h1>Certificate Preview</h1>
-                        <p class="subtitle">Review and download your certificate of completion</p>
+                        <h1>Certificate Generator</h1>
+                        <p class="subtitle">Customize and download your certificate of completion</p>
                     </header>
 
                     <div class="content">
@@ -326,6 +397,103 @@ if ($user_result->num_rows > 0) {
                                     <i class="fas fa-check-circle"></i>
                                     <span>Certificate is ready for download</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-header">
+                                <i class="fas fa-edit"></i>
+                                <h2>Customize Certificate</h2>
+                            </div>
+                            
+                            <form id="certificateForm">
+                                <div class="form-group">
+                                    <label for="studentName">Student Name</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="studentName" 
+                                           value="<?php echo htmlspecialchars($user_data['name']); ?>"
+                                           onchange="updateCertificate()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="technology">Technology</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="technology" 
+                                           value="<?php echo htmlspecialchars($tech_name); ?>"
+                                           onchange="updateCertificate()">
+                                    <div class="date-hint">Enter the technology/skill name</div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="startDate">Start Date</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="startDate" 
+                                               placeholder="DD-MMM-YYYY"
+                                               value="<?php echo $default_start_date; ?>"
+                                               onchange="updateIssueDate()">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="endDate">End Date</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="endDate" 
+                                               placeholder="DD-MMM-YYYY"
+                                               value="<?php echo $default_end_date; ?>"
+                                               onchange="updateIssueDate()">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="issueDate">Issue Date</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="issueDate" 
+                                           placeholder="DD-MMM-YYYY"
+                                           value="<?php echo $default_issue_date; ?>"
+                                           readonly
+                                           style="background-color: #f0f8ff;">
+                                    <div class="date-hint">Automatically set to End Date</div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" 
+                                            class="btn btn-secondary btn-sm" 
+                                            onclick="resetToDefaults()">
+                                        <i class="fas fa-redo"></i>
+                                        Reset to Defaults
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn-sm" 
+                                            onclick="updateCertificate()">
+                                        <i class="fas fa-sync-alt"></i>
+                                        Update Preview
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="info-header" style="margin-top: 30px;">
+                                <i class="fas fa-info-circle"></i>
+                                <h2>Certificate Details</h2>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Full Name:</div>
+                                <div class="info-value" id="displayName"><?php echo htmlspecialchars($user_data['name']); ?></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Technology:</div>
+                                <div class="info-value" id="displayTech"><?php echo htmlspecialchars($tech_name); ?></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Internship Period:</div>
+                                <div class="info-value" id="displayPeriod"><?php echo $default_start_date . ' to ' . $default_end_date; ?></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Certificate Issue:</div>
+                                <div class="info-value" id="displayIssue"><?php echo $default_issue_date; ?></div>
                             </div>
                         </div>
                     </div>
@@ -350,22 +518,21 @@ if ($user_result->num_rows > 0) {
         const downloadBtn = document.getElementById("downloadBtn");
         const statusMessage = document.getElementById("statusMessage");
 
-        // Certificate data from PHP
-        const certificateData = {
+        // Default certificate data from PHP
+        const defaultCertificateData = {
             name: "<?php echo $user_data['name']; ?>",
             technology: "<?php echo $tech_name; ?>",
-            start_date: "<?php echo $start_date; ?>",
-            end_date: "<?php echo $end_date; ?>",
-            issue_date: "<?php echo $issue_date; ?>",
-            internship_type: <?php echo $user_data['internship_type']; ?>
+            start_date: "<?php echo $default_start_date; ?>",
+            end_date: "<?php echo $default_end_date; ?>",
+            issue_date: "<?php echo $default_issue_date; ?>"
         };
+
+        // Current certificate data (can be modified by user)
+        let certificateData = {...defaultCertificateData};
 
         // Load certificate template
         const template = new Image();
-        // Use different template for Participation (Type 0) vs Completion (Type 1)
-        template.src = certificateData.internship_type == 0 
-            ? "assets/images/participation_certificate.png" 
-            : "assets/images/certificate.png";
+        template.src = "assets/images/certificate.png"; // Your certificate background image
 
         template.onload = function() {
             // Set canvas size to match template
@@ -383,13 +550,90 @@ if ($user_result->num_rows > 0) {
             drawCertificate();
         };
 
-        function formatDate(dateString) {
-            const options = {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            };
-            return new Date(dateString).toLocaleDateString(undefined, options);
+        function updateIssueDate() {
+            // When end date changes, automatically update issue date to match
+            const endDateInput = document.getElementById('endDate');
+            const issueDateInput = document.getElementById('issueDate');
+            
+            if (endDateInput.value.trim()) {
+                issueDateInput.value = endDateInput.value.trim();
+            }
+            updateCertificate();
+        }
+
+        function updateCertificate() {
+            // Get values from input fields
+            const nameInput = document.getElementById('studentName');
+            const techInput = document.getElementById('technology');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const issueDateInput = document.getElementById('issueDate');
+
+            // Update certificate data
+            certificateData.name = nameInput.value.trim() || defaultCertificateData.name;
+            certificateData.technology = techInput.value.trim() || defaultCertificateData.technology;
+            certificateData.start_date = startDateInput.value.trim() || defaultCertificateData.start_date;
+            certificateData.end_date = endDateInput.value.trim() || defaultCertificateData.end_date;
+            
+            // Always set issue date to end date
+            certificateData.issue_date = certificateData.end_date;
+            issueDateInput.value = certificateData.issue_date;
+
+            // Update display
+            document.getElementById('displayName').textContent = certificateData.name;
+            document.getElementById('displayTech').textContent = certificateData.technology;
+            document.getElementById('displayPeriod').textContent = certificateData.start_date + ' to ' + certificateData.end_date;
+            document.getElementById('displayIssue').textContent = certificateData.issue_date;
+
+            // Redraw certificate with new data
+            drawCertificate();
+
+            // Show success message
+            showStatus('Certificate updated successfully!', 'success');
+        }
+
+        function resetToDefaults() {
+            // Reset input fields to default values
+            document.getElementById('studentName').value = defaultCertificateData.name;
+            document.getElementById('technology').value = defaultCertificateData.technology;
+            document.getElementById('startDate').value = defaultCertificateData.start_date;
+            document.getElementById('endDate').value = defaultCertificateData.end_date;
+            document.getElementById('issueDate').value = defaultCertificateData.issue_date;
+
+            // Reset certificate data
+            certificateData = {...defaultCertificateData};
+
+            // Update display
+            document.getElementById('displayName').textContent = defaultCertificateData.name;
+            document.getElementById('displayTech').textContent = defaultCertificateData.technology;
+            document.getElementById('displayPeriod').textContent = defaultCertificateData.start_date + ' to ' + defaultCertificateData.end_date;
+            document.getElementById('displayIssue').textContent = defaultCertificateData.issue_date;
+
+            // Redraw certificate
+            drawCertificate();
+
+            // Show success message
+            showStatus('Certificate reset to default values!', 'success');
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            statusDiv.className = `status ${type === 'error' ? 'error' : ''}`;
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                if (type === 'success') {
+                    statusDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        <span>Certificate is ready for download</span>
+                    `;
+                    statusDiv.className = 'status';
+                }
+            }, 3000);
         }
 
         function drawCertificate() {
@@ -447,7 +691,6 @@ if ($user_result->num_rows > 0) {
             yPosition += lineHeight;
 
             // Line 2
-            // One-line sentence, only last part bold
             let text1 = "has successfully completed his/her internship at ";
             let text2 = "DawoodTech NextGen";
 
@@ -472,11 +715,7 @@ if ($user_result->num_rows > 0) {
 
             yPosition += lineHeight;
 
-            /* *******************************
-               NEW UPDATED DATE SECTION
-               Only dates bold & underlined
-               from / to normal & no underline
-            ******************************** */
+            // Date section
             const fromText = "from ";
             const toText = " to ";
 
@@ -532,7 +771,7 @@ if ($user_result->num_rows > 0) {
             const techTotalWidth = tech1Width + techBoldWidth;
             let techX = (canvas.width / 2) - (techTotalWidth / 2);
 
-            // Draw "as a"
+            // Draw "in "
             ctx.font = "28px Arial";
             ctx.fillText(techText1, techX + tech1Width / 2, yPosition);
             techX += tech1Width;
@@ -557,8 +796,6 @@ if ($user_result->num_rows > 0) {
             ctx.fillText(`${issueDate}`, 630, canvas.height - 75);
         }
 
-
-
         function generatePDF() {
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
@@ -577,8 +814,12 @@ if ($user_result->num_rows > 0) {
             pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
 
             const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
+            const safeName = certificateData.name.replace(/[^a-zA-Z0-9]/g, '_');
 
-            pdf.save(`Certificate_<?php echo preg_replace('/[^a-zA-Z0-9]/', '_', $user_data['name']); ?>_${timestamp}.pdf`);
+            pdf.save(`Certificate_${safeName}_${timestamp}.pdf`);
+            
+            // Show success message
+            showStatus('Certificate downloaded successfully!', 'success');
         }
 
         // Initialize certificate when page loads

@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 3) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4])) {
     header('location:' . BASE_URL . 'login.php');
 }
 include_once './include/connection.php';
@@ -40,6 +40,7 @@ include_once "./include/headerLinks.php";
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">Days Present</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">Percentage</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">Performance</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider border border-gray-300 dark:border-gray-600">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white text-black dark:bg-gray-800 dark:text-white text-xs">
@@ -94,6 +95,9 @@ include_once "./include/headerLinks.php";
                                     <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                                         <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${percentage}%"></div>
                                     </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap border border-gray-300 dark:border-gray-600 text-sm">
+                                    <a href="attendance_intern.php?id=${intern.id}" class="text-indigo-600 hover:text-indigo-900 font-bold transition-colors">View Details</a>
                                 </td>
                             `;
                             tableBody.appendChild(row);

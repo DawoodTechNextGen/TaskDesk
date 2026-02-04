@@ -198,6 +198,23 @@ if ($data['action'] === 'start') {
     // Ensure today's attendance row
     ensureAttendanceRow($conn, $user_id, $today, $task_id);
 
+    // Check for Task Expiration first
+    $exp_stmt = $conn->prepare("SELECT due_date, status FROM tasks WHERE id = ?");
+    $exp_stmt->bind_param("i", $task_id);
+    $exp_stmt->execute();
+    $task_info = $exp_stmt->get_result()->fetch_assoc();
+    $exp_stmt->close();
+
+    if ($task_info && !empty($task_info['due_date'])) {
+        $today_date = date('Y-m-d');
+        if ($task_info['due_date'] < $today_date && $task_info['status'] !== 'complete') {
+            // Self-correct database status if not already expired
+            $conn->query("UPDATE tasks SET status = 'expired' WHERE id = $task_id");
+            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . $task_info['due_date'] . ") and cannot be started."]);
+            exit;
+        }
+    }
+
     // Start task
     $stmt = $conn->prepare("UPDATE tasks SET status = 'working', started_at = ? WHERE id = ?");
     $stmt->bind_param("si", $started_at, $task_id);
@@ -225,24 +242,32 @@ if ($data['action'] === 'stop') {
     $stop_time = $data['stoped_at'];
     $today = date('Y-m-d');
 
-    $stmt = $conn->prepare("SELECT started_at FROM tasks WHERE id = ?");
+    // 1. Fetch started_at and due_date
+    $stmt = $conn->prepare("SELECT started_at, due_date FROM tasks WHERE id = ?");
     $stmt->bind_param("i", $task_id);
     $stmt->execute();
-    $stmt->bind_result($started_at);
-    $stmt->fetch();
+    $task_data = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$started_at) {
+    if (!$task_data || !$task_data['started_at']) {
         echo json_encode(["success" => false, "message" => "Task not started"]);
         exit;
     }
 
+    $started_at = $task_data['started_at'];
     $duration = strtotime($stop_time) - strtotime($started_at);
 
+    // 2. Update attendance
     updateAttendanceTime($conn, $user_id, $today, $duration, $task_id);
 
-    $stmt = $conn->prepare("UPDATE tasks SET status = 'pending' WHERE id = ?");
-    $stmt->bind_param("i", $task_id);
+    // 3. Determine new status (pending or expired)
+    $new_status = 'pending';
+    if (!empty($task_data['due_date']) && $task_data['due_date'] < $today) {
+        $new_status = 'expired';
+    }
+
+    $stmt = $conn->prepare("UPDATE tasks SET status = ? WHERE id = ?");
+    $stmt->bind_param("si", $new_status, $task_id);
     $stmt->execute();
     $stmt->close();
 
@@ -272,6 +297,23 @@ if ($data['action'] === 'complete') {
     $live_url = $data['live_view'] ?? ''; 
     $additional_notes = $data['additional_notes'] ?? '';
     $today = date('Y-m-d');
+
+    // Check for Task Expiration first
+    $exp_stmt = $conn->prepare("SELECT due_date, status FROM tasks WHERE id = ?");
+    $exp_stmt->bind_param("i", $task_id);
+    $exp_stmt->execute();
+    $task_info = $exp_stmt->get_result()->fetch_assoc();
+    $exp_stmt->close();
+
+    if ($task_info && !empty($task_info['due_date'])) {
+        $today_date = date('Y-m-d');
+        if ($task_info['due_date'] < $today_date && $task_info['status'] !== 'complete') {
+            // Self-correct database status
+            $conn->query("UPDATE tasks SET status = 'expired' WHERE id = $task_id");
+            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . $task_info['due_date'] . ") and cannot be submitted."]);
+            exit;
+        }
+    }
 
     // 1. Stop the timer (Logic similar to 'stop' action)
     $stmt = $conn->prepare("SELECT started_at FROM tasks WHERE id = ?");

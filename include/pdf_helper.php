@@ -50,13 +50,17 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
                     font-family: Arial, sans-serif;
                     margin: 0;
                     padding: 0;
-                    background-image: url("' . $bgImageUri . '");
-                    background-size: 100% 100%;
-                    background-repeat: no-repeat;
-                    background-position: center;
                     width: 210mm; /* A4 width */
                     height: 297mm; /* A4 height */
                     position: relative;
+                }
+                .background-img {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: -1;
                 }
                 .content-box {
                     position: absolute;
@@ -65,6 +69,7 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
                     right: 40px;
                     padding: 40px;
                     height: 720px;
+                    z-index: 1;
                 }
                 .section {
                     margin-bottom: 10px;
@@ -76,6 +81,7 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
             </style>
         </head>
         <body>
+            <img src="' . $bgImageUri . '" class="background-img" />
             <div class="content-box">
                 <div class="section" style="text-align:right;">
                     <strong>Date:</strong> ' . htmlspecialchars($issueDate) . '
@@ -91,8 +97,8 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
                 </div>
                 <div class="section">
                     <p>Dear ' . htmlspecialchars($name) . ',</p>
-                    <p>We are pleased to offer you an internship opportunity from 
-                    <strong>' . htmlspecialchars($startDate) . '</strong> to <br> <strong>' . htmlspecialchars($endDate) . '</strong> at <strong>DawoodTech NextGen</strong> as a 
+                    <p>We are pleased to offer you an internship opportunity from
+                    <strong>' . htmlspecialchars($startDate) . '</strong> to <br> <strong>' . htmlspecialchars($endDate) . '</strong> at <strong>DawoodTech NextGen</strong> as a
                     <strong>' . htmlspecialchars($techName) . ' Intern</strong>.</p>
                     <p>This internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
                     <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>

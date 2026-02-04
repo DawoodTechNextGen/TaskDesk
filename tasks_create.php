@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 3) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4])) {
     header('location:' . BASE_URL . 'login.php');
     exit;
 }
@@ -66,12 +66,22 @@ include_once "./include/headerLinks.php";
                                     <select id="user_id" class="searchable-select hidden">
                                         <option value="">Select Intern</option>
                                         <?php
+                                        $user_role = $_SESSION['user_role'];
                                         $userQuery = "SELECT id, name FROM users 
                                                       WHERE user_role = 2 
-                                                        AND supervisor_id = $user_id 
                                                         AND freeze_status = 'active'
-                                                        AND DATE_ADD(created_at, INTERVAL IF(internship_type = 0, 4, 12) WEEK) > NOW()
-                                                      ORDER BY name ASC";
+                                                        AND DATE_ADD(created_at, INTERVAL (CASE 
+                                                            WHEN internship_duration = '4 weeks' THEN 4
+                                                            WHEN internship_duration = '8 weeks' THEN 8
+                                                            WHEN internship_duration = '12 weeks' THEN 12
+                                                            ELSE IF(internship_type = 0, 4, 12)
+                                                        END) WEEK) > NOW()";
+                                        
+                                        if ($user_role == 3) {
+                                            $userQuery .= " AND supervisor_id = $user_id";
+                                        }
+                                        
+                                        $userQuery .= " ORDER BY name ASC";
                                         $userResult = mysqli_query($conn, $userQuery);
                                         while ($user = mysqli_fetch_assoc($userResult)) {
                                             echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
@@ -95,16 +105,24 @@ include_once "./include/headerLinks.php";
 
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Detailed Description</label>
-                                <div id="description-editor" class="min-h-[250px] rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"></div>
+                                <div id="description-editor"></div>
                             </div>
 
                             <div class="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-700">
-                                <button type="submit" 
-                                    class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 flex items-center space-x-2">
-                                    <span>Create Task</span>
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
+                                <button type="submit" id="create-task-btn"
+                                    class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 flex items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                                    <span id="btn-text">Create Task</span>
+                                    <div id="btn-icon" class="flex items-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                    </div>
+                                    <div id="btn-loader" class="hidden">
+                                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
                                 </button>
                             </div>
                         </form>

@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] != 3 && $_SESSION['user_role'] != 1)) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4])) {
     header('location:' . BASE_URL . 'login.php');
     exit;
 }
@@ -45,7 +45,7 @@ $page_title = ($statusTitles[$status] ?? 'Task Management') . ' - TaskDesk';
                             <h1 class="text-3xl font-bold text-gray-800 dark:text-white"><?= $statusTitles[$status] ?? 'Task Management' ?></h1>
                             <p class="text-gray-500 dark:text-gray-400 mt-1">Manage and track intern progress effectively</p>
                         </div>
-                        <?php if ($_SESSION['user_role'] == 3) : ?>
+                        <?php if (in_array($_SESSION['user_role'], [1, 3])) : ?>
                         <a href="tasks_create.php" class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-blue-500/20 active:scale-95">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -58,7 +58,17 @@ $page_title = ($statusTitles[$status] ?? 'Task Management') . ' - TaskDesk';
                     <!-- Tasks Table Container -->
                     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div class="p-6">
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto relative min-h-[400px]">
+                                <!-- Table Loader -->
+                                <div id="table-loader" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 backdrop-blur-[1px] z-10 flex items-center justify-center transition-opacity duration-300">
+                                    <div class="flex flex-col items-center">
+                                        <svg class="w-10 h-10 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span class="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">Loading tasks...</span>
+                                    </div>
+                                </div>
                                 <table id="tasksTable" class="w-full text-left border-collapse">
                                     <thead class="bg-gray-50 dark:bg-gray-700/50">
                                         <tr>

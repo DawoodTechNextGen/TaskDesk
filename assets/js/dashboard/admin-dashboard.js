@@ -17,12 +17,19 @@ function initializeAdminCharts() {
             datasets: [
               {
                 data: data.values.map(Number),
-                backgroundColor: [
-                  "#10B981", // Completed - Green
-                  "#F59E0B", // Working - Yellow
-                  "#EF4444", // Pending - Red
-                  "#6B7280", // Overdue - Gray
-                ],
+                backgroundColor: data.labels.map(label => {
+                  const statusColors = {
+                    'Complete': '#10B981',
+                    'Working': '#F59E0B',
+                    'Pending': '#6366F1',
+                    'Expired': '#6B7280',
+                    'Rejected': '#EF4444',
+                    'Approved': '#059669',
+                    'Needs improvement': '#D97706',
+                    'Pending review': '#8B5CF6'
+                  };
+                  return statusColors[label] || '#6B7280';
+                }),
                 borderWidth: 0,
                 borderRadius: 8,
                 spacing: 4,
@@ -47,12 +54,8 @@ function initializeAdminCharts() {
                   label: function (context) {
                     const label = context.label || "";
                     const value = context.raw || 0;
-                    const total = context.dataset.data.reduce(
-                      (a, b) => a + b,
-                      0
-                    );
-                    const percentage = Math.round((value / total) * 100);
-                    return `${label}: ${value} (${percentage}%)`;
+                    const ratio = data.ratios ? data.ratios[context.dataIndex] : (total > 0 ? ((value / total) * 100).toFixed(1) : 0);
+                    return `${label}: ${value} (${ratio}%)`;
                   },
                 },
               },
@@ -177,7 +180,14 @@ function initializeAdminCharts() {
                 displayColors: false,
                 callbacks: {
                   label: function (context) {
-                    return `Tasks: ${context.parsed.y}`;
+                    let label = `Tasks: ${context.parsed.y}`;
+                    if (data.percentages && context.dataIndex > 0) {
+                      const percentage = data.percentages[context.dataIndex];
+                      const arrow = percentage >= 0 ? "↑" : "↓";
+                      const color = percentage >= 0 ? "🟢" : "🔴";
+                      label += ` ${color} ${arrow} ${Math.abs(percentage)}% MoM`;
+                    }
+                    return label;
                   },
                   title: function (context) {
                     return `Month: ${context[0].label}`;
@@ -265,10 +275,10 @@ function initializeAdminCharts() {
 
         // Define specific colors for each role
         const roleColors = {
-            'Admins': '#EF4444',      // Red
-            'Interns': '#10B981',     // Green
-            'Supervisors': '#3B82F6',  // Blue
-            'Managers': '#6366F1'      // Indigo
+          'Admins': '#EF4444',      // Red
+          'Interns': '#10B981',     // Green
+          'Supervisors': '#3B82F6',  // Blue
+          'Managers': '#6366F1'      // Indigo
         };
 
         const chartColors = data.labels.map(label => roleColors[label] || '#6B7280');
@@ -300,6 +310,14 @@ function initializeAdminCharts() {
                 bodyColor: textColor,
                 borderColor: gridColor,
                 borderWidth: 1,
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || "";
+                    const value = context.raw || 0;
+                    const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
+                    return `${label}: ${value} (${ratio}%)`;
+                  },
+                },
               },
             },
           },
@@ -380,6 +398,14 @@ function initializeAdminCharts() {
                 bodyColor: textColor,
                 borderColor: gridColor,
                 borderWidth: 1,
+                callbacks: {
+                  label: function (context) {
+                    const label = context.dataset.label || "";
+                    const value = context.raw || 0;
+                    const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
+                    return `${label}: ${value} (${ratio}%)`;
+                  },
+                },
               },
             },
             scales: {
@@ -423,7 +449,7 @@ function updateMonthlyTrendsStats(tasks, months) {
 
   const currentMonth = tasks[tasks.length - 1];
   const prevMonth = tasks[tasks.length - 2] || 0;
-  const growthRate = prevMonth > 0 
+  const growthRate = prevMonth > 0
     ? Math.round(((currentMonth - prevMonth) / prevMonth) * 100)
     : (currentMonth * 100);
   statsContainer.innerHTML = `
@@ -440,11 +466,10 @@ function updateMonthlyTrendsStats(tasks, months) {
             <div class="text-sm text-purple-600 dark:text-purple-300">Peak (${peakMonth})</div>
         </div>
         <div class="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <div class="text-2xl font-bold ${
-              growthRate >= 0
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }">
+            <div class="text-2xl font-bold ${growthRate >= 0
+      ? "text-green-600 dark:text-green-400"
+      : "text-red-600 dark:text-red-400"
+    }">
                 ${growthRate >= 0 ? "+" : ""}${growthRate}%
             </div>
             <div class="text-sm text-orange-600 dark:text-orange-300">Growth Rate (MoM)</div>

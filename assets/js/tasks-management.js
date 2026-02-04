@@ -41,6 +41,9 @@ async function initTaskManagement(statusFilter = 'all') {
 }
 
 async function loadTasks(statusFilter) {
+    const loader = document.getElementById('table-loader');
+    if (loader) loader.classList.remove('hidden', 'opacity-0');
+
     try {
         const response = await fetch('controller/task.php', {
             method: 'POST',
@@ -68,6 +71,11 @@ async function loadTasks(statusFilter) {
     } catch (error) {
         console.error('Error loading tasks:', error);
         showToast('error', 'Failed to load tasks');
+    } finally {
+        if (loader) {
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.classList.add('hidden'), 300);
+        }
     }
 }
 
@@ -104,6 +112,15 @@ function generateTaskActions(task) {
         `;
     }
 
+    // Only show delete button for Admin (1), Manager (4), or Supervisor (3)
+    if (typeof role !== 'undefined' && ['1', '4', '3'].includes(role.toString())) {
+        buttons += `
+            <button onclick="deleteTask(${task.id})" class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete Task">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+        `;
+    }
+
     buttons += '</div>';
     return buttons;
 }
@@ -117,19 +134,30 @@ async function initTaskCreation() {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
+            const btn = document.getElementById('create-task-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            const btnLoader = document.getElementById('btn-loader');
+
             const payload = {
                 action: 'create',
                 title: document.getElementById('title').value,
                 due_date: document.getElementById('due_date').value,
                 user_id: document.getElementById('user_id').value,
-                description: createEditor.getContent()
+                description: createEditor ? createEditor.root.innerHTML : document.querySelector('#description-editor').innerHTML
             };
 
             if (!payload.user_id) {
                 showToast('error', 'Please select an intern');
                 return;
             }
+
+            // Start Loading
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.textContent = 'Creating...';
+            if (btnIcon) btnIcon.classList.add('hidden');
+            if (btnLoader) btnLoader.classList.remove('hidden');
 
             try {
                 const response = await fetch('controller/task.php', {
@@ -142,13 +170,23 @@ async function initTaskCreation() {
                 if (result.success) {
                     showToast('success', 'Task created successfully!');
                     form.reset();
-                    createEditor.setContent('');
+                    if (createEditor) createEditor.setContents([]);
                     setTimeout(() => window.location.href = 'tasks.php?status=pending', 1500);
                 } else {
                     showToast('error', result.message);
+                    // Reset Loading on Error
+                    if (btn) btn.disabled = false;
+                    if (btnText) btnText.textContent = 'Create Task';
+                    if (btnIcon) btnIcon.classList.remove('hidden');
+                    if (btnLoader) btnLoader.classList.add('hidden');
                 }
             } catch (error) {
                 showToast('error', 'Failed to create task');
+                // Reset Loading on Error
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.textContent = 'Create Task';
+                if (btnIcon) btnIcon.classList.remove('hidden');
+                if (btnLoader) btnLoader.classList.add('hidden');
             }
         });
     }
@@ -210,34 +248,65 @@ function initializeSearchableSelects() {
     });
 }
 
-// TinyMCE Initialization (Replacing CKEditor)
+// Quill.js Initialization (Replacing TinyMCE)
 async function initTextEditor(selector, mode) {
-    const isDark = document.documentElement.classList.contains('dark');
-    
-    // If editor already exists, remove it first to re-init with new theme
-    const existingEditor = tinymce.get(selector.replace('#', ''));
-    if (existingEditor) {
-        existingEditor.remove();
-    }
+    const container = document.querySelector(selector);
+    if (!container) return;
+
+    // Clear previous if any (though Quill doesn't have a direct 'remove' for instance like TinyMCE, 
+    // we just ensure we don't double init if not needed)
+    if (mode === 'create' && createEditor) return;
+    if (mode === 'edit' && editEditor) return;
+
+    const toolbarOptions = [
+        ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+        ['blockquote', 'code-block'],
+        [{ 'header': 1 }, { 'header': 2 }],               // custom button values
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ 'script': 'sub' }, { 'script': 'super' }],      // superscript/subscript
+        [{ 'indent': '-1' }, { 'indent': '+1' }],          // outdent/indent
+        [{ 'direction': 'rtl' }],                         // text direction
+        [{ 'size': ['small', false, 'large', 'huge'] }],  // custom dropdown
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['link', 'image', 'video'],
+        ['clean']                                         // remove formatting button
+    ];
 
     try {
-        await tinymce.init({
-            selector: selector,
-            plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
-            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
-            height: 400,
-            skin: isDark ? 'oxide-dark' : 'oxide',
-            content_css: isDark ? 'dark' : 'default',
-            setup: (editor) => {
-                editor.on('init', () => {
-                    if (mode === 'create') createEditor = editor;
-                    else editEditor = editor;
-                });
-            }
+        const quill = new Quill(selector, {
+            theme: 'snow',
+            modules: {
+                toolbar: toolbarOptions
+            },
+            placeholder: 'Start writing description...'
         });
+
+        if (mode === 'create') createEditor = quill;
+        else editEditor = quill;
+
+        // Custom styling for dark mode
+        const isDark = document.documentElement.classList.contains('dark');
+        applyQuillTheme(isDark);
+
     } catch (error) {
-        console.error('TinyMCE Init Error:', error);
+        console.error('Quill Init Error:', error);
     }
+}
+
+function applyQuillTheme(isDark) {
+    const editors = document.querySelectorAll('.ql-container, .ql-toolbar');
+    editors.forEach(el => {
+        if (isDark) {
+            el.style.borderColor = '#4b5563'; // gray-600
+            el.style.backgroundColor = '#1f2937'; // gray-800
+        } else {
+            el.style.borderColor = '#e5e7eb'; // gray-200
+            el.style.backgroundColor = '#f9fafb'; // gray-50
+        }
+    });
 }
 
 // Observe theme changes to re-init editors
@@ -248,10 +317,10 @@ const themeObserver = new MutationObserver((mutations) => {
                 { id: '#description-editor', mode: 'create' },
                 { id: '#edit-description-editor', mode: 'edit' }
             ];
-            
+
             editors.forEach(ed => {
                 if (document.querySelector(ed.id)) {
-                    initTextEditor(ed.id, ed.mode);
+                    applyQuillTheme(document.documentElement.classList.contains('dark'));
                 }
             });
         }
@@ -297,6 +366,11 @@ function setupEventListeners() {
     if (editForm) {
         editForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const btn = document.getElementById('update-task-btn');
+            const btnText = document.getElementById('update-btn-text');
+            const btnLoader = document.getElementById('update-btn-loader');
+
             const id = document.getElementById('edit_task_id').value;
             const payload = {
                 action: 'update',
@@ -304,8 +378,13 @@ function setupEventListeners() {
                 title: document.getElementById('edit_title').value,
                 due_date: document.getElementById('edit_due_date').value,
                 user_id: document.getElementById('edit_user_id').value,
-                description: editEditor.getContent()
+                description: editEditor ? editEditor.root.innerHTML : document.querySelector('#edit-description-editor').innerHTML
             };
+
+            // Start Loading
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.textContent = 'Updating...';
+            if (btnLoader) btnLoader.classList.remove('hidden');
 
             try {
                 const response = await fetch('controller/task.php', {
@@ -323,6 +402,11 @@ function setupEventListeners() {
                 }
             } catch (error) {
                 showToast('error', 'Update failed');
+            } finally {
+                // Reset Loading
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.textContent = 'Update Task';
+                if (btnLoader) btnLoader.classList.add('hidden');
             }
         });
     }
@@ -403,7 +487,7 @@ async function viewTaskDetails(taskId) {
         const logsBody = document.getElementById('view-logs-body');
         const totalTimeEl = document.getElementById('view-total-time');
         const logsSection = document.getElementById('time-logs-section');
-        
+
         if (logsBody) logsBody.innerHTML = '';
         let totalSeconds = 0;
 
@@ -412,7 +496,7 @@ async function viewTaskDetails(taskId) {
             logResult.logs.forEach(log => {
                 const duration = parseInt(log.duration) || 0;
                 totalSeconds += duration;
-                
+
                 if (logsBody) {
                     logsBody.innerHTML += `
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -432,18 +516,18 @@ async function viewTaskDetails(taskId) {
                 const startTime = new Date(task.started_at).getTime();
                 const sessionCounterEl = document.getElementById('live-counter');
                 const baseTotalSeconds = totalSeconds;
-                
+
                 const updateLiveCounters = () => {
                     const now = new Date().getTime();
                     const sessionDiff = Math.max(0, Math.floor((now - startTime) / 1000));
-                    
+
                     // Update Session Counter
                     if (sessionCounterEl) sessionCounterEl.textContent = formatDuration(sessionDiff);
-                    
+
                     // Update Total Time Live
                     if (totalTimeEl) totalTimeEl.textContent = `Total Time: ${formatDuration(baseTotalSeconds + sessionDiff)}`;
                 };
-                
+
                 updateLiveCounters();
                 liveTimerInterval = setInterval(updateLiveCounters, 1000);
             } else if (banner) {
@@ -462,10 +546,10 @@ async function viewTaskDetails(taskId) {
                 body: JSON.stringify({ action: 'get_task_attendance', task_id: taskId })
             });
             const attResult = await attResponse.json();
-            
+
             const attSection = document.getElementById('attendance-summary-section');
             const attBody = document.getElementById('attendance-summary-body');
-            
+
             if (attResult.success && attResult.attendance.length > 0) {
                 if (attSection) attSection.classList.remove('hidden');
                 if (attBody) {
@@ -478,12 +562,12 @@ async function viewTaskDetails(taskId) {
                     `;
                     attResult.attendance.forEach(record => {
                         const statusColors = {
-                             'present': 'text-green-600 bg-green-50 dark:bg-green-900/20',
-                             'absent': 'text-red-600 bg-red-50 dark:bg-red-900/20',
-                             'half_day': 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
+                            'present': 'text-green-600 bg-green-50 dark:bg-green-900/20',
+                            'absent': 'text-red-600 bg-red-50 dark:bg-red-900/20',
+                            'half_day': 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
                         };
                         const colorClass = statusColors[record.status] || 'text-gray-600 bg-gray-50';
-                        
+
                         attBody.innerHTML += `
                             <div class="grid grid-cols-3 gap-4 py-2 border-b border-gray-50 dark:border-gray-800 items-center text-xs">
                                 <div class="font-medium text-gray-700 dark:text-gray-300">${record.date}</div>
@@ -558,7 +642,7 @@ async function editTaskModal(task) {
     document.getElementById('edit_task_id').value = task.id;
     document.getElementById('edit_title').value = task.title;
     document.getElementById('edit_due_date').value = task.due_date || '';
-    
+
     // Set searchable select
     const select = document.getElementById('edit_user_id');
     const input = modal.querySelector('.searchable-input');
@@ -571,7 +655,36 @@ async function editTaskModal(task) {
     if (!editEditor) {
         await initTextEditor('#edit-description-editor', 'edit');
     }
-    editEditor.setContent(task.description || '');
+    if (editEditor) {
+        editEditor.root.innerHTML = task.description || '';
+    }
 
     modal.classList.remove('hidden');
+}
+async function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task? This will also remove all associated time logs and attendance records for this task.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('controller/task.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', task_id: taskId })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('success', 'Task deleted successfully');
+            // Reload the current view
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentStatus = urlParams.get('status') || 'all';
+            loadTasks(currentStatus);
+        } else {
+            showToast('error', result.message || 'Failed to delete task');
+        }
+    } catch (error) {
+        console.error('Delete Task Error:', error);
+        showToast('error', 'An error occurred while deleting the task');
+    }
 }

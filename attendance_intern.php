@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 2) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 2, 3, 4])) {
     header('location:' . BASE_URL . 'login.php');
 }
 include_once './include/connection.php';
@@ -133,7 +133,11 @@ include_once "./include/headerLinks.php";
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Load overall stats
-            fetch('controller/dashboard.php?action=intern_stats')
+            const urlParamsForStats = new URLSearchParams(window.location.search);
+            const targetUserIdForStats = urlParamsForStats.get('id');
+            const statsUrl = targetUserIdForStats ? `controller/dashboard.php?action=intern_stats&target_userid=${targetUserIdForStats}` : 'controller/dashboard.php?action=intern_stats';
+
+            fetch(statsUrl)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -155,7 +159,11 @@ include_once "./include/headerLinks.php";
             const attendanceContainer = document.getElementById('tasksContainer');
             attendanceContainer.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div></div>';
             
-            fetch('controller/dashboard.php?action=intern_daily_history')
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUserId = urlParams.get('id');
+            const fetchUrl = targetUserId ? `controller/dashboard.php?action=intern_daily_history&target_userid=${targetUserId}` : 'controller/dashboard.php?action=intern_daily_history';
+            
+            fetch(fetchUrl)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.history.length > 0) {
@@ -241,7 +249,7 @@ include_once "./include/headerLinks.php";
 
                             html += `
                                 <tr class="group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all duration-300">
-                                    <td class="px-6 py-6 whitespace-nowrap">
+                                    <td class="px-6 py-6 whitespace-nowrap" data-order="${day.date}">
                                         <div class="flex flex-col">
                                             <span class="text-base font-bold text-gray-900 dark:text-white">${dayShort}</span>
                                             <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">${dayName}</span>

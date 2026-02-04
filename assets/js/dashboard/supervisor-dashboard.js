@@ -49,6 +49,11 @@ function initializeSupervisorCharts() {
                 bodyColor: textColor,
                 borderColor: gridColor,
                 borderWidth: 1,
+                callbacks: {
+                  label: function (context) {
+                    return `${context.dataset.label}: ${context.raw}%`;
+                  }
+                }
               },
             },
             scales: {
@@ -88,7 +93,19 @@ function initializeSupervisorCharts() {
               {
                 label: "Tasks",
                 data: data.values,
-                backgroundColor: ["#10B981", "#F59E0B", "#6B7280", "#EF4444"],
+                backgroundColor: data.labels.map(label => {
+                  const statusColors = {
+                    'Complete': '#10B981',
+                    'Working': '#F59E0B',
+                    'Pending': '#6366F1',
+                    'Expired': '#6B7280',
+                    'Rejected': '#EF4444',
+                    'Approved': '#059669',
+                    'Needs improvement': '#D97706',
+                    'Pending review': '#8B5CF6'
+                  };
+                  return statusColors[label] || '#6B7280';
+                }),
                 borderWidth: 0,
                 borderRadius: 4,
               },
@@ -107,6 +124,14 @@ function initializeSupervisorCharts() {
                 bodyColor: textColor,
                 borderColor: gridColor,
                 borderWidth: 1,
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || "";
+                    const value = context.raw || 0;
+                    const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
+                    return `${label}: ${value} (${ratio}%)`;
+                  }
+                }
               },
             },
             scales: {

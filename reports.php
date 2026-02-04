@@ -84,9 +84,9 @@ include_once "./include/headerLinks.php";
             container.innerHTML = ''; // Clear loading state
 
             // Add Summary Cards for Admin/Manager
-            if (reportData.charts.registrations && reportData.charts.hiring_trends) {
+            if (reportData.charts.registrations && reportData.charts.hiring_performance) {
                 const regData = reportData.charts.registrations.data;
-                const hireData = reportData.charts.hiring_trends.data;
+                const hireData = reportData.charts.hiring_performance.datasets[0].data; // Get Interns Hired data
                 
                 const currentReg = regData[regData.length - 1];
                 const prevReg = regData[regData.length - 2] || 0;
@@ -123,6 +123,47 @@ include_once "./include/headerLinks.php";
                         <div class="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-2xl border border-orange-100 dark:border-orange-800">
                             <p class="text-orange-600 dark:text-orange-400 text-sm font-medium uppercase tracking-wider">Avg. Conversion Rate</p>
                             <h4 class="text-3xl font-bold text-orange-900 dark:text-white mt-1">${avgRatio}%</h4>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', summaryHtml);
+            }
+            
+            if (reportData.charts.team_performance && reportData.charts.task_approval_rate) {
+                // Summary Cards for Supervisor or Global Metrics
+                const perfData = reportData.charts.team_performance.data;
+                const approvalData = reportData.charts.task_approval_rate;
+                
+                const currentTasks = perfData[perfData.length - 1];
+                const prevTasks = perfData[perfData.length - 2] || 0;
+                const taskGrowth = prevTasks > 0 ? Math.round(((currentTasks - prevTasks) / prevTasks) * 100) : (currentTasks * 100);
+                
+                const totalTasks = perfData.reduce((a, b) => a + b, 0);
+                const approvedCount = approvalData.data[approvalData.labels.indexOf('Approved')] || 0;
+                const totalReviewed = approvalData.data.reduce((a, b) => a + b, 0);
+                const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : 0;
+
+                const summaryHtml = `
+                    <div class="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
+                        <div class="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 relative overflow-hidden">
+                            <p class="text-indigo-600 dark:text-indigo-400 text-sm font-medium uppercase tracking-wider">Tasks Completed (6m)</p>
+                            <div class="flex items-end justify-between mt-1">
+                                <h4 class="text-3xl font-bold text-indigo-900 dark:text-white">${totalTasks}</h4>
+                                <span class="px-2 py-1 rounded text-xs font-bold ${taskGrowth >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                    ${taskGrowth >= 0 ? '↑' : '↓'} ${Math.abs(taskGrowth)}% MoM
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-800 relative overflow-hidden">
+                            <p class="text-emerald-600 dark:text-emerald-400 text-sm font-medium uppercase tracking-wider">Overall Approval Rate</p>
+                            <div class="flex items-end justify-between mt-1">
+                                <h4 class="text-3xl font-bold text-emerald-900 dark:text-white">${approvalRate}%</h4>
+                                <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Quality Metric</span>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-800 lg:col-span-1 md:col-span-full">
+                            <p class="text-purple-600 dark:text-purple-400 text-sm font-medium uppercase tracking-wider">Total Reviewed</p>
+                            <h4 class="text-3xl font-bold text-purple-900 dark:text-white mt-1">${totalReviewed}</h4>
                         </div>
                     </div>
                 `;
@@ -193,6 +234,73 @@ include_once "./include/headerLinks.php";
                                         if (key === 'task_status' && chartInfo.ratios) {
                                             const ratio = chartInfo.ratios[context.dataIndex];
                                             return `${label}${val} (${ratio}%)`;
+                                        }
+                                        
+                                        // Handle Attendance with ratios
+                                        if (key === 'attendance' && chartInfo.ratios) {
+                                            const ratio = chartInfo.ratios[context.dataIndex];
+                                            return `${context.label}: ${val} (${ratio}%)`;
+                                        }
+                                        
+                                        // Handle New Registrations with percentage change
+                                        if (key === 'registrations' && chartInfo.percentages) {
+                                            const percentage = chartInfo.percentages[context.dataIndex];
+                                            let percentText = '';
+                                            if (context.dataIndex > 0) { // Skip first month
+                                                const arrow = percentage >= 0 ? '↑' : '↓';
+                                                const color = percentage >= 0 ? '🟢' : '🔴';
+                                                percentText = ` ${color} ${arrow} ${Math.abs(percentage)}% MoM`;
+                                            }
+                                            return `${label}${val}${percentText}`;
+                                        }
+                                        
+                                        // Handle Team Performance (Supervisor) with percentage change
+                                        if (key === 'team_performance' && chartInfo.percentages) {
+                                            const percentage = chartInfo.percentages[context.dataIndex];
+                                            let percentText = '';
+                                            if (context.dataIndex > 0) {
+                                                const arrow = percentage >= 0 ? '↑' : '↓';
+                                                const color = percentage >= 0 ? '🟢' : '🔴';
+                                                percentText = ` ${color} ${arrow} ${Math.abs(percentage)}% MoM`;
+                                            }
+                                            return `${label}${val}${percentText}`;
+                                        }
+                                        
+                                        // Handle Hiring Performance with enhanced precision
+                                        if (key === 'hiring_performance') {
+                                            const dataset = context.dataset;
+                                            const dataIndex = context.dataIndex;
+                                            
+                                            if (dataset.label === 'Interns Hired') {
+                                                // Show hired count with percentage change and total registrations
+                                                const totalReg = dataset.registrations[dataIndex];
+                                                const percentage = dataset.percentages[dataIndex];
+                                                let result = `${label}${val} (out of ${totalReg} registrations)`;
+                                                
+                                                if (dataIndex > 0) {
+                                                    const arrow = percentage >= 0 ? '↑' : '↓';
+                                                    const color = percentage >= 0 ? '🟢' : '🔴';
+                                                    result += `\n${color} ${arrow} ${Math.abs(percentage)}% MoM`;
+                                                }
+                                                return result;
+                                            } else if (dataset.label === 'Hiring Ratio (%)') {
+                                                // Show ratio with point change
+                                                const change = dataset.changes[dataIndex];
+                                                let result = `${label}${val}%`;
+                                                
+                                                if (dataIndex > 0) {
+                                                    const arrow = change >= 0 ? '↑' : '↓';
+                                                    const color = change >= 0 ? '🟢' : '🔴';
+                                                    result += ` ${color} ${arrow} ${Math.abs(change)}pts`;
+                                                }
+                                                return result;
+                                            }
+                                        }
+
+                                        // Handle Task Approval Rate with ratios
+                                        if (key === 'task_approval_rate' && chartInfo.ratios) {
+                                            const ratio = chartInfo.ratios[context.dataIndex];
+                                            return `${context.label}: ${val} (${ratio}%)`;
                                         }
 
                                         const unit = (label.toLowerCase().includes('ratio') || isRatio) ? '%' : '';

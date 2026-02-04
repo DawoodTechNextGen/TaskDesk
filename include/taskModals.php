@@ -43,14 +43,22 @@
 
                 <div class="space-y-2">
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Description</label>
-                    <div id="edit-description-editor" class="min-h-[200px] rounded-xl border border-gray-200 dark:border-gray-600"></div>
+                    <div id="edit-description-editor"></div>
                 </div>
             </form>
         </div>
 
         <div class="modal-footer flex justify-end gap-3 pt-6 border-t mt-6">
             <button type="button" class="close-modal px-6 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all font-semibold">Cancel</button>
-            <button type="submit" form="edit-task-form" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 font-bold">Update Task</button>
+            <button type="submit" form="edit-task-form" id="update-task-btn" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 font-bold flex items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                <span id="update-btn-text">Update Task</span>
+                <div id="update-btn-loader" class="hidden">
+                    <svg class="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+            </button>
         </div>
     </div>
 </div>

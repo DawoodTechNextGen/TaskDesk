@@ -11,10 +11,7 @@ if ($action === 'admin_task_stats') {
     // Get task status distribution
     $stmt = $conn->query("
         SELECT
-            CASE 
-                WHEN status IN ('pending', 'working') AND due_date < CURDATE() THEN 'expired'
-                ELSE status
-            END AS status_group,
+            status AS status_group,
             COUNT(*) as count
         FROM tasks
         GROUP BY status_group
@@ -292,12 +289,8 @@ if ($action === 'supervisor_stats') {
 
 if ($action === 'supervisor_task_stats') {
     // First: Count statuses but exclude overdue pending tasks from 'pending'
-    $sql = "SELECT
-            CASE 
-                WHEN (status != 'complete' AND due_date < CURDATE()) 
-                     OR (status = 'complete' AND completed_at > due_date) THEN 'expired'
-                ELSE status
-            END AS status_group,
+        $sql = "SELECT
+            status AS status_group,
             COUNT(*) as count
         FROM tasks";
     

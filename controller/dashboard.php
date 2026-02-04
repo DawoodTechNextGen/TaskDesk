@@ -182,8 +182,9 @@ if ($action === 'intern_stats') {
         'total_hours' => $total_hours,
         'attendance_percentage' => $attendance_percentage,
         'present_days' => $present_days,
-        'working_days_passed' => $total_days, // renaming for clarity in JS if needed, but total_days is working days passed
-        'total_working_days' => getWorkingDays($created_at, $completion_date),
+        'working_days_passed' => $total_days,
+        'total_working_days' => $total_working_days = getWorkingDays($created_at, $completion_date),
+        'internship_progress_percentage' => $total_working_days > 0 ? round(($total_days / $total_working_days) * 100) : 0,
         'current_week' => $current_week,
         'total_weeks' => $total_weeks
     ]);

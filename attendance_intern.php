@@ -140,19 +140,20 @@ include_once "./include/headerLinks.php";
             fetch(statsUrl)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Attendance Stats Data:', data);
                     if (data.success) {
                         document.getElementById('attendancePercent').textContent = data.attendance_percentage + '%';
                         
-                        // Update Progress Text (Present/Working Days Passed)
+                        // Update Progress Text (Present Days / Total Working Days Passed)
                         const progressText = document.getElementById('progressText');
                         if (progressText) {
                             progressText.textContent = `${data.present_days}/${data.working_days_passed} Days`;
                         }
                         
-                        // Update Progress Bar
+                        // Update Progress Bar to match Attendance Percentage
                         const progressBar = document.getElementById('progressBar');
                         if (progressBar) {
-                            progressBar.style.width = data.attendance_percentage + '%';
+                            progressBar.style.setProperty('width', data.attendance_percentage + '%', 'important');
                         }
                         
                         // Update Week Info
@@ -247,7 +248,7 @@ include_once "./include/headerLinks.php";
                                     <div class="group/task flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-200">
                                         <div class="flex items-center gap-2">
                                             <div class="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${t.name}</span>
+                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200" title="${t.name}">${t.name.length > 23 ? t.name.substring(0, 23) + '...' : t.name}</span>
                                         </div>
                                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-700">${t.duration}</span>
                                     </div>

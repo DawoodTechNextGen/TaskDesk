@@ -584,11 +584,7 @@ switch ($action) {
         $orderDir = $_GET['order'][0]['dir'] ?? 'desc';
         $sql .= " ORDER BY $orderColumn $orderDir";
 
-        // Count total
-        $countSql = "SELECT COUNT(*) as total FROM registrations r 
-                 WHERE r.status IN ('interview', 'hired', 'rejected', 'no_show') 
-                 AND r.interview_start IS NOT NULL";
-
+    
         // Pagination
         if (isset($_GET['start']) && isset($_GET['length'])) {
             $sql .= " LIMIT ? OFFSET ?";
@@ -643,13 +639,11 @@ switch ($action) {
         $stmt->close();
 
         // For interview case, we use specific count
-        $countRes = $conn->query($countSql);
-        $totalRecords = $countRes ? $countRes->fetch_assoc()['total'] : count($data);
 
         echo json_encode([
             'draw' => intval($_GET['draw'] ?? 1),
-            'recordsTotal' => $totalRecords,
-            'recordsFiltered' => $totalRecords, // Simplified for now
+            'recordsTotal' => count($data),
+            'recordsFiltered' => count($data), // Simplified for now
             'data' => $data,
         ]);
         break;

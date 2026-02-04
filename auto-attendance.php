@@ -8,22 +8,44 @@ function markAutoAttendance() {
     
     $currentDate = date('Y-m-d');
     
-    // Get all users
-    $usersSql = "SELECT id FROM users WHERE status = 1 AND user_role = 2"; 
+    // Get all approved interns
+    $usersSql = "SELECT id, created_at, internship_type, internship_duration FROM users WHERE status = 1 AND user_role = 2"; 
     $usersResult = $conn->query($usersSql);
     
+    $today = new DateTime($currentDate);
+
     while ($user = $usersResult->fetch_assoc()) {
         $userId = $user['id'];
         
+        // Calculate completion date
+        $start_date = new DateTime($user['created_at']);
+        $duration_weeks = 12;
+        if (!empty($user['internship_duration'])) {
+            if ($user['internship_duration'] === '4 weeks') $duration_weeks = 4;
+            elseif ($user['internship_duration'] === '8 weeks') $duration_weeks = 8;
+            elseif ($user['internship_duration'] === '12 weeks') $duration_weeks = 12;
+        } else {
+            $duration_weeks = ($user['internship_type'] == 0) ? 4 : 12;
+        }
+        
+        $completion_date = clone $start_date;
+        $completion_date->modify("+$duration_weeks weeks");
+        $completion_date->setTime(0, 0, 0);
+
+        // If internship is complete, skip marking absent
+        if ($today > $completion_date) {
+            continue;
+        }
+
         // Check if user has any time logs for today
-        $timeLogSql = "SELECT * FROM time_logs WHERE user_id = ? AND DATE(start_time) = ?";
+        $timeLogSql = "SELECT id FROM time_logs WHERE user_id = ? AND DATE(start_time) = ? LIMIT 1";
         $timeLogStmt = $conn->prepare($timeLogSql);
         $timeLogStmt->bind_param("is", $userId, $currentDate);
         $timeLogStmt->execute();
         $timeLogResult = $timeLogStmt->get_result();
         
         // Check if attendance already exists for today
-        $attendanceSql = "SELECT * FROM attendance WHERE user_id = ? AND date = ?";
+        $attendanceSql = "SELECT id FROM attendance WHERE user_id = ? AND date = ? LIMIT 1";
         $attendanceStmt = $conn->prepare($attendanceSql);
         $attendanceStmt->bind_param("is", $userId, $currentDate);
         $attendanceStmt->execute();

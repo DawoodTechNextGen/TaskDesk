@@ -55,10 +55,8 @@ include_once "./include/headerLinks.php";
                                             <span>Internship Progress</span>
                                             <span id="progressText">0/0 Days</span>
                                         </div>
-                                        <div class="h-3 w-full bg-indigo-100 dark:bg-indigo-900/30 rounded-full overflow-hidden border border-indigo-200/50 dark:border-indigo-700/50 p-[2px]">
-                                            <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-blue-600 rounded-full shadow-[0_0_12px_rgba(79,70,229,0.5)] transition-all duration-1000 ease-out relative" style="width: 0%">
-                                                <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-                                            </div>
+                                        <div class="h-5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 shadow-inner">
+                                            <div id="progressBar" class="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-1000 ease-out" style="width: 0%"></div>
                                         </div>
                                     </div>
                                 </div>

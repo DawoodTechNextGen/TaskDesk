@@ -62,12 +62,12 @@ if ($user_role == 1) {
     $working_tasks->execute();
     $working_tasks = $working_tasks->get_result()->fetch_assoc()['total'];
 
-    $pending_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'pending' AND due_date >= CURDATE()");
+    $pending_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'pending'");
     $pending_tasks->bind_param("i", $user_id);
     $pending_tasks->execute();
     $pending_tasks = $pending_tasks->get_result()->fetch_assoc()['total'];
 
-    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND (status = 'expired' OR (status IN ('pending', 'working') AND due_date < CURDATE()))");
+    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'expired'");
     $expired_tasks->bind_param("i", $user_id);
     $expired_tasks->execute();
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
@@ -94,9 +94,7 @@ if ($user_role == 1) {
 
     $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks 
         WHERE (assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)) 
-        AND (status = 'expired' 
-             OR (status != 'complete' AND due_date < CURDATE()) 
-             OR (status = 'complete' AND completed_at > due_date))");
+        AND status = 'expired'");
     $expired_tasks->bind_param("i", $user_id);
     $expired_tasks->execute();
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];

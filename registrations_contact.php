@@ -1548,7 +1548,10 @@ include_once "./include/headerLinks.php";
                     data: 'mbl_number'
                 },
                 {
-                    data: 'technology'
+                    data: 'technology',
+                    render: function(data, type, row) {
+                        return `<span class="technology-cell cursor-pointer inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition" data-id="${row.id}" data-current="${row.technology_id}">${escapeHTML(data)}</span>`;
+                    }
                 },
                 {
                     data: 'internship_type_text',
@@ -1645,6 +1648,65 @@ include_once "./include/headerLinks.php";
             $('#editTypeNewType').val('');
             $('#editTypeModal').removeClass('hidden');
         }
+
+        // Inline Technology Edit
+        $(document).on('click', '.technology-cell', function(e) {
+            e.stopPropagation();
+            const cell = $(this);
+            const id = cell.data('id');
+            const current = cell.data('current');
+            
+            // Get all technologies from the schedule modal select
+            const techOptions = $('#intTech').html();
+            
+            // Create select dropdown
+            const select = $(`
+                <select class="technology-select px-2 py-1 rounded border border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                    ${techOptions}
+                </select>
+            `);
+            
+            cell.replaceWith(select);
+            select.val(current);
+            select.focus();
+            
+            // Handle change
+            select.on('change', function() {
+                const newValue = $(this).val();
+                if (!newValue) return;
+                
+                $.ajax({
+                    url: 'controller/registrations.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'update_technology',
+                        registration_id: id,
+                        technology_id: newValue
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', 'Technology updated successfully');
+                            table.ajax.reload();
+                        } else {
+                            showToast('error', response.message || 'Failed to update technology');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        showToast('error', 'An error occurred while updating technology');
+                    }
+                });
+            });
+            
+            // Handle blur - revert if no change
+            select.on('blur', function() {
+                const newValue = $(this).val();
+                if (newValue == current) {
+                    table.ajax.reload();
+                }
+            });
+        });
 
         // Inline Internship Type Edit
         $(document).on('click', '.internship-type-cell', function(e) {

@@ -104,7 +104,7 @@
                                 </a>
                             </li>
                         <?php } ?>
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
                             <li>
                                 <?php
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);

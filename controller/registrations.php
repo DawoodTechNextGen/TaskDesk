@@ -95,7 +95,7 @@ switch ($action) {
         SELECT r.id, r.name, r.email, r.mbl_number, r.status,
                r.internship_type, r.experience, r.city, r.country,
                r.cnic, DATE(r.created_at) created_at, r.remarks,
-               t.name technology
+               r.technology_id, t.name technology
         $sqlBase
         $whereClause
         ORDER BY $orderBy $orderDir
@@ -520,6 +520,7 @@ switch ($action) {
             'r.name',
             'r.email',
             'r.mbl_number',
+            'r.technology_id',
             't.name as technology',
             'r.internship_type',
             'r.experience',
@@ -729,6 +730,26 @@ switch ($action) {
             echo json_encode(['success' => false, 'message' => 'Failed to reschedule interview']);
         }
         $update_stmt->close();
+        break;
+
+    case 'update_technology':
+        $registration_id = (int)($_POST['registration_id'] ?? 0);
+        $technology_id = (int)($_POST['technology_id'] ?? 0);
+
+        if ($registration_id <= 0 || $technology_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            break;
+        }
+
+        $stmt = $conn->prepare("UPDATE registrations SET technology_id = ? WHERE id = ?");
+        $stmt->bind_param('ii', $technology_id, $registration_id);
+
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Technology updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update technology: ' . $conn->error]);
+        }
+        $stmt->close();
         break;
 
     case 'update_internship_type':

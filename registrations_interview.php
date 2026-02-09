@@ -254,9 +254,9 @@ include_once "./include/headerLinks.php";
                     
                     <div class="flex flex-wrap gap-2" id="filterContainer">
                         <button type="button" class="filter-btn active px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-md transform hover:scale-105" data-filter="today">Today</button>
-                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="tomorrow">Tomorrow</button>
-                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="day_after">Day After</button>
-                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200" data-filter="all">All</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200" data-filter="tomorrow">Tomorrow</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200" data-filter="day_after">Day After</button>
+                        <button type="button" class="filter-btn px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200" data-filter="all">All</button>
                     </div>
                 </div>
 
@@ -1380,8 +1380,8 @@ include_once "./include/headerLinks.php";
                 },
                 {
                     data: 'technology',
-                    render: function(data) {
-                        return `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">${escapeHTML(data)}</span>`;
+                    render: function(data, type, row) {
+                        return `<span class="technology-cell cursor-pointer inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition" data-id="${row.id}" data-current="${row.technology_id}">${escapeHTML(data)}</span>`;
                     }
                 },
                 {
@@ -1716,6 +1716,65 @@ include_once "./include/headerLinks.php";
         });
 
         $('#hireCancelBtn, #cancelHireBtn').on('click', () => $('#hireModal').addClass('hidden'));
+
+        // Inline Technology Edit
+        $(document).on('click', '.technology-cell', function(e) {
+            e.stopPropagation();
+            const cell = $(this);
+            const id = cell.data('id');
+            const current = cell.data('current');
+            
+            // Get all technologies from the schedule modal select
+            const techOptions = $('#intTech').html();
+            
+            // Create select dropdown
+            const select = $(`
+                <select class="technology-select px-2 py-1 rounded border border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                    ${techOptions}
+                </select>
+            `);
+            
+            cell.replaceWith(select);
+            select.val(current);
+            select.focus();
+            
+            // Handle change
+            select.on('change', function() {
+                const newValue = $(this).val();
+                if (!newValue) return;
+                
+                $.ajax({
+                    url: 'controller/registrations.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'update_technology',
+                        registration_id: id,
+                        technology_id: newValue
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', 'Technology updated successfully');
+                            table.ajax.reload();
+                        } else {
+                            showToast('error', response.message || 'Failed to update technology');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        showToast('error', 'An error occurred while updating technology');
+                    }
+                });
+            });
+            
+            // Handle blur - revert if no change
+            select.on('blur', function() {
+                const newValue = $(this).val();
+                if (newValue == current) {
+                    table.ajax.reload();
+                }
+            });
+        });
 
         // Inline Internship Type Edit
         $(document).on('click', '.internship-type-cell', function(e) {

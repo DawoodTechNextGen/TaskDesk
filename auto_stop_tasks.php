@@ -43,28 +43,11 @@ while ($task = $result->fetch_assoc()) {
     $att_stmt->bind_param("iiiis", $duration, $duration, $task_id, $user_id, $today);
     $att_stmt->execute();
 
-    // 3. Determine task status based on due date
-    $due_date_only = date("Y-m-d", strtotime($due_date));
-
-    if ($due_date_only < $today) {
-        $status = "expired";
-        $stmt2 = $conn->prepare("UPDATE tasks SET status = ?, started_at = NULL WHERE id = ?");
-        $stmt2->bind_param("si", $status, $task_id);
-        $stmt2->execute();
-    } elseif ($due_date_only == $today) {
-        $status = "complete";
-        $stmt2 = $conn->prepare("UPDATE tasks SET status = ?, started_at = NULL, completed_at = ? WHERE id = ?");
-        $stmt2->bind_param("ssi", $status, $stop_time_record, $task_id);
-        $stmt2->execute();
-    } else {
-        $status = "pending";
-        $stmt2 = $conn->prepare("UPDATE tasks SET status = ?, started_at = NULL WHERE id = ?");
-        $stmt2->bind_param("si", $status, $task_id);
-        $stmt2->execute();
-    }
-
+    $status = "pending";
+    $stmt2 = $conn->prepare("UPDATE tasks SET status = ?, started_at = NULL WHERE id = ?");
+    $stmt2->bind_param("si", $status, $task_id);
+    $stmt2->execute();
     error_log("Auto-stopped task $task_id for user $user_id. Duration added: $duration seconds.");
 }
 
 $conn->close();
-?>

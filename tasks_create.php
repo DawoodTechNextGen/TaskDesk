@@ -48,14 +48,14 @@ include_once "./include/headerLinks.php";
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Task Title</label>
-                                    <input type="text" id="title" required 
-                                        class="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white transition-all outline-none" 
+                                    <input type="text" id="title" required
+                                        class="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white transition-all outline-none"
                                         placeholder="e.g. Implement Login API">
                                 </div>
 
                                 <div class="space-y-2">
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Due Date</label>
-                                    <input type="date" id="due_date" required 
+                                    <input type="date" id="due_date" required
                                         class="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white transition-all outline-none">
                                 </div>
                             </div>
@@ -67,24 +67,28 @@ include_once "./include/headerLinks.php";
                                         <option value="">Select Intern</option>
                                         <?php
                                         $user_role = $_SESSION['user_role'];
-                                        $userQuery = "SELECT id, name FROM users 
-                                                      WHERE user_role = 2 
-                                                        AND freeze_status = 'active'
-                                                        AND DATE_ADD(created_at, INTERVAL (CASE 
-                                                            WHEN internship_duration = '4 weeks' THEN 4
-                                                            WHEN internship_duration = '8 weeks' THEN 8
-                                                            WHEN internship_duration = '12 weeks' THEN 12
-                                                            ELSE IF(internship_type = 0, 4, 12)
-                                                        END) WEEK) > NOW()";
-                                        
+                                        $userQuery = "SELECT u.id, u.name, t.name AS tech 
+                                            FROM users u  
+                                            JOIN technologies t ON u.tech_id = t.id
+                                            WHERE u.user_role = 2  
+                                            AND u.freeze_status = 'active'
+                                            AND DATE_ADD(u.created_at, INTERVAL (
+                                                CASE  
+                                                    WHEN u.internship_duration = '4 weeks' THEN 4
+                                                    WHEN u.internship_duration = '8 weeks' THEN 8
+                                                    WHEN u.internship_duration = '12 weeks' THEN 12
+                                                    ELSE IF(u.internship_type = 0, 4, 12)
+                                                END
+                                            ) WEEK) > CURDATE()";
+
                                         if ($user_role == 3) {
-                                            $userQuery .= " AND supervisor_id = $user_id";
+                                            $userQuery .= " AND u.supervisor_id = $user_id";
                                         }
-                                        
-                                        $userQuery .= " ORDER BY name ASC";
+
+                                        $userQuery .= " ORDER BY u.name ASC";
                                         $userResult = mysqli_query($conn, $userQuery);
                                         while ($user = mysqli_fetch_assoc($userResult)) {
-                                            echo "<option value=\"{$user['id']}\">{$user['name']}</option>";
+                                            echo "<option value=\"{$user['id']}\">{$user['name']} ({$user['tech']})</option>";
                                         }
                                         ?>
                                     </select>
@@ -142,4 +146,5 @@ include_once "./include/headerLinks.php";
         });
     </script>
 </body>
+
 </html>

@@ -111,8 +111,8 @@ if ($action === 'intern_stats') {
     $avg_time = $time_result['avg_days'] ? round($time_result['avg_days']) : 0;
 
     // Calculate total hours
-    $stmt = $conn->prepare("SELECT COALESCE(SUM(duration), 0) as total_seconds 
-                           FROM time_logs WHERE user_id = ?");
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(total_work_seconds), 0) as total_seconds 
+                           FROM attendance WHERE user_id = ?");
     $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
     $hours_result = $stmt->get_result()->fetch_assoc();
@@ -979,7 +979,10 @@ if ($action === "intern_daily_history") {
 
 
     // Get attendance records
-    $att_sql = "SELECT date, total_work_seconds, status FROM attendance WHERE user_id = ?";
+    $att_sql = "SELECT a.date, a.total_work_seconds, a.status, a.task_id, t.title as task_name 
+                FROM attendance a 
+                LEFT JOIN tasks t ON a.task_id = t.id 
+                WHERE a.user_id = ?";
     $stmt = $conn->prepare($att_sql);
     $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
@@ -990,38 +993,8 @@ if ($action === "intern_daily_history") {
         $attendance_map[$row['date']] = $row;
     }
 
-    // Get tasks worked on per day
-    $tasks_sql = "SELECT 
-        DATE(tl.start_time) as date, 
-        t.title as task_name,
-        SUM(tl.duration) as duration
-    FROM time_logs tl
-    JOIN tasks t ON tl.task_id = t.id
-    WHERE tl.user_id = ?
-    GROUP BY DATE(tl.start_time), t.id";
-    
-    $stmt = $conn->prepare($tasks_sql);
-    $stmt->bind_param("i", $calc_user_id);
-    $stmt->execute();
-    $tasks_result = $stmt->get_result();
-
+    // time_logs table does not exist on this environment
     $tasks_map = [];
-    while ($row = $tasks_result->fetch_assoc()) {
-        $date = $row['date'];
-        if (!isset($tasks_map[$date])) {
-            $tasks_map[$date] = [];
-        }
-        $seconds = $row['duration'];
-        $h = floor($seconds / 3600);
-        $m = floor(($seconds % 3600) / 60);
-        $s = $seconds % 60;
-        $duration_str = "$h hour: $m min: $s sec";
-        $tasks_map[$date][] = [
-            'name' => $row['task_name'],
-            'duration' => $duration_str,
-            'seconds' => $seconds
-        ];
-    }
 
     // Get completed tasks dates and titles
     $completed_tasks_sql = "SELECT DATE(completed_at) as date, title FROM tasks WHERE assign_to = ? AND status = 'complete'";
@@ -1066,18 +1039,39 @@ if ($action === "intern_daily_history") {
         $total_seconds = 0;
         $work_time = '00:00:00';
         $progress = 0;
+        
+        $day_tasks = [];
 
         if (isset($attendance_map[$date_str])) {
             $total_seconds = $attendance_map[$date_str]['total_work_seconds'];
             $status = ($attendance_map[$date_str]['status'] === 'Present') ? 'Present' : $status;
+            
+            $tid = $attendance_map[$date_str]['task_id'];
+            if ($tid !== null && $tid > 0) {
+                $day_tasks[] = [
+                    'name' => $attendance_map[$date_str]['task_name'],
+                    'duration' => gmdate("H:i:s", $total_seconds)
+                ];
+            }
         }
 
-        // Add task duration sum if not already included
+        // Add task duration sum if not already included (time_logs fallback)
         $task_seconds = 0;
         if (isset($tasks_map[$date_str])) {
             foreach ($tasks_map[$date_str] as $t) {
                 if (isset($t['seconds'])) {
                     $task_seconds += $t['seconds'];
+                }
+                // avoid duplicate task name
+                $found = false;
+                foreach ($day_tasks as $dt_task) {
+                    if ($dt_task['name'] === $t['name']) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $day_tasks[] = $t;
                 }
             }
         }
@@ -1089,10 +1083,6 @@ if ($action === "intern_daily_history") {
         if ($total_seconds >= 10800 || isset($completed_dates[$date_str])) {
             $status = 'Present';
         }
-
-        // Logic override: If weekend and no work, skip or mark as 'Weekend' instead of Absent?
-        // Requirement says "otherwise absent". usually weekends are not marked 'Absent' in a negative way, but technically they are.
-        // Let's keep it simple: Present/Absent based on work. Maybe add a flag for weekend.
         
         $history[] = [
             'date' => $date_str,
@@ -1100,7 +1090,7 @@ if ($action === "intern_daily_history") {
             'work_time' => $work_time,
             'progress_percent' => $progress,
             'is_weekend' => $is_weekend,
-            'tasks' => $tasks_map[$date_str] ?? []
+            'tasks' => $day_tasks
         ];
     }
     

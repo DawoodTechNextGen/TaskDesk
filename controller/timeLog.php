@@ -27,100 +27,6 @@ function formatDuration($seconds)
 }
 
 /* =========================
-   ATTENDANCE (USER + DATE)
-========================= */
-
-function ensureAttendanceRow($conn, $user_id, $date, $task_id)
-{
-    $sql = "
-        INSERT INTO attendance (user_id, task_id, date, total_work_seconds, status)
-        VALUES (?, ?, ?, 0, 'absent')
-        ON DUPLICATE KEY UPDATE status = status, task_id = ?
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iisi", $user_id, $task_id, $date, $task_id);
-    $stmt->execute();
-    $stmt->close();
-}
-
-function updateAttendanceTime($conn, $user_id, $date, $seconds, $task_id)
-{
-    $sql = "
-        UPDATE attendance
-        SET total_work_seconds = total_work_seconds + ?,
-            status = CASE 
-                WHEN total_work_seconds + ? >= 10800 THEN 'present'
-                ELSE 'absent'
-            END,
-            task_id = ?
-        WHERE user_id = ? AND date = ?
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iiiis", $seconds, $seconds, $task_id, $user_id, $date);
-    $stmt->execute();
-    $stmt->close();
-}
-
-function markSkippedDaysAbsent($conn, $user_id, $user_created_at)
-{
-    $start = date('Y-m-d', strtotime($user_created_at));
-    $today = date('Y-m-d');
-
-    // Get the user's current active task (if any)
-    $task_id = null;
-    $task_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND status IN ('pending', 'working') ORDER BY created_at DESC LIMIT 1");
-    $task_stmt->bind_param("i", $user_id);
-    $task_stmt->execute();
-    $task_result = $task_stmt->get_result();
-    if ($task_row = $task_result->fetch_assoc()) {
-        $task_id = $task_row['id'];
-    }
-    $task_stmt->close();
-
-    // If no active task, we can't backfill (need a task_id)
-    if (!$task_id) {
-        return;
-    }
-
-    // Get freeze periods for this user
-    $freeze_periods = [];
-    $freeze_stmt = $conn->prepare("
-        SELECT freeze_start_date, freeze_end_date 
-        FROM users 
-        WHERE id = ? 
-        AND freeze_start_date IS NOT NULL 
-        AND freeze_end_date IS NOT NULL
-    ");
-    $freeze_stmt->bind_param("i", $user_id);
-    $freeze_stmt->execute();
-    $freeze_result = $freeze_stmt->get_result();
-    while ($freeze_row = $freeze_result->fetch_assoc()) {
-        $freeze_periods[] = [
-            'start' => $freeze_row['freeze_start_date'],
-            'end' => $freeze_row['freeze_end_date']
-        ];
-    }
-    $freeze_stmt->close();
-
-    while ($start < $today) {
-        // Check if this date is within a freeze period
-        $is_frozen = false;
-        foreach ($freeze_periods as $period) {
-            if ($start >= $period['start'] && $start <= $period['end']) {
-                $is_frozen = true;
-                break;
-            }
-        }
-        
-        // Only mark attendance if not weekend and not frozen
-        if (!isWeekend($start) && !$is_frozen) {
-            ensureAttendanceRow($conn, $user_id, $start, $task_id);
-        }
-        $start = date('Y-m-d', strtotime($start . ' +1 day'));
-    }
-}
-
-/* =========================
    START TIMER
 ========================= */
 
@@ -192,12 +98,6 @@ if ($data['action'] === 'start') {
         exit;
     }
 
-    // Back-fill absents safely
-    markSkippedDaysAbsent($conn, $user_id, $user_created_at);
-
-    // Ensure today's attendance row
-    ensureAttendanceRow($conn, $user_id, $today, $task_id);
-
     // Check for Task Expiration first
     $exp_stmt = $conn->prepare("SELECT due_date, status FROM tasks WHERE id = ?");
     $exp_stmt->bind_param("i", $task_id);
@@ -257,10 +157,7 @@ if ($data['action'] === 'stop') {
     $started_at = $task_data['started_at'];
     $duration = strtotime($stop_time) - strtotime($started_at);
 
-    // 2. Update attendance
-    updateAttendanceTime($conn, $user_id, $today, $duration, $task_id);
-
-    // 3. Determine new status (pending or expired)
+    // 2. Determine new status (pending or expired)
     $new_status = 'pending';
     if (!empty($task_data['due_date']) && $task_data['due_date'] < $today) {
         $new_status = 'expired';
@@ -325,7 +222,6 @@ if ($data['action'] === 'complete') {
 
     if ($started_at) {
         $duration = strtotime($stop_time) - strtotime($started_at);
-        updateAttendanceTime($conn, $user_id, $today, $duration, $task_id);
 
         $stmt = $conn->prepare("
             UPDATE time_logs 
@@ -468,28 +364,123 @@ if ($data['action'] === 'check_active') {
 ========================= */
 
 if ($data['action'] === 'mark_auto_attendance') {
-    // This is called periodically or at end of day to ensure rows exist
-    $today = date('Y-m-d');
+    $currentDate = date('Y-m-d');
+    $now = date('Y-m-d H:i:s');
     
-    // Get all active interns (role 2)
-    $stmt = $conn->prepare("SELECT id, created_at FROM users WHERE user_role = 2 AND status = 'approved'");
+    // Get all approved interns
+    $stmt = $conn->prepare("SELECT id, created_at, internship_type, internship_duration FROM users WHERE status = 1 AND user_role = 2");
     $stmt->execute();
     $result = $stmt->get_result();
     
+    $today = new DateTime($currentDate);
+
     while ($user = $result->fetch_assoc()) {
-        // Find most recent task for this user to link attendance
-        $task_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? ORDER BY created_at DESC LIMIT 1");
-        $task_stmt->bind_param("i", $user['id']);
-        $task_stmt->execute();
-        $task_res = $task_stmt->get_result()->fetch_assoc();
-        $task_id = $task_res ? $task_res['id'] : 0;
-        $task_stmt->close();
+        $userId = $user['id'];
         
-        if ($task_id > 0) {
-            ensureAttendanceRow($conn, $user['id'], $today, $task_id);
+        // Calculate completion date
+        $start_date = new DateTime($user['created_at']);
+        $duration_weeks = 12;
+        if (!empty($user['internship_duration'])) {
+            if ($user['internship_duration'] === '4 weeks') $duration_weeks = 4;
+            elseif ($user['internship_duration'] === '8 weeks') $duration_weeks = 8;
+            elseif ($user['internship_duration'] === '12 weeks') $duration_weeks = 12;
+        } else {
+            $duration_weeks = ($user['internship_type'] == 0) ? 4 : 12;
+        }
+        
+        $completion_date = clone $start_date;
+        $completion_date->modify("+$duration_weeks weeks");
+        $completion_date->setTime(0, 0, 0);
+
+        // If internship is complete, skip auto-attendance
+        if ($today > $completion_date) {
+            continue;
+        }
+
+        // 1. Check if user is checked in but has not checked out today
+        $dtlsSql = "SELECT id, check_in_time FROM attendance_dtls WHERE user_id = ? AND date = ? AND check_out_time IS NULL ORDER BY id DESC LIMIT 1";
+        $dtlsStmt = $conn->prepare($dtlsSql);
+        $dtlsStmt->bind_param("is", $userId, $currentDate);
+        $dtlsStmt->execute();
+        $dtlsResult = $dtlsStmt->get_result()->fetch_assoc();
+        $dtlsStmt->close();
+
+        if ($dtlsResult) {
+            $dtlsId = $dtlsResult['id'];
+            $checkInTime = $dtlsResult['check_in_time'];
+            $duration = strtotime($now) - strtotime($checkInTime);
+            
+            // If duration is greater than 25,200 then just add 25,200 or if less then insert that duration
+            if ($duration > 25200) {
+                $duration = 25200;
+            }
+            
+            // Update attendance_dtls
+            $updateDtlsSql = "UPDATE attendance_dtls SET check_out_time = ?, duration = ? WHERE id = ?";
+            $updateDtlsStmt = $conn->prepare($updateDtlsSql);
+            $updateDtlsStmt->bind_param("sii", $now, $duration, $dtlsId);
+            $updateDtlsStmt->execute();
+            $updateDtlsStmt->close();
+            
+            // Log the auto-stop action
+            error_log("Auto-stopped checked-in session for user $userId (duration: $duration seconds)");
+        }
+
+        // 2. Calculate the total daily duration from all checked-out sessions in attendance_dtls today
+        $sumSql = "SELECT SUM(duration) as total_seconds FROM attendance_dtls WHERE user_id = ? AND date = ?";
+        $sumStmt = $conn->prepare($sumSql);
+        $sumStmt->bind_param("is", $userId, $currentDate);
+        $sumStmt->execute();
+        $sumResult = $sumStmt->get_result()->fetch_assoc();
+        $totalSeconds = (int)($sumResult['total_seconds'] ?? 0);
+        $sumStmt->close();
+
+        // 3. Update status of the master attendance record based on total seconds
+        // status is absent if totalSeconds is less than 10,800, otherwise present
+        $status = ($totalSeconds >= 10800) ? 'present' : 'absent';
+
+        // Check if master attendance record exists
+        $attendanceSql = "SELECT id FROM attendance WHERE user_id = ? AND date = ? LIMIT 1";
+        $attendanceStmt = $conn->prepare($attendanceSql);
+        $attendanceStmt->bind_param("is", $userId, $currentDate);
+        $attendanceStmt->execute();
+        $attendanceResult = $attendanceStmt->get_result();
+        $hasMaster = ($attendanceResult->num_rows > 0);
+        $attendanceStmt->close();
+
+        if ($hasMaster) {
+            // Update master attendance table
+            $updateMasterSql = "UPDATE attendance SET check_out_time = ?, total_work_seconds = ?, status = ?, attendance_type = ? WHERE user_id = ? AND date = ?";
+            $updateMasterStmt = $conn->prepare($updateMasterSql);
+            // If present, attendance_type is 1. If absent, attendance_type is 2.
+            $type = ($status === 'present') ? 1 : 2;
+            $updateMasterStmt->bind_param("sisiis", $now, $totalSeconds, $status, $type, $userId, $currentDate);
+            $updateMasterStmt->execute();
+            $updateMasterStmt->close();
+        } else {
+            // Check if user has any time logs for today
+            $timeLogSql = "SELECT id FROM time_logs WHERE user_id = ? AND DATE(start_time) = ? LIMIT 1";
+            $timeLogStmt = $conn->prepare($timeLogSql);
+            $timeLogStmt->bind_param("is", $userId, $currentDate);
+            $timeLogStmt->execute();
+            $timeLogResult = $timeLogStmt->get_result();
+            $timeLogStmt->close();
+
+            // If no time logs and no master record, insert an absent record
+            if ($timeLogResult->num_rows == 0) {
+                $insertSql = "INSERT INTO attendance (user_id, task_id, date, status, total_work_seconds, attendance_type) VALUES (?, 0, ?, 'absent', 0, 2)";
+                $insertStmt = $conn->prepare($insertSql);
+                $insertStmt->bind_param("is", $userId, $currentDate);
+                $insertStmt->execute();
+                $insertStmt->close();
+                
+                // Log the auto-attendance action
+                error_log("Auto-marked user $userId as absent for $currentDate");
+            }
         }
     }
     
+    $stmt->close();
     echo json_encode(["success" => true, "message" => "Auto-attendance check completed"]);
     exit;
 }

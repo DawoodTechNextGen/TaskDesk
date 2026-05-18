@@ -477,7 +477,7 @@ async function viewTaskDetails(taskId) {
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Timeline</label>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Created: ${formatDateTime(task.created_at)}</p>
-                    ${task.completed_at ? `<p class="text-xs text-green-600 dark:text-green-400">Completed: ${formatDateTime(task.completed_at)}</p>` : ''}
+                    ${(task.completed_at && task.status !== 'needs_improvement') ? `<p class="text-xs text-green-600 dark:text-green-400">Completed: ${formatDateTime(task.completed_at)}</p>` : ''}
                 </div>
             `;
         }
@@ -487,116 +487,15 @@ async function viewTaskDetails(taskId) {
             descArea.innerHTML = task.description || '<p class="text-gray-400 italic">No description provided</p>';
         }
 
-        // Fetch and populate logs
-        const logResponse = await fetch('controller/timeLog.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get', task_id: taskId })
-        });
-        const logResult = await logResponse.json();
-
-        const logsBody = document.getElementById('view-logs-body');
-        const totalTimeEl = document.getElementById('view-total-time');
-        const logsSection = document.getElementById('time-logs-section');
-
-        if (logsBody) logsBody.innerHTML = '';
-        let totalSeconds = 0;
-
-        if (logResult.success && logResult.logs.length > 0) {
-            if (logsSection) logsSection.classList.remove('hidden');
-            logResult.logs.forEach(log => {
-                const duration = parseInt(log.duration) || 0;
-                totalSeconds += duration;
-
-                if (logsBody) {
-                    logsBody.innerHTML += `
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <td class="py-3 px-4 text-xs text-gray-700 dark:text-gray-300">${formatDateTime(log.started_at)}</td>
-                            <td class="py-3 px-4 text-xs text-gray-700 dark:text-gray-300">${log.stopped_at ? formatDateTime(log.stopped_at) : '<span class="text-blue-500 animate-pulse font-bold">In Progress...</span>'}</td>
-                            <td class="py-3 px-4 text-right font-mono text-blue-600 dark:text-blue-400 font-bold">${formatDuration(duration || 0)}</td>
-                        </tr>
-                    `;
-                }
-            });
-            if (totalTimeEl) totalTimeEl.textContent = `Total Time: ${formatDuration(totalSeconds)}`;
-
-            // Live Timer Logic (moved here to access totalSeconds)
-            const banner = document.getElementById('live-timer-banner');
-            if (banner && task.status === 'working' && task.started_at) {
-                banner.classList.remove('hidden');
-                const startTime = new Date(task.started_at).getTime();
-                const sessionCounterEl = document.getElementById('live-counter');
-                const baseTotalSeconds = totalSeconds;
-
-                const updateLiveCounters = () => {
-                    const now = new Date().getTime();
-                    const sessionDiff = Math.max(0, Math.floor((now - startTime) / 1000));
-
-                    // Update Session Counter
-                    if (sessionCounterEl) sessionCounterEl.textContent = formatDuration(sessionDiff);
-
-                    // Update Total Time Live
-                    if (totalTimeEl) totalTimeEl.textContent = `Total Time: ${formatDuration(baseTotalSeconds + sessionDiff)}`;
-                };
-
-                updateLiveCounters();
-                liveTimerInterval = setInterval(updateLiveCounters, 1000);
-            } else if (banner) {
-                banner.classList.add('hidden');
-            }
-
-        } else {
-            if (logsSection) logsSection.classList.add('hidden');
-        }
-
-        // Attendance Summary
-        try {
-            const attResponse = await fetch('controller/timeLog.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get_task_attendance', task_id: taskId })
-            });
-            const attResult = await attResponse.json();
-
-            const attSection = document.getElementById('attendance-summary-section');
-            const attBody = document.getElementById('attendance-summary-body');
-
-            if (attResult.success && attResult.attendance.length > 0) {
-                if (attSection) attSection.classList.remove('hidden');
-                if (attBody) {
-                    attBody.innerHTML = `
-                        <div class="grid grid-cols-3 gap-4 font-bold text-xs text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100 dark:border-gray-700">
-                            <div>Date</div>
-                            <div>Work Time</div>
-                            <div>Status</div>
-                        </div>
-                    `;
-                    attResult.attendance.forEach(record => {
-                        const statusColors = {
-                            'present': 'text-green-600 bg-green-50 dark:bg-green-900/20',
-                            'absent': 'text-red-600 bg-red-50 dark:bg-red-900/20',
-                            'half_day': 'text-amber-600 bg-amber-50 dark:bg-amber-900/20'
-                        };
-                        const colorClass = statusColors[record.status] || 'text-gray-600 bg-gray-50';
-
-                        attBody.innerHTML += `
-                            <div class="grid grid-cols-3 gap-4 py-2 border-b border-gray-50 dark:border-gray-800 items-center text-xs">
-                                <div class="font-medium text-gray-700 dark:text-gray-300">${record.date}</div>
-                                <div class="font-mono text-blue-600 dark:text-blue-400 font-bold">${record.formatted_time}</div>
-                                <div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${colorClass}">
-                                        ${record.status}
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
+        const feedbackSection = document.getElementById('feedback-section');
+        const feedbackArea = document.getElementById('task-view-feedback');
+        if (feedbackSection && feedbackArea) {
+            if (task.review_notes && task.review_notes.trim() !== '') {
+                feedbackArea.textContent = task.review_notes;
+                feedbackSection.classList.remove('hidden');
             } else {
-                if (attSection) attSection.classList.add('hidden');
+                feedbackSection.classList.add('hidden');
             }
-        } catch (e) {
-            console.error('Attendance fetch error:', e);
         }
 
         // External Links (Github/Live)

@@ -79,7 +79,7 @@ include_once "./include/headerLinks.php"; ?>
         </div>
     </div>
     <?php include_once "./include/footerLinks.php"; ?>
-    <script src="./assets/js/tasks-management.js"></script>
+    <script src="./assets/js/tasks-management.js?v=<?= time() ?>"></script>
     <script>
         let dataTable;
         const tech = "<?php echo $_SESSION['tech'] ?? '' ?>";
@@ -125,7 +125,7 @@ include_once "./include/headerLinks.php"; ?>
 
                 const result = await response.json();
                 if (result.success) {
-                    const statusOrder = { "working": 1, "pending": 2, "pending_review": 3, "complete": 4, "expired": 5 };
+                    const statusOrder = { "inprogress": 1, "needs_improvement": 2, "pending_review": 3, "complete": 4, "expired": 5 };
                     result.data.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
 
                     dataTable.clear();
@@ -148,12 +148,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <span class="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-[10px] font-bold uppercase border border-red-200 dark:border-red-800">Expired</span>
                                 ` : ''}
 
-                                ${task.status === 'pending' && !isExpired ? `
-                                    <button data-action="start" data-id="${task.id}" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-1 text-white rounded text-xs font-bold transition-all shadow-sm">Start</button>
-                                ` : ''}
-
-                                ${task.status === 'working' ? `
-                                    <button data-action="pause" data-id="${task.id}" class="bg-amber-600 hover:bg-amber-700 px-3 py-1 text-white rounded text-xs font-bold transition-all shadow-sm">Pause</button>
+                                ${['inprogress', 'needs_improvement'].includes(task.status) && !isExpired ? `
                                     <button data-action="open-submit" data-id="${task.id}" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 text-white rounded text-xs font-bold transition-all shadow-sm">Complete</button>
                                 ` : ''}
 
@@ -163,6 +158,10 @@ include_once "./include/headerLinks.php"; ?>
 
                                 ${task.status === 'complete' || task.status === 'approved' ? `
                                     <span class="px-2 py-1 bg-stone-100 text-stone-700 dark:bg-stone-900/30 dark:text-stone-400 rounded text-[10px] font-bold uppercase border border-stone-200 dark:border-stone-800">Completed</span>
+                                ` : ''}
+
+                                ${task.status === 'rejected' ? `
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-[10px] font-bold uppercase border border-red-200 dark:border-red-800">Rejected</span>
                                 ` : ''}
                             </div>`
                         ]);

@@ -147,7 +147,7 @@ include_once "./include/headerLinks.php";
                         // Update Progress Text (Present Days / Total Working Days Passed)
                         const progressText = document.getElementById('progressText');
                         if (progressText) {
-                            progressText.textContent = `${data.present_days}/${data.working_days_passed} Days`;
+                            progressText.textContent = `${data.present_days}/${data.total_working_days} Days`;
                         }
                         
                         // Update Progress Bar to match Attendance Percentage
@@ -257,7 +257,7 @@ include_once "./include/headerLinks.php";
                                 `).join('');
                                 taskList = `<div class="space-y-1 max-w-xs">${taskList}</div>`;
                             } else {
-                                taskList = '<span class="text-xs font-medium text-gray-400 dark:text-gray-600 italic px-2">No activity logged</span>';
+                                taskList = '<span class="text-xs font-medium text-gray-400 dark:text-gray-600 italic px-2">No activity</span>';
                             }
 
                             html += `

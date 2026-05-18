@@ -96,38 +96,15 @@
                 <div id="task-view-description" class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 text-sm leading-relaxed min-h-[100px]"></div>
             </div>
 
-            <div id="time-logs-section" class="hidden space-y-4 pt-6 border-t border-gray-100 dark:border-gray-700">
-                <div class="flex justify-between items-center">
-                    <h4 class="font-bold text-gray-800 dark:text-white flex items-center text-lg">
-                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Time Tracking Logs
-                    </h4>
-                    <span id="view-total-time" class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-bold"></span>
-                </div>
-                <div class="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <table class="min-w-full bg-white dark:bg-gray-800 text-sm">
-                        <thead class="bg-gray-50 dark:bg-gray-700/50">
-                            <tr>
-                                <th class="py-3 px-4 text-left font-bold text-gray-600 dark:text-gray-300">Started</th>
-                                <th class="py-3 px-4 text-left font-bold text-gray-600 dark:text-gray-300">Stopped</th>
-                                <th class="py-3 px-4 text-right font-bold text-gray-600 dark:text-gray-300">Duration</th>
-                            </tr>
-                        </thead>
-                        <tbody id="view-logs-body" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
-                    </table>
-                </div>
+            <!-- Feedback Section (Populated dynamically) -->
+            <div id="feedback-section" class="hidden space-y-3">
+                <h4 class="font-bold text-amber-600 dark:text-amber-400 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Supervisor Feedback / Remarks
+                </h4>
+                <div id="task-view-feedback" class="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30 text-sm leading-relaxed text-amber-800 dark:text-amber-300 min-h-[60px]"></div>
             </div>
 
-            <!-- Attendance Summary (Optional, populated by JS) -->
-            <div id="attendance-summary-section" class="hidden space-y-4 pt-6 border-t border-gray-100 dark:border-gray-700">
-                <h4 class="font-bold text-gray-800 dark:text-white flex items-center text-lg">
-                    <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                    Daily Attendance Breakdown
-                </h4>
-                <div id="attendance-summary-body" class="text-sm space-y-2">
-                    <!-- Data populated by JS -->
-                </div>
-            </div>
         </div>
 
         <div class="modal-footer flex justify-between items-center pt-6 border-t mt-6">

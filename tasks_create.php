@@ -139,7 +139,7 @@ include_once "./include/headerLinks.php";
 
     <?php include_once "./include/footerLinks.php"; ?>
     <script src="./assets/js/libs/chart.js"></script>
-    <script src="./assets/js/tasks-management.js"></script>
+    <script src="./assets/js/tasks-management.js?v=<?= time() ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initTaskCreation();

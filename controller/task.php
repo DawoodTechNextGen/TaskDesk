@@ -27,8 +27,8 @@ if ($data['action'] === 'create') {
         exit;
     }
 
-    // Check if the intern already has an active task (pending or working)
-    $check_stmt = $conn->prepare("SELECT id, title FROM tasks WHERE assign_to = ? AND status IN ('pending', 'working')");
+    // Check if the intern already has an active task (inprogress or needs_improvement)
+    $check_stmt = $conn->prepare("SELECT id, title FROM tasks WHERE assign_to = ? AND status IN ('inprogress', 'needs_improvement')");
     $check_stmt->bind_param("i", $assign_to);
     $check_stmt->execute();
     $result = $check_stmt->get_result();
@@ -43,7 +43,7 @@ if ($data['action'] === 'create') {
     }
     $check_stmt->close();
 
-    $status = 'pending';
+    $status = 'inprogress';
 
     $stmt = $conn->prepare("
         INSERT INTO tasks 
@@ -504,10 +504,14 @@ if ($data['action'] === 'review_task') {
     } elseif ($review_action === 'rejected') {
         $new_status = 'rejected';
     } elseif ($review_action === 'needs_improvement') {
-        $new_status = 'working'; // Re-open loop
+        $new_status = 'needs_improvement';
     }
     
-    $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
+    if ($new_status === 'needs_improvement') {
+        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL WHERE id = ?");
+    } else {
+        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
+    }
     $stmt->bind_param("ssii", $new_status, $review_notes, $supervisor_id, $task_id);
     
     if ($stmt->execute()) {

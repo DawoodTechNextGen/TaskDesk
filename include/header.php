@@ -25,6 +25,94 @@
                  </svg>
              </button>
 
+             <?php if(isset($_SESSION['user_role']) && $_SESSION['user_role'] == 2): ?>
+             <!-- Check In / Check Out Button -->
+             <div class="relative flex items-center">
+                 <button id="attendance-btn" class="hidden px-4 py-2 rounded-md font-medium text-white transition-all shadow-md focus:outline-none" onclick="toggleAttendance()">
+                     <span id="attendance-btn-text">Loading...</span>
+                 </button>
+             </div>
+             <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const btn = document.getElementById("attendance-btn");
+                    const text = document.getElementById("attendance-btn-text");
+                    let isCheckedIn = false;
+                    let hasCompletedToday = false;
+
+                    // Fetch status on load
+                    fetch('controller/attendance_action.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'status' })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.isInternshipComplete) {
+                                // Do not show the button if the internship is completed
+                                return;
+                            }
+                            btn.classList.remove('hidden');
+                            isCheckedIn = data.isCheckedIn;
+                            hasCompletedToday = data.hasCompletedToday;
+                            updateBtnUI();
+                        }
+                    });
+
+                    function updateBtnUI() {
+                        if (hasCompletedToday) {
+                            btn.className = "px-4 py-2 text-sm md:text-base rounded-md font-medium text-white transition-all shadow-md focus:outline-none bg-gray-500 cursor-not-allowed";
+                            text.innerText = "Completed";
+                            btn.disabled = true;
+                        } else if (isCheckedIn) {
+                            btn.className = "px-4 py-2 text-sm md:text-base rounded-md font-medium text-white transition-all shadow-md focus:outline-none bg-red-600 hover:bg-red-700";
+                            text.innerHTML = "<svg class='inline w-4 h-4 mr-1 mb-0.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'></path></svg> Check Out";
+                        } else {
+                            btn.className = "px-4 py-2 text-sm md:text-base rounded-md font-medium text-white transition-all shadow-md focus:outline-none bg-green-600 hover:bg-green-700";
+                            text.innerHTML = "<svg class='inline w-4 h-4 mr-1 mb-0.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1'></path></svg> Check In";
+                        }
+                    }
+
+                    window.toggleAttendance = function() {
+                        if(hasCompletedToday) return;
+                        const action = isCheckedIn ? 'check_out' : 'check_in';
+                        
+                        btn.disabled = true;
+                        text.innerText = "Processing...";
+
+                        fetch('controller/attendance_action.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: action })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            btn.disabled = false;
+                            if(data.success) {
+                                if (action === 'check_in') {
+                                    isCheckedIn = true;
+                                    if(typeof Swal !== 'undefined') Swal.fire('Success', 'Checked in successfully!', 'success');
+                                } else {
+                                    isCheckedIn = false;
+                                    if(typeof Swal !== 'undefined') Swal.fire('Success', 'Checked out successfully!', 'success');
+                                }
+                                updateBtnUI();
+                            } else {
+                                if(typeof Swal !== 'undefined') Swal.fire('Error', data.message, 'error');
+                                else alert(data.message);
+                                updateBtnUI(); // revert text
+                            }
+                        })
+                        .catch(err => {
+                            btn.disabled = false;
+                            updateBtnUI();
+                            console.error(err);
+                        });
+                    };
+                });
+             </script>
+             <?php endif; ?>
+
              <div class="relative pe-2">
                  <button id="user-menu-button" class="group flex items-center space-x-1 focus:outline-none">
                      <span id="nav-name" class="text-gray-700 dark:text-gray-200 hidden md:inline text-sm"><?php echo $_SESSION['user_name'] ?></span>

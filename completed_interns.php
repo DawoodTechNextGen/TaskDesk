@@ -418,9 +418,9 @@ Are you sure you still want to approve their certificate?`;
 
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
-            const d = new Date(dateStr);
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return d.toLocaleDateString('en-US', options);
+            const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number);
+            const d = new Date(year, month - 1, day);
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
         function showToast(type, msg) {

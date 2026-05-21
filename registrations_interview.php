@@ -798,29 +798,25 @@ include_once "./include/headerLinks.php";
         };
 
         const pakistanDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
+        const displayDateOptions = {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'Asia/Karachi'
+        };
         
         return {
-            date: pakistanDate.toLocaleDateString('en-US', {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                timeZone: 'Asia/Karachi'
-            }),
+            date: pakistanDate.toLocaleDateString('en-GB', displayDateOptions),
             time: pakistanDate.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZone: 'Asia/Karachi'
             }),
-            full: pakistanDate.toLocaleString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
+            full: `${pakistanDate.toLocaleDateString('en-GB', displayDateOptions)} ${pakistanDate.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZone: 'Asia/Karachi'
-            }),
+            })}`,
             iso: formatPakistanDate(pakistanDate) + ' ' + pakistanDate.toTimeString().slice(0, 5)
         };
     }
@@ -1081,11 +1077,10 @@ include_once "./include/headerLinks.php";
         $('#confirmPlatform').text(formData.platform);
         $('#confirmTech').text($('#intTech option:selected').text());
 
-        const dateStr = selectedDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
+        const dateStr = selectedDate.toLocaleDateString('en-GB', {
             day: 'numeric',
+            month: 'long',
+            year: 'numeric',
             timeZone: 'Asia/Karachi'
         });
         $('#confirmDateTime').text(`${dateStr} | ${formData.startTime} - ${formData.endTime}`);
@@ -1146,15 +1141,14 @@ include_once "./include/headerLinks.php";
         renderCalendar(currentDate); // Re-render to highlight
 
         const options = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
             day: 'numeric',
+            month: 'long',
+            year: 'numeric',
             timeZone: 'Asia/Karachi'
         };
         
         const pakistanDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        $('#displayDate').text(pakistanDate.toLocaleDateString('en-US', options));
+        $('#displayDate').text(pakistanDate.toLocaleDateString('en-GB', options));
         $('#dateError').addClass('hidden');
 
         updateTimeSlotDisplay(formatPakistanDate(date));

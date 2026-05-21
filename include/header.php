@@ -62,7 +62,7 @@
                     function updateBtnUI() {
                         if (hasCompletedToday) {
                             btn.className = "px-4 py-2 text-sm md:text-base rounded-md font-medium text-white transition-all shadow-md focus:outline-none bg-gray-500 cursor-not-allowed";
-                            text.innerText = "Completed";
+                            text.innerText = "Attendance Marked";
                             btn.disabled = true;
                         } else if (isCheckedIn) {
                             btn.className = "px-4 py-2 text-sm md:text-base rounded-md font-medium text-white transition-all shadow-md focus:outline-none bg-red-600 hover:bg-red-700";
@@ -77,6 +77,39 @@
                         if(hasCompletedToday) return;
                         const action = isCheckedIn ? 'check_out' : 'check_in';
                         
+                        // Check weekend (Saturday = 6, Sunday = 0)
+                        const now = new Date();
+                        const day = now.getDay();
+                        if (day === 6 || day === 0) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Restricted',
+                                    text: 'Attendance cannot be marked on weekends (Saturday & Sunday).'
+                                });
+                            } else {
+                                alert('Attendance cannot be marked on weekends (Saturday & Sunday).');
+                            }
+                            return;
+                        }
+
+                        // Check time restriction (12:00 AM to 09:00 AM) for check-in
+                        if (action === 'check_in') {
+                            const hours = now.getHours();
+                            if (hours < 9) {
+                                if (typeof Swal !== 'undefined') {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Restricted',
+                                        text: 'Check-in is only allowed after 09:00 AM.'
+                                    });
+                                } else {
+                                    alert('Check-in is only allowed after 09:00 AM.');
+                                }
+                                return;
+                            }
+                        }
+
                         btn.disabled = true;
                         text.innerText = "Processing...";
 
@@ -94,6 +127,7 @@
                                     if(typeof Swal !== 'undefined') Swal.fire('Success', 'Checked in successfully!', 'success');
                                 } else {
                                     isCheckedIn = false;
+                                    hasCompletedToday = data.hasCompletedToday === true;
                                     if(typeof Swal !== 'undefined') Swal.fire('Success', 'Checked out successfully!', 'success');
                                 }
                                 updateBtnUI();

@@ -16,7 +16,7 @@ use Dompdf\Options;
 function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issueDate = null) {
     try {
         if (!$issueDate) {
-            $issueDate = date('d-M-Y');
+            $issueDate = date('j F Y');
         }
 
         $options = new Options();

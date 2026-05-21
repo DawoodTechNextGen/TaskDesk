@@ -909,16 +909,15 @@ include_once "./include/headerLinks.php";
         document.getElementById('confirmTech').textContent = formData.technologyText;
         
         // Format date and time in Pakistan timezone
-        const options = { 
-            weekday: 'short', 
-            year: 'numeric', 
-            month: 'short', 
+        const options = {
             day: 'numeric',
+            month: 'long',
+            year: 'numeric',
             timeZone: 'Asia/Karachi'
         };
         
         const date = new Date(selectedDate);
-        const dateStr = date.toLocaleDateString('en-US', options);
+        const dateStr = date.toLocaleDateString('en-GB', options);
         document.getElementById('confirmDateTime').textContent = `${dateStr} | ${formData.startTime} - ${formData.endTime}`;
         
         // Format duration
@@ -1010,15 +1009,14 @@ include_once "./include/headerLinks.php";
         
         // Format date in Pakistan timezone
         const options = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
             day: 'numeric',
+            month: 'long',
+            year: 'numeric',
             timeZone: 'Asia/Karachi'
         };
         
         const pakistanDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Karachi"}));
-        document.getElementById('displayDate').textContent = pakistanDate.toLocaleDateString('en-US', options);
+        document.getElementById('displayDate').textContent = pakistanDate.toLocaleDateString('en-GB', options);
         
         // Hide date error if shown
         document.getElementById('dateError').classList.add('hidden');

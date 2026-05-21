@@ -20,6 +20,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $today = date('Y-m-d');
 $now = date('Y-m-d H:i:s');
+$present_threshold_seconds = 10800;
 
 if ($data['action'] === 'status') {
     // Check if internship is complete
@@ -56,7 +57,14 @@ if ($data['action'] === 'status') {
     $stmt->close();
 
     $isCheckedIn = $result ? true : false;
-    $hasCompletedToday = false;
+
+    $stmt = $conn->prepare("SELECT status, total_work_seconds FROM attendance WHERE user_id = ? AND date = ? LIMIT 1");
+    $stmt->bind_param("is", $user_id, $today);
+    $stmt->execute();
+    $attendance = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $hasCompletedToday = $attendance && ($attendance['status'] === 'present' || (int)$attendance['total_work_seconds'] >= $present_threshold_seconds);
 
     echo json_encode([
         "success" => true, 
@@ -68,6 +76,20 @@ if ($data['action'] === 'status') {
 }
 
 if ($data['action'] === 'check_in') {
+    // Check weekend (Saturday = 6, Sunday = 7)
+    $day_of_week = (int)date('N');
+    if ($day_of_week >= 6) {
+        echo json_encode(["success" => false, "message" => "Attendance cannot be marked on weekends (Saturday & Sunday)."]);
+        exit;
+    }
+
+    // Check time restriction (12:00 AM to 09:00 AM)
+    $current_hour = (int)date('H');
+    if ($current_hour < 9) {
+        echo json_encode(["success" => false, "message" => "Check-in is only allowed after 09:00 AM."]);
+        exit;
+    }
+
     // Check if internship is complete before allowing check-in
     $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
@@ -94,6 +116,18 @@ if ($data['action'] === 'check_in') {
         echo json_encode(["success" => false, "message" => "Internship duration ($duration_weeks weeks) completed. Attendance marked automatically."]);
         exit;
     }
+
+    $stmt = $conn->prepare("SELECT status, total_work_seconds FROM attendance WHERE user_id = ? AND date = ? LIMIT 1");
+    $stmt->bind_param("is", $user_id, $today);
+    $stmt->execute();
+    $attendance = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($attendance && ($attendance['status'] === 'present' || (int)$attendance['total_work_seconds'] >= $present_threshold_seconds)) {
+        echo json_encode(["success" => false, "message" => "Attendance already marked for today."]);
+        exit;
+    }
+
     $stmt = $conn->prepare("SELECT id FROM attendance_dtls WHERE user_id = ? AND date = ? AND check_out_time IS NULL ORDER BY id DESC LIMIT 1");
     $stmt->bind_param("is", $user_id, $today);
     $stmt->execute();
@@ -110,7 +144,7 @@ if ($data['action'] === 'check_in') {
     
     if ($stmt->execute()) {
         // Ensure a master attendance record exists
-        $master_stmt = $conn->prepare("INSERT IGNORE INTO attendance (user_id, date, check_in_time, status, attendance_type, total_work_seconds) VALUES (?, ?, ?, 'absent', 1, 0)");
+        $master_stmt = $conn->prepare("INSERT IGNORE INTO attendance (user_id, date, check_in_time, status, attendance_type, total_work_seconds) VALUES (?, ?, ?, 'absent', 2, 0)");
         $master_stmt->bind_param("iss", $user_id, $today, $now);
         $master_stmt->execute();
         $master_stmt->close();
@@ -130,6 +164,13 @@ if ($data['action'] === 'check_in') {
 }
 
 if ($data['action'] === 'check_out') {
+    // Check weekend (Saturday = 6, Sunday = 7)
+    $day_of_week = (int)date('N');
+    if ($day_of_week >= 6) {
+        echo json_encode(["success" => false, "message" => "Attendance cannot be marked on weekends (Saturday & Sunday)."]);
+        exit;
+    }
+
     $stmt = $conn->prepare("SELECT id, check_in_time FROM attendance_dtls WHERE user_id = ? AND date = ? AND check_out_time IS NULL ORDER BY id DESC LIMIT 1");
     $stmt->bind_param("is", $user_id, $today);
     $stmt->execute();
@@ -144,18 +185,39 @@ if ($data['action'] === 'check_out') {
     $dtls_id = $result['id'];
     $check_in_time = $result['check_in_time'];
     $duration = strtotime($now) - strtotime($check_in_time);
+    $duration = max(0, $duration);
+
+    $stmt = $conn->prepare("SELECT total_work_seconds FROM attendance WHERE user_id = ? AND date = ? LIMIT 1");
+    $stmt->bind_param("is", $user_id, $today);
+    $stmt->execute();
+    $attendance = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $current_total_seconds = $attendance ? (int)$attendance['total_work_seconds'] : 0;
+    $remaining_seconds = max(0, $present_threshold_seconds - $current_total_seconds);
+    $credited_duration = min($duration, $remaining_seconds);
+    $new_total_seconds = $current_total_seconds + $credited_duration;
+    $status = ($new_total_seconds >= $present_threshold_seconds) ? 'present' : 'absent';
+    $attendance_type = ($status === 'present') ? 1 : 2;
 
     $stmt = $conn->prepare("UPDATE attendance_dtls SET check_out_time = ?, duration = ? WHERE id = ?");
-    $stmt->bind_param("sii", $now, $duration, $dtls_id);
+    $stmt->bind_param("sii", $now, $credited_duration, $dtls_id);
     
     if ($stmt->execute()) {
         // Update master attendance table
-        $master_stmt = $conn->prepare("UPDATE attendance SET check_out_time = ?, total_work_seconds = total_work_seconds + ?, status = CASE WHEN (total_work_seconds + ?) >= 10800 THEN 'present' ELSE 'absent' END WHERE user_id = ? AND date = ?");
-        $master_stmt->bind_param("siiis", $now, $duration, $duration, $user_id, $today);
+        $master_stmt = $conn->prepare("UPDATE attendance SET check_out_time = ?, total_work_seconds = ?, status = ?, attendance_type = ? WHERE user_id = ? AND date = ?");
+        $master_stmt->bind_param("sisiis", $now, $new_total_seconds, $status, $attendance_type, $user_id, $today);
         $master_stmt->execute();
         $master_stmt->close();
 
-        echo json_encode(["success" => true, "message" => "Checked out successfully"]);
+        echo json_encode([
+            "success" => true,
+            "message" => "Checked out successfully",
+            "hasCompletedToday" => $status === 'present',
+            "status" => $status,
+            "creditedDuration" => $credited_duration,
+            "totalWorkSeconds" => $new_total_seconds
+        ]);
     } else {
         echo json_encode(["success" => false, "message" => "Failed to check out"]);
     }

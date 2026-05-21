@@ -424,19 +424,10 @@ function dismissToast(toastId) {
     }
 }
 function formatDateTime(datetime) {
-    const dateObj = new Date(datetime);
-
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const month = monthNames[dateObj.getMonth()];
-    const year = String(dateObj.getFullYear()).slice(-2);
-
-    let hours = dateObj.getHours();
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-
-    return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+    if (!datetime) return 'N/A';
+    const [year, month, day] = datetime.substring(0, 10).split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    return dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 function getThemeColors() {
     const isDarkMode = localStorage.getItem('darkMode');

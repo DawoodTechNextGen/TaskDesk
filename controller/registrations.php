@@ -236,8 +236,8 @@ switch ($action) {
             while ($row = $conflict_result->fetch_assoc()) {
                 $conflicts[] = [
                     'name' => $row['name'],
-                    'start' => date('M d, Y h:i A', strtotime($row['interview_start'])),
-                    'end' => date('M d, Y h:i A', strtotime($row['interview_end']))
+                    'start' => date('j F Y h:i A', strtotime($row['interview_start'])),
+                    'end' => date('j F Y h:i A', strtotime($row['interview_end']))
                 ];
             }
 
@@ -272,7 +272,7 @@ switch ($action) {
             echo json_encode([
                 'success' => false,
                 'message' => 'This candidate already has a scheduled interview at ' .
-                    date('M d, Y h:i A', strtotime($row['interview_start'])) .
+                    date('j F Y h:i A', strtotime($row['interview_start'])) .
                     ' to ' . date('h:i A', strtotime($row['interview_end'])),
                 'type' => 'already_scheduled',
                 'has_conflict' => true
@@ -397,8 +397,8 @@ switch ($action) {
             while ($row = $conflict_result->fetch_assoc()) {
                 $conflicts[] = [
                     'name' => $row['name'],
-                    'start' => date('M d, Y h:i A', strtotime($row['interview_start'])),
-                    'end' => date('M d, Y h:i A', strtotime($row['interview_end']))
+                    'start' => date('j F Y h:i A', strtotime($row['interview_start'])),
+                    'end' => date('j F Y h:i A', strtotime($row['interview_end']))
                 ];
             }
 
@@ -451,7 +451,7 @@ switch ($action) {
         $message = "Assalam-o-Alaikum $name,\n\n"
             . "📋 *Interview Scheduled - Dawood Tech NextGen*\n\n"
             . "🎯 *Position:* Internship\n"
-            . "📅 *Date:* " . date('d M, Y', strtotime($interview_start)) . "\n"
+            . "📅 *Date:* " . date('j F Y', strtotime($interview_start)) . "\n"
             . "⏰ *Time:* " . date('h:i A', strtotime($interview_start)) . " to " . date('h:i A', strtotime($interview_end)) . "\n"
             . "🌐 *Platform:* $platform\n\n"
             . "📌 *Instructions:*\n"
@@ -475,7 +475,7 @@ switch ($action) {
                 <p>Your interview has been scheduled with the following details:</p>
                 <ul>
                     <li><strong>Platform:</strong> $platform</li>
-                    <li><strong>Date:</strong> " . date('d M, Y', strtotime($interview_start)) . "</li>
+                    <li><strong>Date:</strong> " . date('j F Y', strtotime($interview_start)) . "</li>
                     <li><strong>Time:</strong> " . date('h:i A', strtotime($interview_start)) . " to " . date('h:i A', strtotime($interview_end)) . "</li>
                 </ul>
                 <p><strong>Instructions:</strong></p>
@@ -878,8 +878,8 @@ switch ($action) {
             </div>";
 
             // Generate Offer Letter PDF
-            $startDate = date('d-M-Y');
-            $endDate = date('d-M-Y', strtotime('+' . $duration));
+            $startDate = date('j F Y');
+            $endDate = date('j F Y', strtotime('+' . $duration));
             $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
 
             // Send notification with fallback

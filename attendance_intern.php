@@ -12,6 +12,54 @@ include_once './include/connection.php';
 $page_title = 'My Attendance - TaskDesk';
 include_once "./include/headerLinks.php";
 ?>
+<style>
+    /* Backdrop fade-in / fade-out animations */
+    @keyframes backdropFadeIn {
+        from {
+            background-color: rgba(0, 0, 0, 0);
+            backdrop-filter: blur(0px);
+        }
+        to {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+    }
+
+    @keyframes backdropFadeOut {
+        from {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        to {
+            background-color: rgba(0, 0, 0, 0);
+            backdrop-filter: blur(0px);
+        }
+    }
+
+    /* Modal content slide-out animation */
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+    }
+
+    .modal-backdrop-in {
+        animation: backdropFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .modal-backdrop-out {
+        animation: backdropFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    .modal-content-out {
+        animation: fadeOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+</style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
     <div class="flex h-screen overflow-hidden">
@@ -129,8 +177,47 @@ include_once "./include/headerLinks.php";
             <?php include_once "./include/footer.php"; ?>
         </div>
     </div>
+
+    <!-- Attendance Log Modal -->
+    <div id="attendance-log-modal" class="hidden fixed inset-0 z-[100] w-full h-full flex items-center justify-center p-4">
+        <div class="animate-fadeIn modal-content bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 dark:border-gray-700/50">
+            <!-- Modal Header -->
+            <div class="relative p-6 border-b border-gray-100 dark:border-gray-700/50 bg-gradient-to-r from-indigo-50/30 to-white dark:from-gray-800 dark:to-gray-800/80">
+                <button type="button" class="close-modal absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <div class="space-y-3 pr-6">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 id="modalDate" class="text-2xl font-black tracking-tight text-gray-900 dark:text-white">May 20, 2026</h2>
+                        <span id="modalStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-300">
+                            <!-- Status Badge -->
+                        </span>
+                    </div>
+                    <div id="modalDayYear" class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Wednesday</div>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 max-h-[350px] overflow-y-auto custom-scrollbar">
+                <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Check-in / Check-out Logs</h3>
+                <div id="modalLogsContainer" class="space-y-4">
+                    <!-- Logs list -->
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-6 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end">
+                <button type="button" class="close-modal px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm transition-all duration-200 shadow-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
     <?php include_once "./include/footerLinks.php"; ?>
     <script>
+        let attendanceHistory = [];
         document.addEventListener('DOMContentLoaded', function() {
             // Load overall stats
             const urlParamsForStats = new URLSearchParams(window.location.search);
@@ -180,6 +267,7 @@ include_once "./include/headerLinks.php";
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.history.length > 0) {
+                        attendanceHistory = data.history;
                         // Calculate totals
                         let totalPresent = 0;
                         let totalAbsent = 0;
@@ -217,7 +305,7 @@ include_once "./include/headerLinks.php";
                         data.history.forEach(day => {
                             const dateObj = new Date(day.date);
                             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-                            const dayShort = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                            const dayShort = formatDisplayDate(day.date);
                             
                             let statusConfig = {
                                 color: 'from-rose-500/10 to-orange-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30',
@@ -261,7 +349,7 @@ include_once "./include/headerLinks.php";
                             }
 
                             html += `
-                                <tr class="group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all duration-300">
+                                <tr class="group hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 cursor-pointer transition-all duration-300" data-date="${day.date}">
                                     <td class="px-6 py-6 whitespace-nowrap" data-order="${day.date}">
                                         <div class="flex flex-col">
                                             <span class="text-base font-bold text-gray-900 dark:text-white">${dayShort}</span>
@@ -344,6 +432,166 @@ include_once "./include/headerLinks.php";
                         </div>
                     `;
                 });
+        });
+
+        // Show attendance details modal on row click
+        $(document).on('click', '#attendanceTable tbody tr', function(e) {
+            // Avoid triggering when clicking links or buttons if any
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            const date = $(this).data('date');
+            if (!date) return;
+            
+            const dayData = attendanceHistory.find(d => d.date === date);
+            if (!dayData) return;
+            
+            // Set Date & Day
+            const dateFormatted = formatDisplayDate(date);
+            const dayName = parseDisplayDate(dayData.date).toLocaleDateString('en-US', { weekday: 'long' });
+            
+            document.getElementById('modalDate').textContent = dateFormatted;
+            document.getElementById('modalDayYear').textContent = dayName;
+            
+            // Set Status Badge
+            const badge = document.getElementById('modalStatusBadge');
+            let badgeColor = '';
+            let badgeIcon = '';
+            let badgeText = dayData.status;
+            
+            if (dayData.status === 'Present') {
+                badgeColor = 'from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30';
+                badgeIcon = 'fa-check-circle';
+                badgeText = 'Present';
+            } else if (dayData.is_weekend) {
+                badgeColor = 'from-gray-500/10 to-slate-500/10 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700/50';
+                badgeIcon = 'fa-mug-hot';
+                badgeText = 'Holiday';
+            } else {
+                badgeColor = 'from-rose-500/10 to-orange-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30';
+                badgeIcon = 'fa-user-times';
+            }
+            
+            badge.className = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-300 bg-gradient-to-br ${badgeColor}`;
+            badge.innerHTML = `<i class="fas ${badgeIcon} text-[10px]"></i> ${badgeText}`;
+            
+            // Build logs HTML
+            const logsContainer = document.getElementById('modalLogsContainer');
+            if (dayData.logs && dayData.logs.length > 0) {
+                let logsHtml = '<div class="relative pl-6 border-l-2 border-indigo-100 dark:border-indigo-900/50 space-y-6">';
+                
+                dayData.logs.forEach(log => {
+                    const checkInFormatted = formatModalTime(log.check_in);
+                    const checkOutFormatted = log.check_out ? formatModalTime(log.check_out) : '<span class="text-indigo-600 dark:text-indigo-400 font-bold animate-pulse">Active</span>';
+                    const durationFormatted = log.check_out ? formatModalSecs(log.duration) : '-';
+                    
+                    logsHtml += `
+                        <div class="relative">
+                            <div class="absolute -left-[31px] top-1 bg-indigo-500 dark:bg-indigo-600 w-4 h-4 rounded-full border-4 border-white dark:border-gray-800 shadow-sm"></div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700/30 hover:border-indigo-100 dark:hover:border-indigo-900/30 transition-colors shadow-sm">
+                                <div class="flex items-center gap-4 flex-wrap">
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Check In</span>
+                                        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${checkInFormatted}</span>
+                                    </div>
+                                    <div class="text-gray-300 dark:text-gray-600">
+                                        <i class="fas fa-long-arrow-alt-right text-lg"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Check Out</span>
+                                        <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${checkOutFormatted}</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-start sm:items-end">
+                                    <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Duration</span>
+                                    <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">${durationFormatted}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                logsHtml += '</div>';
+                logsContainer.innerHTML = logsHtml;
+            } else {
+                logsContainer.innerHTML = `
+                    <div class="text-center py-10 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                        <div class="p-3 bg-gray-100 dark:bg-gray-700/50 rounded-2xl inline-block text-gray-400 dark:text-gray-500 mb-3 shadow-inner">
+                            <i class="fas fa-history text-2xl"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-500 dark:text-gray-400">No activity sessions logged.</p>
+                        <p class="text-xs text-gray-400 mt-1">This could be due to an absence or holiday.</p>
+                    </div>
+                `;
+            }
+            
+            // Open the modal smoothly
+            const modal = document.getElementById('attendance-log-modal');
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modal.classList.remove('hidden', 'modal-backdrop-out');
+            modalContent.classList.remove('modal-content-out');
+            modal.classList.add('modal-backdrop-in');
+        });
+
+        // Helper: Format datetime to standard Time string
+        function formatModalTime(dateTimeStr) {
+            if (!dateTimeStr) return '-';
+            const dateObj = new Date(dateTimeStr);
+            if (isNaN(dateObj.getTime())) return dateTimeStr; // Fallback
+            return dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            return parseDisplayDate(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function parseDisplayDate(dateStr) {
+            const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        // Helper: Format duration seconds to readable text
+        function formatModalSecs(seconds) {
+            if (seconds === null || seconds === undefined || isNaN(seconds)) return '-';
+            if (seconds === 0) return '0m';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            let result = '';
+            if (hrs > 0) result += `${hrs}h `;
+            if (mins > 0 || hrs === 0) result += `${mins}m`;
+            return result.trim();
+        }
+
+        function closeModalSmoothly() {
+            const modal = document.getElementById('attendance-log-modal');
+            if (modal.classList.contains('hidden')) return;
+            
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modal.classList.remove('modal-backdrop-in');
+            modal.classList.add('modal-backdrop-out');
+            modalContent.classList.add('modal-content-out');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('modal-backdrop-out');
+                modalContent.classList.remove('modal-content-out');
+            }, 280);
+        }
+
+        // Close modal smoothly on clicking close elements
+        $(document).on('click', '#attendance-log-modal .close-modal, #attendance-log-modal .close-btn', function(e) {
+            e.preventDefault();
+            closeModalSmoothly();
+        });
+        
+        // Close modal smoothly on clicking outside the modal content
+        $(document).on('click', '#attendance-log-modal', function(e) {
+            if (e.target === this) {
+                closeModalSmoothly();
+            }
         });
     </script>
 </body>

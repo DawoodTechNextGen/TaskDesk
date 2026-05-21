@@ -993,6 +993,25 @@ if ($action === "intern_daily_history") {
         $attendance_map[$row['date']] = $row;
     }
 
+    // Get checkin checkout logs from attendance_dtls
+    $dtls_sql = "SELECT date, check_in_time, check_out_time, duration 
+                 FROM attendance_dtls 
+                 WHERE user_id = ? 
+                 ORDER BY check_in_time ASC";
+    $stmt_dtls = $conn->prepare($dtls_sql);
+    $stmt_dtls->bind_param("i", $calc_user_id);
+    $stmt_dtls->execute();
+    $dtls_result = $stmt_dtls->get_result();
+    
+    $dtls_map = [];
+    while ($row = $dtls_result->fetch_assoc()) {
+        $dtls_map[$row['date']][] = [
+            'check_in' => $row['check_in_time'],
+            'check_out' => $row['check_out_time'],
+            'duration' => $row['duration']
+        ];
+    }
+
     // time_logs table does not exist on this environment
     $tasks_map = [];
 
@@ -1090,7 +1109,8 @@ if ($action === "intern_daily_history") {
             'work_time' => $work_time,
             'progress_percent' => $progress,
             'is_weekend' => $is_weekend,
-            'tasks' => $day_tasks
+            'tasks' => $day_tasks,
+            'logs' => $dtls_map[$date_str] ?? []
         ];
     }
     

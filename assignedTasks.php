@@ -97,16 +97,12 @@ include_once "./include/headerLinks.php"; ?>
 
             await getAssignedTasks(initialStatus);
             setupEventListeners();
-            setupAutoStopTimer();
-            setupAutoAttendance();
-            updateStartButtonAvailability();
 
             // Refresh every minute
             setInterval(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const currentStatus = urlParams.get('status') || null;
                 getAssignedTasks(currentStatus, false);
-                updateStartButtonAvailability();
             }, 60000);
         });
 
@@ -188,9 +184,7 @@ include_once "./include/headerLinks.php"; ?>
                 const action = button.dataset.action;
                 const taskId = button.dataset.id;
 
-                if (action === 'start') handleStart(taskId);
-                else if (action === 'pause') handleStop(taskId);
-                else if (action === 'open-submit') openSubmissionModal(taskId);
+                if (action === 'open-submit') openSubmissionModal(taskId);
             });
 
             // Submission Modal Actions
@@ -199,50 +193,6 @@ include_once "./include/headerLinks.php"; ?>
             });
 
             document.getElementById('submit-task-btn').addEventListener('click', handleSubmitTask);
-        }
-
-        async function handleStart(id) {
-            if (!await checkTimeRestrictions()) return;
-
-            // Check for other active tasks
-            const response = await fetch('controller/timeLog.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'check_active' })
-            });
-            const check = await response.json();
-            if (check.has_active) {
-                showToast('error', 'You already have an active task timer running!');
-                return;
-            }
-
-            try {
-                const response = await fetch('controller/timeLog.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'start', task_id: id, started_at: getFormattedNow() })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    showToast('success', 'Task started successfully');
-                    getAssignedTasks();
-                } else showToast('error', result.message);
-            } catch (e) { showToast('error', 'Failed to start task'); }
-        }
-
-        async function handleStop(id) {
-            try {
-                const response = await fetch('controller/timeLog.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'stop', task_id: id, stoped_at: getFormattedNow() })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    showToast('success', 'Task paused successfully');
-                    getAssignedTasks();
-                } else showToast('error', result.message);
-            } catch (e) { showToast('error', 'Failed to pause task'); }
         }
 
         function openSubmissionModal(id) {
@@ -292,73 +242,6 @@ include_once "./include/headerLinks.php"; ?>
                     getAssignedTasks();
                 } else showToast('error', result.message);
             } catch (e) { showToast('error', 'Submission failed'); }
-        }
-
-        async function checkTimeRestrictions() {
-            const now = new Date();
-            const hour = now.getHours();
-            const day = now.getDay();
-
-            if (hour >= 0 && hour < 9) {
-                showToast('error', 'Cannot start timer between 12:00 AM and 9:00 AM');
-                return false;
-            }
-            if (day === 0 || day === 6) {
-                showToast('error', 'Cannot work on weekends');
-                return false;
-            }
-            return true;
-        }
-
-        function updateStartButtonAvailability() {
-            const now = new Date();
-            const hour = now.getHours();
-            const day = now.getDay();
-            const isRestricted = (hour >= 0 && hour < 9) || (day === 0 || day === 6);
-
-            document.querySelectorAll('button[data-action="start"]').forEach(btn => {
-                if (isRestricted) {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-            });
-        }
-
-        function setupAutoStopTimer() {
-            const now = new Date();
-            const midnight = new Date();
-            midnight.setHours(23, 59, 0, 0);
-            if (midnight - now > 0) {
-                setTimeout(() => {
-                    const stopBtn = document.querySelector('button[data-action="pause"]');
-                    if (stopBtn) stopBtn.click();
-                }, midnight - now);
-            }
-        }
-
-        function setupAutoAttendance() {
-            const now = new Date();
-            const target = new Date();
-            target.setHours(23, 58, 0, 0);
-            let delay = target - now;
-            if (delay < 0) delay += 24 * 60 * 60 * 1000;
-            setTimeout(() => {
-                fetch('controller/timeLog.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'mark_auto_attendance' })
-                });
-                setInterval(() => {
-                    fetch('controller/timeLog.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'mark_auto_attendance' })
-                    });
-                }, 24 * 60 * 60 * 1000);
-            }, delay);
         }
 
         function getFormattedNow() {

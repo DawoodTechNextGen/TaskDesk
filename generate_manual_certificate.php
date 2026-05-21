@@ -26,8 +26,8 @@ if ($user_result->num_rows > 0) {
     $user_data = $user_result->fetch_assoc();
 
     // Calculate dates - these are defaults that can be overridden by user input
-    $default_start_date = date('d-M-Y', strtotime($user_data['created_at']));
-    $default_end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' + 3 months'));
+    $default_start_date = date('j F Y', strtotime($user_data['created_at']));
+    $default_end_date = date('j F Y', strtotime($user_data['created_at'] . ' + 3 months'));
     $default_issue_date = $default_end_date; // Issue date same as end date by default
 
     // Get technology name

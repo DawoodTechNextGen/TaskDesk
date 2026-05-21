@@ -97,8 +97,8 @@ include "./include/headerLinks.php";
                             request.name,
                             request.email,
                             request.technology || 'N/A',
-                            request.freeze_start_date,
-                            request.freeze_end_date,
+                            formatDateTime(request.freeze_start_date),
+                            formatDateTime(request.freeze_end_date),
                             formatDateTime(request.freeze_requested_at),
                             `<div class="flex gap-2">
                                 <button onclick="viewReason('${request.freeze_reason.replace(/'/g, "\\'")}')" 

@@ -31,8 +31,8 @@ if ($user_result->num_rows > 0) {
     }
     $duration_str = '+' . $duration;
     
-    $start_date = date('d-M-Y', strtotime($user_data['created_at']));
-    $end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' ' . $duration_str));
+    $start_date = date('j F Y', strtotime($user_data['created_at']));
+    $end_date = date('j F Y', strtotime($user_data['created_at'] . ' ' . $duration_str));
 
     $issue_date = $end_date;
 
@@ -384,12 +384,12 @@ if ($user_result->num_rows > 0) {
         };
 
         function formatDate(dateString) {
-            const options = {
-                year: 'numeric',
+            const [year, month, day] = dateString.substring(0, 10).split('-').map(Number);
+            return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
+                day: 'numeric',
                 month: 'long',
-                day: 'numeric'
-            };
-            return new Date(dateString).toLocaleDateString(undefined, options);
+                year: 'numeric'
+            });
         }
 
         function drawCertificate() {

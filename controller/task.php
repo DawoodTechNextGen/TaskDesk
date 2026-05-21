@@ -67,7 +67,7 @@ if ($data['action'] === 'create') {
                 <div style='font-family: Arial, sans-serif; color: #333;'>
                     <h2>Assalam O Alaikum " . htmlspecialchars($user_data['name']) . ",</h2>
                     <p>You have been assigned a new task: <strong>" . htmlspecialchars($title) . "</strong></p>
-                    <p><strong>Due Date:</strong> " . htmlspecialchars($due_date) . "</p>
+                    <p><strong>Due Date:</strong> " . htmlspecialchars(date('j F Y', strtotime($due_date))) . "</p>
                     <p>Please log in to your dashboard to start working on it.</p>
                     <br>
                     <p>Best Regards,<br>Management Team</p>

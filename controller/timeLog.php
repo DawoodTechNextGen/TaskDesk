@@ -110,7 +110,7 @@ if ($data['action'] === 'start') {
         if ($task_info['due_date'] < $today_date && $task_info['status'] !== 'complete') {
             // Self-correct database status if not already expired
             $conn->query("UPDATE tasks SET status = 'expired' WHERE id = $task_id");
-            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . $task_info['due_date'] . ") and cannot be started."]);
+            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . date('j F Y', strtotime($task_info['due_date'])) . ") and cannot be started."]);
             exit;
         }
     }
@@ -207,7 +207,7 @@ if ($data['action'] === 'complete') {
         if ($task_info['due_date'] < $today_date && $task_info['status'] !== 'complete') {
             // Self-correct database status
             $conn->query("UPDATE tasks SET status = 'expired' WHERE id = $task_id");
-            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . $task_info['due_date'] . ") and cannot be submitted."]);
+            echo json_encode(["success" => false, "message" => "This task has expired (due date: " . date('j F Y', strtotime($task_info['due_date'])) . ") and cannot be submitted."]);
             exit;
         }
     }
@@ -366,6 +366,7 @@ if ($data['action'] === 'check_active') {
 if ($data['action'] === 'mark_auto_attendance') {
     $currentDate = date('Y-m-d');
     $now = date('Y-m-d H:i:s');
+    $presentThresholdSeconds = 10800;
     
     // Get all approved interns
     $stmt = $conn->prepare("SELECT id, created_at, internship_type, internship_duration FROM users WHERE status = 1 AND user_role = 2");
@@ -408,12 +409,18 @@ if ($data['action'] === 'mark_auto_attendance') {
         if ($dtlsResult) {
             $dtlsId = $dtlsResult['id'];
             $checkInTime = $dtlsResult['check_in_time'];
-            $duration = strtotime($now) - strtotime($checkInTime);
-            
-            // If duration is greater than 25,200 then just add 25,200 or if less then insert that duration
-            if ($duration > 25200) {
-                $duration = 25200;
-            }
+            $duration = max(0, strtotime($now) - strtotime($checkInTime));
+
+            $existingTotalSql = "SELECT COALESCE(SUM(duration), 0) as total_seconds FROM attendance_dtls WHERE user_id = ? AND date = ? AND check_out_time IS NOT NULL";
+            $existingTotalStmt = $conn->prepare($existingTotalSql);
+            $existingTotalStmt->bind_param("is", $userId, $currentDate);
+            $existingTotalStmt->execute();
+            $existingTotalResult = $existingTotalStmt->get_result()->fetch_assoc();
+            $existingTotalSeconds = (int)($existingTotalResult['total_seconds'] ?? 0);
+            $existingTotalStmt->close();
+
+            $remainingSeconds = max(0, $presentThresholdSeconds - $existingTotalSeconds);
+            $duration = min($duration, $remainingSeconds);
             
             // Update attendance_dtls
             $updateDtlsSql = "UPDATE attendance_dtls SET check_out_time = ?, duration = ? WHERE id = ?";
@@ -432,12 +439,12 @@ if ($data['action'] === 'mark_auto_attendance') {
         $sumStmt->bind_param("is", $userId, $currentDate);
         $sumStmt->execute();
         $sumResult = $sumStmt->get_result()->fetch_assoc();
-        $totalSeconds = (int)($sumResult['total_seconds'] ?? 0);
+        $totalSeconds = min((int)($sumResult['total_seconds'] ?? 0), $presentThresholdSeconds);
         $sumStmt->close();
 
         // 3. Update status of the master attendance record based on total seconds
         // status is absent if totalSeconds is less than 10,800, otherwise present
-        $status = ($totalSeconds >= 10800) ? 'present' : 'absent';
+        $status = ($totalSeconds >= $presentThresholdSeconds) ? 'present' : 'absent';
 
         // Check if master attendance record exists
         $attendanceSql = "SELECT id FROM attendance WHERE user_id = ? AND date = ? LIMIT 1";

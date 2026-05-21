@@ -435,9 +435,10 @@ function loadRecentRegistrations() {
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
-    const options = { month: 'short', day: 'numeric', year: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    if (!dateString) return 'N/A';
+    const [year, month, day] = dateString.substring(0, 10).split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 // Helper function to get theme colors

@@ -392,7 +392,7 @@ include_once "./include/headerLinks.php"; ?>
                                                             <?= $user['status'] ? 'Active' : 'Inactive' ?>
                                                         </span>
                                                     </td>
-                                                    <td class="py-4 text-sm text-gray-500 dark:text-gray-400"><?= date('M j, Y', strtotime($user['created_at'])) ?></td>
+                                                    <td class="py-4 text-sm text-gray-500 dark:text-gray-400"><?= date('j F Y', strtotime($user['created_at'])) ?></td>
                                                 </tr>
                                             <?php endwhile; ?>
                                         </tbody>
@@ -486,7 +486,7 @@ include_once "./include/headerLinks.php"; ?>
                                         </div>
                                         <div class="flex justify-between items-center">
                                             <span class="text-sm text-gray-600 dark:text-gray-400">Last Backup</span>
-                                            <span class="text-sm text-gray-500 dark:text-gray-400"><?= date('M j, H:i') ?></span>
+                                            <span class="text-sm text-gray-500 dark:text-gray-400"><?= date('j F Y H:i') ?></span>
                                         </div>
                                         <div class="flex justify-between items-center">
                                             <span class="text-sm text-gray-600 dark:text-gray-400">Uptime</span>
@@ -627,8 +627,8 @@ include_once "./include/headerLinks.php"; ?>
                                 }
                                 </style>
                                 <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                    <span>Joined: <?= date('M d, Y', strtotime($joining_date)) ?></span>
-                                    <span>Ends: <?= $end->format('M d, Y') ?></span>
+                                    <span>Joined: <?= date('j F Y', strtotime($joining_date)) ?></span>
+                                    <span>Ends: <?= $end->format('j F Y') ?></span>
                                 </div>
                             </div>
                         </div>
@@ -697,7 +697,7 @@ include_once "./include/headerLinks.php"; ?>
                                                 <span class="inline-block px-2 py-1 text-xs rounded-full <?= $statusClass ?>">
                                                     <?= $statusText ?>
                                                 </span>
-                                                <p class="text-xs text-red-500 dark:text-gray-400 mt-1 font-medium">Due: <?= date('M d', strtotime($dueDate)) ?></p>
+                                                <p class="text-xs text-red-500 dark:text-gray-400 mt-1 font-medium">Due: <?= date('j F Y', strtotime($dueDate)) ?></p>
                                             </div>
 
                                         </div>
@@ -903,7 +903,7 @@ include_once "./include/headerLinks.php"; ?>
                                                             <?= ucfirst(($task['due_date'] < date('Y-m-d') && $task['status'] !== 'complete') ? 'expired' : $task['status']) ?>
                                                         </span>
                                                     </td>
-                                                    <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= date('M d, Y', strtotime($task['due_date'])) ?></td>
+                                                    <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= date('j F Y', strtotime($task['due_date'])) ?></td>
                                                 </tr>
                                             <?php endwhile; ?>
                                         </tbody>

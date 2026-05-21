@@ -6,8 +6,16 @@ let liveTimerInterval;
 // Format Date helpers
 function formatDateTime(dateTimeStr) {
     if (!dateTimeStr) return 'N/A';
-    const date = new Date(dateTimeStr);
-    return date.toLocaleString();
+    const date = parseDisplayDate(dateTimeStr);
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function parseDisplayDate(dateTimeStr) {
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateTimeStr)) {
+        const [year, month, day] = dateTimeStr.substring(0, 10).split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+    return new Date(dateTimeStr);
 }
 
 function getStatusBadge(status) {
@@ -22,6 +30,25 @@ function getStatusBadge(status) {
         'expired': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Expired</span>'
     };
     return badges[status.toLowerCase()] || `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${status}</span>`;
+}
+
+function decodeHtmlEntities(value) {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = value || '';
+    return textarea.value;
+}
+
+function renderRichText(container, html, emptyMessage = 'No description provided') {
+    if (!container) return;
+
+    const content = (html || '').trim();
+    if (!content) {
+        container.innerHTML = `<div class="ql-editor"><p class="text-gray-400 italic">${emptyMessage}</p></div>`;
+        return;
+    }
+
+    const shouldDecode = /&lt;\/?[a-z][\s\S]*&gt;/i.test(content);
+    container.innerHTML = `<div class="ql-editor">${shouldDecode ? decodeHtmlEntities(content) : content}</div>`;
 }
 
 // Initialize Task Management Page
@@ -472,7 +499,7 @@ async function viewTaskDetails(taskId) {
                 </div>
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Due Date</label>
-                    <p class="text-sm font-bold text-red-600 dark:text-red-400">${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No Limit'}</p>
+                    <p class="text-sm font-bold text-red-600 dark:text-red-400">${task.due_date ? formatDateTime(task.due_date) : 'No Limit'}</p>
                 </div>
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Timeline</label>
@@ -483,9 +510,7 @@ async function viewTaskDetails(taskId) {
         }
 
         const descArea = document.getElementById('task-view-description');
-        if (descArea) {
-            descArea.innerHTML = task.description || '<p class="text-gray-400 italic">No description provided</p>';
-        }
+        renderRichText(descArea, task.description);
 
         const feedbackSection = document.getElementById('feedback-section');
         const feedbackArea = document.getElementById('task-view-feedback');

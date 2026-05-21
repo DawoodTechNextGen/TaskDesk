@@ -420,7 +420,7 @@ include_once "./include/headerLinks.php";
             doc.text('TaskDesk Analytical Report', 14, 22);
             doc.setFontSize(10);
             doc.setTextColor(100);
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+            doc.text(`Generated on: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, 30);
             
             let currentY = 40;
 

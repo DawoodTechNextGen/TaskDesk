@@ -36,9 +36,9 @@ if ($action === 'admin_task_stats') {
         $total_tasks += $row['count'];
     }
 
-    $desired_order = ['pending', 'working', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
+    $desired_order = ['inprogress', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
     foreach ($desired_order as $status) {
-        if (isset($task_stats[$status]) || in_array($status, ['pending', 'working', 'complete', 'expired'])) {
+        if (isset($task_stats[$status]) || in_array($status, ['inprogress', 'complete', 'expired'])) {
             $count = $task_stats[$status] ?? 0;
             $labels[] = ucfirst(str_replace('_', ' ', $status));
             $values[] = $count;
@@ -334,8 +334,7 @@ if ($action === 'supervisor_task_stats') {
     // Initialize counts with zero
     $status_counts = [
         'complete' => 0,
-        'working' => 0,
-        'pending' => 0,
+        'inprogress' => 0,
         'expired' => 0,
         'needs_improvement' => 0,
         'pending_review' => 0,
@@ -349,9 +348,9 @@ if ($action === 'supervisor_task_stats') {
     }
 
     // Prepare labels and values in desired order
-    $ordered_statuses = ['pending', 'working', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
+    $ordered_statuses = ['inprogress', 'complete', 'expired', 'needs_improvement', 'pending_review', 'approved', 'rejected'];
     foreach ($ordered_statuses as $status) {
-        if (isset($status_counts[$status]) || in_array($status, ['pending', 'working', 'complete', 'expired'])) {
+        if (isset($status_counts[$status]) || in_array($status, ['inprogress', 'complete', 'expired'])) {
             $count = $status_counts[$status] ?? 0;
             $labels[] = ucfirst(str_replace('_', ' ', $status));
             $values[] = $count;

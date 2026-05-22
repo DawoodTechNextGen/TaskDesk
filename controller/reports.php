@@ -96,7 +96,7 @@ if ($action === 'get_report_data') {
         ];
 
         // 3. Overall Task Status (Admin/Manager sees all)
-        $all_statuses = ['pending', 'working', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
+        $all_statuses = ['inprogress', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
         $status_data = array_fill_keys($all_statuses, 0);
         
         $stmt = $conn->query("SELECT status, COUNT(*) as count FROM tasks GROUP BY status");
@@ -363,7 +363,7 @@ if ($action === 'get_report_data') {
         ];
 
         // 3. Task Status Distribution (Supervisor's interns only)
-        $all_statuses = ['pending', 'working', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
+        $all_statuses = ['inprogress', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
         $status_data = array_fill_keys($all_statuses, 0);
         
         $stmt = $conn->prepare("

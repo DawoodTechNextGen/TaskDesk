@@ -10,8 +10,7 @@ $status = $_GET['status'] ?? 'all';
 
 // Map status to readable title
 $statusTitles = [
-    'pending' => 'Pending Tasks',
-    'working' => 'Tasks in Progress',
+    'inprogress' => 'In Progress Tasks',
     'complete' => 'Completed Tasks',
     'pending_review' => 'Tasks Under Review',
     'approved' => 'Approved Tasks',

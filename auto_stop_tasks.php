@@ -4,12 +4,12 @@ require_once __DIR__ . "/include/connection.php";
 // Set timezone
 date_default_timezone_set('Asia/Karachi');
 
-// Stop all tasks where status = 'working'
+// Stop all tasks where status = 'inprogress'
 $current_time = date("Y-m-d H:i:s"); // Actual current time for log
 $stop_time_record = date("Y-m-d") . " 23:59:59"; // Record as end of day
 $today = date("Y-m-d");
 
-$sql = "SELECT id, started_at, assign_to, due_date FROM tasks WHERE status = 'working'";
+$sql = "SELECT id, started_at, assign_to, due_date FROM tasks WHERE status = 'inprogress'";
 $result = $conn->query($sql);
 
 while ($task = $result->fetch_assoc()) {

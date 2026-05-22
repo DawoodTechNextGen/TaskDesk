@@ -116,7 +116,7 @@ if ($data['action'] === 'start') {
     }
 
     // Start task
-    $stmt = $conn->prepare("UPDATE tasks SET status = 'working', started_at = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE tasks SET status = 'inprogress', started_at = ? WHERE id = ?");
     $stmt->bind_param("si", $started_at, $task_id);
     $stmt->execute();
     $stmt->close();
@@ -158,7 +158,7 @@ if ($data['action'] === 'stop') {
     $duration = strtotime($stop_time) - strtotime($started_at);
 
     // 2. Determine new status (pending or expired)
-    $new_status = 'pending';
+    $new_status = 'inprogress';
     if (!empty($task_data['due_date']) && $task_data['due_date'] < $today) {
         $new_status = 'expired';
     }
@@ -350,7 +350,7 @@ if ($data['action'] === 'get') {
 
 if ($data['action'] === 'check_active') {
     $user_id = $_SESSION['user_id'];
-    $stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND status = 'working' LIMIT 1");
+    $stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND status = 'inprogress' LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();

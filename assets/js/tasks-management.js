@@ -20,8 +20,8 @@ function parseDisplayDate(dateTimeStr) {
 
 function getStatusBadge(status) {
     const badges = {
+        'inprogress': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">In Progress</span>',
         'pending': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">Pending</span>',
-        'working': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">Working</span>',
         'complete': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">Complete</span>',
         'pending_review': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">Review</span>',
         'approved': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Approved</span>',
@@ -139,7 +139,7 @@ function generateTaskActions(task) {
         `;
     }
 
-    if (['pending', 'needs_improvement'].includes(task.status)) {
+    if (['inprogress', 'needs_improvement'].includes(task.status)) {
         buttons += `
             <button onclick="editTaskModal(${JSON.stringify(task).replace(/"/g, '&quot;')})" class="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors" title="Edit Task">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -209,7 +209,7 @@ async function initTaskCreation() {
                     showToast('success', 'Task created successfully!');
                     form.reset();
                     if (createEditor) createEditor.setContents([]);
-                    setTimeout(() => window.location.href = 'tasks.php?status=pending', 1500);
+                    setTimeout(() => window.location.href = 'tasks.php?status=inprogress', 1500);
                 } else {
                     showToast('error', result.message);
                     // Reset Loading on Error

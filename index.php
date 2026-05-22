@@ -21,9 +21,8 @@ if ($user_role == 1) {
     $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
 
     // Additional admin stats
-    $pending_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'pending'")->fetch_assoc()['total'];
+    $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress'")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
-    $working_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'working'")->fetch_assoc()['total'];
     $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired'")->fetch_assoc()['total'];
 
     // Monthly task trends
@@ -57,15 +56,10 @@ if ($user_role == 1) {
     $completed_tasks->execute();
     $completed_tasks = $completed_tasks->get_result()->fetch_assoc()['total'];
 
-    $working_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'working'");
-    $working_tasks->bind_param("i", $user_id);
-    $working_tasks->execute();
-    $working_tasks = $working_tasks->get_result()->fetch_assoc()['total'];
-
-    $pending_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'pending'");
-    $pending_tasks->bind_param("i", $user_id);
-    $pending_tasks->execute();
-    $pending_tasks = $pending_tasks->get_result()->fetch_assoc()['total'];
+    $inprogress_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'inprogress'");
+    $inprogress_tasks->bind_param("i", $user_id);
+    $inprogress_tasks->execute();
+    $inprogress_tasks = $inprogress_tasks->get_result()->fetch_assoc()['total'];
 
     $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'expired'");
     $expired_tasks->bind_param("i", $user_id);
@@ -228,24 +222,11 @@ include_once "./include/headerLinks.php"; ?>
 
                         <!-- Task Status Overview Cards -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-blue-500">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">Pending</p>
-                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $pending_tasks ?></h3>
-                                    </div>
-                                    <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
-                                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-yellow-500">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">In Progress</p>
-                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $working_tasks ?></h3>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $inprogress_tasks ?></h3>
                                     </div>
                                     <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-lg">
                                         <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,7 +523,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <div>
                                         <p class="text-gray-500 dark:text-gray-300 text-sm font-medium">In Progress</p>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
-                                            <?= $working_tasks ?>
+                                            <?= $inprogress_tasks ?>
                                         </h3>
                                     </div>
                                     <div class="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg">
@@ -683,13 +664,13 @@ include_once "./include/headerLinks.php"; ?>
                                             if (strtotime($dueDate) < strtotime($currentDate)) {
                                                 $statusText = 'Expired';
                                                 $statusClass = 'bg-red-100 text-red-800';
-                                            } elseif ($task['status'] === 'pending') {
-                                                $statusText = 'Pending';
+                                            } elseif ($task['status'] === 'inprogress') {
+                                                $statusText = 'In Progress';
                                                 $statusClass = 'bg-yellow-100 text-yellow-800';
                                             } else {
-                                                // For complete, working, or any other status
+                                                // For complete or any other status
                                                 $statusText = ucfirst($task['status']);
-                                                $statusClass = $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : ($task['status'] == 'working' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
+                                                $statusClass = $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
                                             }
                                             ?>
 

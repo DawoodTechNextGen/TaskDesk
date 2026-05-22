@@ -6,7 +6,7 @@ date_default_timezone_set('Asia/Karachi');
 
 /**
  * Auto Expire Tasks
- * This script updates the status of 'pending' and 'working' tasks to 'expired'
+ * This script updates the status of 'inprogress' tasks to 'expired'
  * if their due_date is less than the current date.
  */
 
@@ -15,7 +15,7 @@ $today = date("Y-m-d");
 // SQL to update tasks
 $sql = "UPDATE tasks 
         SET status = 'expired' 
-        WHERE status IN ('pending', 'working') 
+        WHERE status = 'inprogress'
         AND due_date < ? 
         AND due_date IS NOT NULL";
 

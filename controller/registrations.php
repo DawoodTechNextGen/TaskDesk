@@ -944,7 +944,7 @@ switch ($action) {
             $candidate_name = '';
             $candidate_email = '';
             
-            $sqlFetch = "SELECT name, email FROM registrations WHERE id = ?";
+            $sqlFetch = "SELECT name, email, internship_type FROM registrations WHERE id = ?";
             $stmtFetch = $conn->prepare($sqlFetch);
             $stmtFetch->bind_param('i', $id);
             $stmtFetch->execute();
@@ -968,7 +968,9 @@ switch ($action) {
             $formattedMessage = nl2br(htmlspecialchars($emailMessage));
             $logoUrl = rtrim(BASE_URL, '/') . '/assets/images/logo.png';
             $waNumber = COMPANY_WHATSAPP;
-            $waMessage = 'Interested';
+            $internshipType = (int)($resFetch['internship_type'] ?? 0);
+            $internTypeLabel = ($internshipType === 1) ? 'Paid Internship' : 'Free Internship';
+            $waMessage = 'Interested in ' . $internTypeLabel;
             $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
             
             $htmlContent = "

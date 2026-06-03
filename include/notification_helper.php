@@ -109,10 +109,37 @@ function sendNotificationFallback($params) {
     return $results;
 }
 
-/**
- * Internal helper for PHPMailer
- */
 function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent = null, $pdfFileName = 'Offer_Letter.pdf', $type = 'primary') {
+    global $conn;
+
+    // Auto-create logs table if it doesn't exist
+    if (isset($conn)) {
+        $conn->query("CREATE TABLE IF NOT EXISTS `email_sent_logs` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `sender_email` VARCHAR(255) NOT NULL,
+            `sent_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    // Check hourly limit for primary SMTP (30 emails per hour limit)
+    if ($type === 'primary' && isset($conn)) {
+        $sender = MAIL_USERNAME;
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM email_sent_logs WHERE sender_email = ? AND sent_at > NOW() - INTERVAL 1 HOUR");
+        if ($stmt) {
+            $stmt->bind_param('s', $sender);
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_assoc();
+            $sentCount = $result['total'] ?? 0;
+            $stmt->close();
+
+            if ($sentCount >= 30) {
+                // Route directly to Gmail fallback
+                error_log("Primary SMTP hourly limit (30) reached. Sent in last hour: $sentCount. Routing this email to Gmail SMTP fallback.");
+                $type = 'gmail';
+            }
+        }
+    }
+
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
@@ -160,7 +187,20 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
             $mail->addStringAttachment($pdfContent, $pdfFileName, 'base64', 'application/pdf');
         }
 
-        return $mail->send();
+        $sent = $mail->send();
+
+        // If successfully sent via primary SMTP, log it to the database
+        if ($sent && $type === 'primary' && isset($conn)) {
+            $sender = MAIL_USERNAME;
+            $stmtInsert = $conn->prepare("INSERT INTO email_sent_logs (sender_email) VALUES (?)");
+            if ($stmtInsert) {
+                $stmtInsert->bind_param('s', $sender);
+                $stmtInsert->execute();
+                $stmtInsert->close();
+            }
+        }
+
+        return $sent;
     } catch (Exception $e) {
         error_log("$type Email PHPMailer Error: " . $mail->ErrorInfo);
         return false;

@@ -1,7 +1,8 @@
 <?php
 session_start();
-ini_set('display_errors', 0);
 include '../include/config.php';
+error_reporting(0);
+ini_set('display_errors', 0);
 include '../include/connection.php';
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
@@ -923,10 +924,19 @@ switch ($action) {
 
         // If email was modified, update it in database first
         if (!empty($postedEmail)) {
-            $stmtUpdateEmail = $conn->prepare("UPDATE registrations SET email = ? WHERE id = ?");
-            $stmtUpdateEmail->bind_param('si', $postedEmail, $id);
-            $stmtUpdateEmail->execute();
-            $stmtUpdateEmail->close();
+            try {
+                $stmtUpdateEmail = $conn->prepare("UPDATE registrations SET email = ? WHERE id = ?");
+                $stmtUpdateEmail->bind_param('si', $postedEmail, $id);
+                $stmtUpdateEmail->execute();
+                $stmtUpdateEmail->close();
+            } catch (mysqli_sql_exception $e) {
+                if ($e->getCode() == 1062 || str_contains($e->getMessage(), 'Duplicate entry')) {
+                    echo json_encode(['success' => false, 'message' => 'This email address is already registered for another candidate.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to update email: ' . $e->getMessage()]);
+                }
+                exit;
+            }
         }
 
         if ($sendEmail) {
@@ -962,14 +972,36 @@ switch ($action) {
             $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
             
             $htmlContent = "
-            <div style=\"background-color: #F8FAFC; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100%;\">
-                <div style=\"max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #E2E8F0;\">
+            <style>
+                @media screen and (max-width: 600px) {
+                    .email-container {
+                        padding: 20px 10px !important;
+                    }
+                    .email-card {
+                        border-radius: 12px !important;
+                    }
+                    .email-header {
+                        padding: 20px 20px !important;
+                    }
+                    .email-body {
+                        padding: 30px 20px !important;
+                    }
+                    .email-logo {
+                        max-height: 40px !important;
+                    }
+                    .email-footer {
+                        padding: 24px 20px !important;
+                    }
+                }
+            </style>
+            <div class=\"email-container\" style=\"background-color: #F8FAFC; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100%;\">
+                <div class=\"email-card\" style=\"max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #E2E8F0;\">
                     <!-- White Header with Logo and Blue bottom border -->
-                    <div style=\"background-color: #FFFFFF; padding: 28px 32px; text-align: center; border-bottom: 4px solid #2563EB;\">
-                        <img src=\"" . $logoUrl . "\" alt=\"DawoodTech NextGen\" style=\"max-height: 52px; width: auto; display: inline-block;\">
+                    <div class=\"email-header\" style=\"background-color: #FFFFFF; padding: 28px 32px; text-align: center; border-bottom: 4px solid #2563EB;\">
+                        <img class=\"email-logo\" src=\"cid:logo_cid\" alt=\"DawoodTech NextGen\" style=\"max-height: 52px; width: auto; max-width: 100%; height: auto; display: inline-block;\">
                     </div>
                     <!-- Body Content -->
-                    <div style=\"padding: 40px 32px; color: #0F172A; line-height: 1.6; font-size: 16px;\">
+                    <div class=\"email-body\" style=\"padding: 40px 32px; color: #0F172A; line-height: 1.6; font-size: 16px;\">
                         <div style=\"margin-bottom: 24px;\">
                             <span style=\"background-color: #E0E7FF; color: #2563EB; padding: 6px 14px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: inline-block;\">NextGen Career Portal</span>
                         </div>
@@ -981,17 +1013,18 @@ switch ($action) {
                         <!-- Interactive WhatsApp Button -->
                         <div style=\"text-align: center; margin: 36px 0 24px 0;\">
                             <p style=\"font-size: 14px; color: #64748B; margin-bottom: 12px; font-weight: 500;\">Are you interested? Let's connect directly on WhatsApp:</p>
-                            <a href=\"" . $waLink . "\" target=\"_blank\" style=\"background-color: #25D366; color: #FFFFFF; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); text-align: center;\">
-                                <span style=\"font-size: 17px; margin-right: 6px;\">💬</span> Message on WhatsApp
+                            <a href=\"" . $waLink . "\" target=\"_blank\" style=\"background-color: #25D366; color: #FFFFFF; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); text-align: center; vertical-align: middle;\">
+                                <img src=\"cid:whatsapp_logo_cid\" alt=\"WhatsApp\" style=\"width: 18px; height: 18px; vertical-align: middle; margin-right: 8px; display: inline-block;\">
+                                <span style=\"vertical-align: middle; display: inline-block;\">Message on WhatsApp</span>
                             </a>
                         </div>
 
                         <div style=\"margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0; text-align: center;\">
-                            <p style=\"margin: 0; font-size: 13px; color: #64748B;\">If you have any questions, feel free to reply to this email.</p>
+                            <p style=\"margin: 0; font-size: 13px; color: #64748B;\">If you have any questions, please feel free to reach out to us on WhatsApp.</p>
                         </div>
                     </div>
                     <!-- Footer with Dark Slate matching the logo text -->
-                    <div style=\"background-color: #1E293B; padding: 28px 24px; text-align: center; font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0;\">
+                    <div class=\"email-footer\" style=\"background-color: #1E293B; padding: 28px 24px; text-align: center; font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0;\">
                         <p style=\"margin: 0 0 8px 0; font-weight: 600; color: #FFFFFF; font-size: 13px;\">DawoodTech NextGen</p>
                         <p style=\"margin: 0; font-size: 11px;\">&copy; " . $current_year . " DawoodTech. All rights reserved.</p>
                     </div>

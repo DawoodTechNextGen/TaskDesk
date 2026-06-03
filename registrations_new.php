@@ -42,15 +42,23 @@ include_once "./include/headerLinks.php";
     }
 
     /* Force text and background visibility in Email Modal inputs/textarea */
-    #emailContactModal input, #emailContactModal textarea {
+    #emailContactModal input:not([readonly]), #emailContactModal textarea {
         color: #0F172A !important;
         background-color: #FFFFFF !important;
     }
+    #emailContactModal input[readonly] {
+        color: #64748B !important;
+        background-color: #F1F5F9 !important;
+    }
     
     /* Dark mode override */
-    .dark #emailContactModal input, .dark #emailContactModal textarea {
+    .dark #emailContactModal input:not([readonly]), .dark #emailContactModal textarea {
         color: #FFFFFF !important;
         background-color: #1F2937 !important;
+    }
+    .dark #emailContactModal input[readonly] {
+        color: #94A3B8 !important;
+        background-color: #374151 !important;
     }
 </style>
 
@@ -128,7 +136,14 @@ include_once "./include/headerLinks.php";
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Recipient Email</label>
-                    <input type="email" id="emailModalCandidateEmail" name="email" required class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none transition-all">
+                    <div class="relative flex items-center space-x-2">
+                        <input type="email" id="emailModalCandidateEmail" name="email" required readonly class="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 outline-none transition-all">
+                        <button type="button" id="editEmailBtn" title="Edit Email" class="p-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
@@ -282,7 +297,17 @@ $(document).ready(function() {
 
             $('#emailModalCandidateId').val(id);
             $('#emailModalCandidateName').val(rowData.name || '');
-            $('#emailModalCandidateEmail').val(rowData.email || '');
+            
+            // Set/Reset email field to readonly when opening modal
+            const emailInput = $('#emailModalCandidateEmail');
+            emailInput.val(rowData.email || '');
+            emailInput.prop('readonly', true).attr('readonly', 'readonly');
+            $('#editEmailBtn').html(`
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            `).attr('title', 'Edit Email');
+
             $('#emailModalMessage').val(''); // clear message
 
             // Open modal with smooth animation
@@ -365,12 +390,48 @@ $(document).ready(function() {
         }
     });
 
+    // Toggle edit state for email field
+    $('#editEmailBtn').on('click', function() {
+        const emailInput = $('#emailModalCandidateEmail');
+        const isReadOnly = emailInput.prop('readonly');
+        
+        if (isReadOnly) {
+            // Make editable
+            emailInput.prop('readonly', false).removeAttr('readonly');
+            emailInput.focus();
+            // Change button icon to checkmark/shield (Lock/Save icon)
+            $(this).html(`
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            `).attr('title', 'Lock Email');
+        } else {
+            // Lock and make readonly
+            emailInput.prop('readonly', true).attr('readonly', 'readonly');
+            // Change button icon back to Pencil icon
+            $(this).html(`
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            `).attr('title', 'Edit Email');
+        }
+    });
+
     // Close modal helper
     function closeEmailModal() {
         const modal = $('#emailContactModal');
         modal.find('.transform').removeClass('scale-100').addClass('scale-95');
         setTimeout(() => {
             modal.addClass('hidden').removeClass('flex');
+            
+            // Reset email field to readonly
+            const emailInput = $('#emailModalCandidateEmail');
+            emailInput.prop('readonly', true).attr('readonly', 'readonly');
+            $('#editEmailBtn').html(`
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            `).attr('title', 'Edit Email');
         }, 150);
     }
 

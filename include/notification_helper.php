@@ -140,6 +140,19 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
         $mail->Timeout  = 30; // Increased timeout
         $mail->addAddress($toEmail, $toName);
         $mail->isHTML(true);
+        
+        // Embed logo as inline CID attachment
+        $logoPath = dirname(__DIR__) . '/assets/images/logo.png';
+        if (file_exists($logoPath)) {
+            $mail->addEmbeddedImage($logoPath, 'logo_cid', 'logo.png', 'base64', 'image/png');
+        }
+
+        // Embed WhatsApp logo as inline CID attachment
+        $waLogoPath = dirname(__DIR__) . '/assets/images/whatsapp_logo.png';
+        if (file_exists($waLogoPath)) {
+            $mail->addEmbeddedImage($waLogoPath, 'whatsapp_logo_cid', 'whatsapp_logo.png', 'base64', 'image/png');
+        }
+        
         $mail->Subject = $subject;
         $mail->Body    = $htmlContent;
 

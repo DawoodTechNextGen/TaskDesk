@@ -116,7 +116,7 @@ include_once "./include/headerLinks.php";
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Recipient Email</label>
-                    <input type="email" id="emailModalCandidateEmail" readonly class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none cursor-not-allowed">
+                    <input type="email" id="emailModalCandidateEmail" name="email" required class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none transition-all">
                 </div>
 
                 <div>
@@ -126,7 +126,7 @@ include_once "./include/headerLinks.php";
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Message Content</label>
-                    <textarea id="emailModalMessage" required rows="6" placeholder="Type your email message here..." class="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-150 placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none resize-none transition-all custom-scrollbar"></textarea>
+                    <textarea id="emailModalMessage" required rows="6" placeholder="Type your email message here..." class="w-full px-4 py-3 bg-white dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-450 dark:placeholder-gray-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none resize-none transition-all custom-scrollbar"></textarea>
                 </div>
 
                 <!-- Action buttons -->
@@ -318,6 +318,7 @@ $(document).ready(function() {
         e.preventDefault();
         
         const id = $('#emailModalCandidateId').val();
+        const email = $('#emailModalCandidateEmail').val();
         const emailMessage = $('#emailModalMessage').val();
         
         // Hide modal
@@ -329,6 +330,7 @@ $(document).ready(function() {
             formData.append('action', 'update_registration_status');
             formData.append('id', id);
             formData.append('status', 'contact'); // the status in DB is 'contact'
+            formData.append('email', email);
             formData.append('send_email', '1');
             formData.append('email_message', emailMessage);
 

@@ -911,22 +911,90 @@ switch ($action) {
     case 'update_registration_status':
         $id = (int)($_POST['id'] ?? 0);
         $newStatus = $_POST['status'] ?? '';
+        $sendEmail = isset($_POST['send_email']) && $_POST['send_email'] == '1';
+        $emailMessage = $_POST['email_message'] ?? '';
 
         if ($id <= 0 || empty($newStatus)) {
             echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
             exit;
         }
 
+        if ($sendEmail) {
+            // Fetch candidate email and name first
+            $candidate_name = '';
+            $candidate_email = '';
+            
+            $sqlFetch = "SELECT name, email FROM registrations WHERE id = ?";
+            $stmtFetch = $conn->prepare($sqlFetch);
+            $stmtFetch->bind_param('i', $id);
+            $stmtFetch->execute();
+            $resFetch = $stmtFetch->get_result()->fetch_assoc();
+            $stmtFetch->close();
+            
+            if (!$resFetch || empty($resFetch['email'])) {
+                echo json_encode(['success' => false, 'message' => 'Candidate email not found']);
+                exit;
+            }
+            if (empty($emailMessage)) {
+                echo json_encode(['success' => false, 'message' => 'Email message cannot be empty']);
+                exit;
+            }
+
+            $candidate_name = $resFetch['name'];
+            $candidate_email = $resFetch['email'];
+
+            // Design email HTML content
+            $current_year = date('Y');
+            $formattedMessage = nl2br(htmlspecialchars($emailMessage));
+            
+            $htmlContent = "
+            <div style=\"background-color: #F8FAFC; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100%;\">
+                <div style=\"max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid #E2E8F0;\">
+                    <div style=\"background-color: #1E293B; padding: 32px; text-align: center; border-bottom: 4px solid #06B6D4;\">
+                        <h1 style=\"color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;\">DawoodTech NextGen</h1>
+                        <p style=\"color: #06B6D4; margin: 4px 0 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;\">Application Update</p>
+                    </div>
+                    <div style=\"padding: 40px 32px; color: #0F172A; line-height: 1.6; font-size: 16px;\">
+                        <p style=\"margin-top: 0; font-weight: 600; font-size: 18px; color: #1E293B;\">Dear " . htmlspecialchars($candidate_name) . ",</p>
+                        <div style=\"margin: 24px 0; color: #334155;\">
+                            " . $formattedMessage . "
+                        </div>
+                        <div style=\"margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0; text-align: center;\">
+                            <p style=\"margin: 0; font-size: 14px; color: #64748B;\">If you have any questions, feel free to reply to this email.</p>
+                        </div>
+                    </div>
+                    <div style=\"background-color: #F1F5F9; padding: 24px; text-align: center; font-size: 12px; color: #64748B; border-top: 1px solid #E2E8F0;\">
+                        <p style=\"margin: 0 0 8px 0; font-weight: 600; color: #1E293B;\">DawoodTech NextGen</p>
+                        <p style=\"margin: 0;\">&copy; " . $current_year . " DawoodTech. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>";
+
+            // Send notification email using PHPMailer with fallback
+            $subject = 'Application Update - DawoodTech NextGen';
+            $emailSent = sendEmailPHPMailer($candidate_email, $candidate_name, $subject, $htmlContent, null, '', 'primary');
+            if (!$emailSent) {
+                $emailSent = sendEmailPHPMailer($candidate_email, $candidate_name, $subject, $htmlContent, null, '', 'gmail');
+            }
+
+            if (!$emailSent) {
+                echo json_encode(['success' => false, 'message' => 'Failed to send notification email. Please check configuration.']);
+                exit;
+            }
+        }
+
         $stmt = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
         $stmt->bind_param('si', $newStatus, $id);
 
         if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+            $successMsg = $sendEmail ? 'Status updated to contact and email sent successfully' : 'Status updated successfully';
+            echo json_encode(['success' => true, 'message' => $successMsg]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to update status: ' . $conn->error]);
         }
         $stmt->close();
         break;
+
 
     case 'reject_candidate':
         $id = (int)$_POST['id'];

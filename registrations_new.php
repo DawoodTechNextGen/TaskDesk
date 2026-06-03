@@ -85,6 +85,66 @@ include_once "./include/headerLinks.php";
         </div>
     </div>
 
+    <!-- Email Contact Modal -->
+    <div id="emailContactModal" class="modal hidden fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-300">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border border-gray-100 dark:border-gray-700 transform scale-95 transition-all duration-300">
+            <!-- Header -->
+            <div class="bg-[#1E293B] px-6 py-4 flex items-center justify-between border-b-4 border-[#06B6D4]">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-[#2563EB]/10 rounded-lg text-[#06B6D4]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Send Email Notification</h3>
+                </div>
+                <button type="button" class="close-email-modal text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <form id="emailContactForm" class="p-6 space-y-4">
+                <input type="hidden" id="emailModalCandidateId" name="id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Candidate Name</label>
+                    <input type="text" id="emailModalCandidateName" readonly class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Recipient Email</label>
+                    <input type="email" id="emailModalCandidateEmail" readonly class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Subject</label>
+                    <input type="text" id="emailModalSubject" value="Application Update - DawoodTech NextGen" readonly class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Message Content</label>
+                    <textarea id="emailModalMessage" required rows="6" placeholder="Type your email message here..." class="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-800 dark:text-gray-150 placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none resize-none transition-all custom-scrollbar"></textarea>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex justify-end items-center space-x-3 pt-2">
+                    <button type="button" class="close-email-modal px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-lg text-sm shadow-md hover:shadow-lg focus:ring-4 focus:ring-[#2563EB]/30 transition-all flex items-center space-x-2">
+                        <span>Send Email</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <?php include_once "./include/footerLinks.php"; ?>
 <script>
     /* Reused utilities */
@@ -161,9 +221,10 @@ $(document).ready(function() {
                 render: function(data, type, row) {
                     return `
                     <div class="flex items-center space-x-2">
-                        <select class="status-select px-2 py-1 border rounded bg-white dark:bg-gray-700 text-xs w-24">
+                        <select class="status-select px-2 py-1 border rounded bg-white dark:bg-gray-700 text-xs w-36">
                             <option value="new" selected>New</option>
-                            <option value="contact">Contact </option>
+                            <option value="contact_whatsapp">Contact by WhatsApp</option>
+                            <option value="contact_email">Contact by Email</option>
                         </select>
                         <button class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs update-btn"
                             data-id="${row.id}">
@@ -202,6 +263,28 @@ $(document).ready(function() {
         const id = $(this).data('id');
         const status = $(this).siblings('.status-select').val();
 
+        if (status === 'contact_email') {
+            // Open modal instead of updating directly
+            const tr = $(this).closest('tr');
+            const rowData = table.row(tr).data();
+
+            $('#emailModalCandidateId').val(id);
+            $('#emailModalCandidateName').val(rowData.name || '');
+            $('#emailModalCandidateEmail').val(rowData.email || '');
+            $('#emailModalMessage').val(''); // clear message
+
+            // Open modal with smooth animation
+            const modal = $('#emailContactModal');
+            modal.removeClass('hidden').addClass('flex');
+            setTimeout(() => {
+                modal.find('.transform').removeClass('scale-95').addClass('scale-100');
+            }, 50);
+            return;
+        }
+
+        // Map contact_whatsapp to contact in database
+        const finalStatus = (status === 'contact_whatsapp') ? 'contact' : status;
+
         if (!confirm('Are you sure you want to update this status?')) return;
 
         LoaderManager.showGlobal();
@@ -209,7 +292,7 @@ $(document).ready(function() {
             const formData = new FormData();
             formData.append('action', 'update_registration_status');
             formData.append('id', id);
-            formData.append('status', status);
+            formData.append('status', finalStatus);
 
             const res = await fetch('controller/registrations.php', {
                 method: 'POST',
@@ -227,6 +310,65 @@ $(document).ready(function() {
             showToast('error', e.message);
         } finally {
             LoaderManager.hideGlobal();
+        }
+    });
+
+    // Handle modal form submit
+    $('#emailContactForm').on('submit', async function(e) {
+        e.preventDefault();
+        
+        const id = $('#emailModalCandidateId').val();
+        const emailMessage = $('#emailModalMessage').val();
+        
+        // Hide modal
+        closeEmailModal();
+        
+        LoaderManager.showGlobal();
+        try {
+            const formData = new FormData();
+            formData.append('action', 'update_registration_status');
+            formData.append('id', id);
+            formData.append('status', 'contact'); // the status in DB is 'contact'
+            formData.append('send_email', '1');
+            formData.append('email_message', emailMessage);
+
+            const res = await fetch('controller/registrations.php', {
+                method: 'POST',
+                body: formData
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                showToast('success', json.message);
+                table.ajax.reload();
+            } else {
+                showToast('error', json.message);
+            }
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            LoaderManager.hideGlobal();
+        }
+    });
+
+    // Close modal helper
+    function closeEmailModal() {
+        const modal = $('#emailContactModal');
+        modal.find('.transform').removeClass('scale-100').addClass('scale-95');
+        setTimeout(() => {
+            modal.addClass('hidden').removeClass('flex');
+        }, 150);
+    }
+
+    // Modal close event handlers
+    $(document).on('click', '.close-email-modal', function() {
+        closeEmailModal();
+    });
+
+    // Close modal if clicking outside the modal content container
+    $('#emailContactModal').on('click', function(e) {
+        if ($(e.target).is('#emailContactModal')) {
+            closeEmailModal();
         }
     });
 

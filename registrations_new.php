@@ -40,6 +40,18 @@ include_once "./include/headerLinks.php";
         display: none;
         overflow: hidden;
     }
+
+    /* Force text and background visibility in Email Modal inputs/textarea */
+    #emailContactModal input, #emailContactModal textarea {
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
+    }
+    
+    /* Dark mode override */
+    .dark #emailContactModal input, .dark #emailContactModal textarea {
+        color: #FFFFFF !important;
+        background-color: #1F2937 !important;
+    }
 </style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -126,7 +138,7 @@ include_once "./include/headerLinks.php";
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Message Content</label>
-                    <textarea id="emailModalMessage" required rows="6" placeholder="Type your email message here..." class="w-full px-4 py-3 bg-white dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-450 dark:placeholder-gray-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none resize-none transition-all custom-scrollbar"></textarea>
+                    <textarea id="emailModalMessage" required rows="6" placeholder="Type your email message here..." class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-450 dark:placeholder-gray-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/25 outline-none resize-none transition-all custom-scrollbar"></textarea>
                 </div>
 
                 <!-- Action buttons -->

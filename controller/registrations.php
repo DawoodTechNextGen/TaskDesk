@@ -1,5 +1,6 @@
 <?php
 session_start();
+ini_set('display_errors', 0);
 include '../include/config.php';
 include '../include/connection.php';
 require_once '../include/pdf_helper.php';

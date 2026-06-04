@@ -118,8 +118,8 @@ switch ($action) {
             // Format internship_type
             if (isset($row['internship_type'])) {
                 $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Free Intern'
-                    : 'Paid Intern';
+                    ? 'Task Base Intern'
+                    : 'Learning Base Intern';
             }
 
             // Format experience
@@ -608,8 +608,8 @@ switch ($action) {
             // Format internship_type
             if (isset($row['internship_type'])) {
                 $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Free Intern'
-                    : 'Paid Intern';
+                    ? 'Task Base Intern'
+                    : 'Learning Base Intern';
             }
 
             // Format experience
@@ -969,7 +969,7 @@ switch ($action) {
             $logoUrl = rtrim(BASE_URL, '/') . '/assets/images/logo.png';
             $waNumber = COMPANY_WHATSAPP;
             $internshipType = (int)($resFetch['internship_type'] ?? 0);
-            $internTypeLabel = ($internshipType === 1) ? 'Paid Internship' : 'Free Internship';
+            $internTypeLabel = ($internshipType === 1) ? 'Learning Base Interns' : 'Task Base Interns';
             $waMessage = 'Interested in ' . $internTypeLabel;
             $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
             

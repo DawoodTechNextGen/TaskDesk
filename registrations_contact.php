@@ -270,8 +270,8 @@ include_once "./include/headerLinks.php";
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Internship Type</label>
                                 <select id="editTypeNewType" class="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200" required>
                                     <option value="">Select Internship Type</option>
-                                    <option value="0">Full-Time</option>
-                                    <option value="1">Part-Time</option>
+                                    <option value="0">Task Base Intern</option>
+                                    <option value="1">Learning Base Intern</option>
                                 </select>
                             </div>
                         </div>
@@ -1641,7 +1641,7 @@ include_once "./include/headerLinks.php";
         function openEditTypeModal(row) {
             $('#editTypeId').val(row.id);
             $('#editTypeName').val(row.name);
-            const currentType = row.internship_type == 0 ? 'Free Intern' : 'Paid Intern';
+            const currentType = row.internship_type == 0 ? 'Task Base Intern' : 'Learning Base Intern';
             $('#editTypeCurrentType').val(currentType);
             $('#editTypeNewType').val('');
             $('#editTypeModal').removeClass('hidden');
@@ -1716,8 +1716,8 @@ include_once "./include/headerLinks.php";
             // Create select dropdown
             const select = $(`
                 <select class="internship-type-select px-2 py-1 rounded border border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white">
-                    <option value="0" ${current == 0 ? 'selected' : ''}>Free Intern</option>
-                    <option value="1" ${current == 1 ? 'selected' : ''}>Paid Intern</option>
+                    <option value="0" ${current == 0 ? 'selected' : ''}>Task Base Intern</option>
+                    <option value="1" ${current == 1 ? 'selected' : ''}>Learning Base Intern</option>
                 </select>
             `);
             

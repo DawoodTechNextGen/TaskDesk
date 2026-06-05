@@ -94,7 +94,7 @@ switch ($action) {
 
         // Data query
         $dataSql = "
-        SELECT r.id, r.name, r.email, r.mbl_number, r.status,
+        SELECT r.id, r.name, r.email, r.mbl_number, r.status, r.email_status,
                r.internship_type, r.experience, r.city, r.country,
                r.cnic, DATE(r.created_at) created_at, r.remarks,
                r.technology_id, t.name technology
@@ -910,12 +910,14 @@ switch ($action) {
         }
         break;
 
+    case 'update_status':
     case 'update_registration_status':
         $id = (int)($_POST['id'] ?? 0);
         $newStatus = $_POST['status'] ?? '';
         $sendEmail = isset($_POST['send_email']) && $_POST['send_email'] == '1';
         $emailMessage = $_POST['email_message'] ?? '';
         $postedEmail = trim($_POST['email'] ?? '');
+        $contactVia = $_POST['contact_via'] ?? '';
 
         if ($id <= 0 || empty($newStatus)) {
             echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
@@ -956,8 +958,7 @@ switch ($action) {
                 exit;
             }
             if (empty($emailMessage)) {
-                echo json_encode(['success' => false, 'message' => 'Email message cannot be empty']);
-                exit;
+                $emailMessage = "Thank you for applying for the DawoodTech NextGen Internship Program.\n\nTo proceed with your application, please reply on WhatsApp with the word \"Interested\".\n\nWe will then share the next steps and internship details.\n\nBest Regards,\nDawoodTech NextGen Team";
             }
 
             $candidate_name = $resFetch['name'];
@@ -1039,25 +1040,56 @@ switch ($action) {
             if (!$emailSent) {
                 $emailSent = sendEmailPHPMailer($candidate_email, $candidate_name, $subject, $htmlContent, null, '', 'gmail');
             }
-
-            if (!$emailSent) {
-                echo json_encode(['success' => false, 'message' => 'Failed to send notification email. Please check configuration.']);
-                exit;
-            }
         }
 
-        $stmt = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
-        $stmt->bind_param('si', $newStatus, $id);
+        $email_status = 0;
+        if ($sendEmail) {
+            $email_status = $emailSent ? 1 : 2;
+        } elseif ($contactVia === 'whatsapp') {
+            $email_status = 3;
+        }
+
+        $stmt = $conn->prepare("UPDATE registrations SET status = ?, email_status = ? WHERE id = ?");
+        $stmt->bind_param('sii', $newStatus, $email_status, $id);
 
         if ($stmt->execute()) {
-            $successMsg = $sendEmail ? 'Status updated to contact and email sent successfully' : 'Status updated successfully';
-            echo json_encode(['success' => true, 'message' => $successMsg]);
+            if ($sendEmail) {
+                $successMsg = $emailSent 
+                    ? 'Status updated to contact and email sent successfully' 
+                    : 'Status updated to contact, but email sending failed. Please check SMTP settings.';
+                echo json_encode(['success' => true, 'message' => $successMsg]);
+            } else {
+                echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+            }
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to update status: ' . $conn->error]);
         }
         $stmt->close();
         break;
+    case 'bulk_reject_old_contacts':
+        if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized action.']);
+            exit;
+        }
 
+        $sql = "UPDATE registrations 
+                SET status = 'rejected' 
+                WHERE status = 'contact' 
+                AND updated_at < DATE_SUB(NOW(), INTERVAL 15 DAY)";
+
+        if ($conn->query($sql)) {
+            $affected = $conn->affected_rows;
+            echo json_encode([
+                'success' => true, 
+                'message' => "Successfully rejected {$affected} candidates whose contact status was older than 15 days."
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Failed to perform bulk rejection: ' . $conn->error
+            ]);
+        }
+        break;
 
     case 'reject_candidate':
         $id = (int)$_POST['id'];

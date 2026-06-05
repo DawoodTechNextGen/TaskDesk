@@ -149,6 +149,12 @@ include_once "./include/headerLinks.php";
 
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Contact List</h2>
+                    <button id="bulkRejectBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Bulk Reject (> 15 Days)</span>
+                    </button>
                 </div>
 
                 <div class="bg-white mb-4 dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -1518,7 +1524,7 @@ include_once "./include/headerLinks.php";
         }
 
         // Build table header
-        $('#contactTable thead').html(`<tr><th></th><th>ID</th><th>Name</th><th>Contact</th><th>Technology</th><th>Internship Type</th><th>Experience</th><th>Actions</th></tr>`);
+        $('#contactTable thead').html(`<tr><th></th><th>ID</th><th>Name</th><th>Contact</th><th>Technology</th><th>Internship Type</th><th>Experience</th><th>Email Status</th><th>Actions</th></tr>`);
 
         table = $('#contactTable').DataTable({
             serverSide: true,
@@ -1559,6 +1565,44 @@ include_once "./include/headerLinks.php";
                 },
                 {
                     data: 'experience_text'
+                },
+                {
+                    data: 'email_status',
+                    render: function(data, type, row) {
+                        if (data == 1) {
+                            return `
+                            <span class="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-900/35 text-green-700 dark:text-green-300 rounded font-semibold text-xs" title="Email sent successfully">
+                                <svg class="w-3.5 h-3.5 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Sent
+                            </span>`;
+                        } else if (data == 2) {
+                            return `
+                            <span class="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-900/35 text-red-700 dark:text-red-300 rounded font-semibold text-xs" title="Failed to send email">
+                                <svg class="w-3.5 h-3.5 mr-1 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                Failed
+                            </span>`;
+                        } else if (data == 3) {
+                            return `
+                            <span class="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-950/20 text-green-800 dark:text-green-400 rounded font-semibold text-xs" title="Contacted via WhatsApp">
+                                <svg class="w-3.5 h-3.5 mr-1 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.732-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.449 5.428 0 9.85-4.417 9.853-9.847.002-2.63-1.023-5.101-2.887-6.963C16.37 1.93 13.905.908 11.274.908 5.845.908 1.42 5.326 1.417 10.758c-.001 1.503.411 2.973 1.192 4.293l-.99 3.615 3.702-.971c1.24.774 2.585 1.18 3.805 1.18zM18.106 14.8c-.33-.165-1.951-.963-2.251-1.072-.3-.11-.518-.165-.736.165-.218.33-.846 1.072-1.037 1.292-.19.22-.382.247-.712.082-.33-.165-1.393-.513-2.653-1.637-.98-.874-1.64-1.953-1.832-2.282-.19-.33-.02-.508.145-.672.148-.148.33-.385.495-.578.165-.192.22-.33.33-.55.11-.22.055-.412-.028-.577-.082-.165-.736-1.774-1.01-2.434-.267-.641-.539-.553-.736-.563-.19-.01-.409-.012-.627-.012s-.573.082-.873.412c-.3.33-1.145 1.117-1.145 2.723s1.173 3.161 1.336 3.381c.164.22 2.307 3.522 5.589 4.938.78.337 1.39.539 1.867.69.783.249 1.497.214 2.06.13.627-.094 1.951-.798 2.224-1.57.273-.772.273-1.433.19-1.57-.081-.137-.301-.22-.631-.385z"/>
+                                </svg>
+                                WhatsApp
+                            </span>`;
+                        } else {
+                            return `
+                            <span class="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 rounded font-semibold text-xs" title="Email not attempted">
+                                <svg class="w-3.5 h-3.5 mr-1 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Pending
+                            </span>`;
+                        }
+                    }
                 },
                 {
                     data: null,
@@ -1800,6 +1844,39 @@ include_once "./include/headerLinks.php";
         $(document).on('click', '.reject-table-btn', function() {
             const row = table.row($(this).closest('tr')).data();
             rejectCandidate(row.id, row.name, table);
+        });
+
+        // Bulk Reject Action
+        $('#bulkRejectBtn').on('click', async function() {
+            if (!confirm('Are you sure you want to reject all candidates in the contact list who were contacted more than 15 days ago?')) {
+                return;
+            }
+            if (!confirm('This action is permanent and cannot be undone. Are you absolutely sure you want to proceed?')) {
+                return;
+            }
+
+            LoaderManager.showGlobal();
+            try {
+                const formData = new FormData();
+                formData.append('action', 'bulk_reject_old_contacts');
+
+                const res = await fetch('controller/registrations.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    showToast('success', json.message);
+                    table.ajax.reload();
+                } else {
+                    showToast('error', json.message);
+                }
+            } catch (e) {
+                showToast('error', 'Request failed: ' + e.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
         });
 
         initSearchableSelect();

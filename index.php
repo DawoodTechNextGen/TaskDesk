@@ -21,9 +21,9 @@ if ($user_role == 1) {
     $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
 
     // Additional admin stats
-    $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress'")->fetch_assoc()['total'];
+    $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
-    $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired'")->fetch_assoc()['total'];
+    $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired' OR (status IN ('inprogress', 'needs_improvement') AND due_date < CURDATE())")->fetch_assoc()['total'];
 
     // Monthly task trends
     $monthly_tasks = $conn->query("SELECT 
@@ -56,12 +56,12 @@ if ($user_role == 1) {
     $completed_tasks->execute();
     $completed_tasks = $completed_tasks->get_result()->fetch_assoc()['total'];
 
-    $inprogress_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'inprogress'");
+    $inprogress_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)");
     $inprogress_tasks->bind_param("i", $user_id);
     $inprogress_tasks->execute();
     $inprogress_tasks = $inprogress_tasks->get_result()->fetch_assoc()['total'];
 
-    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND status = 'expired'");
+    $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE assign_to = ? AND (status = 'expired' OR (status IN ('inprogress', 'needs_improvement') AND due_date < CURDATE()))");
     $expired_tasks->bind_param("i", $user_id);
     $expired_tasks->execute();
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
@@ -88,7 +88,7 @@ if ($user_role == 1) {
 
     $expired_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks 
         WHERE (assign_to IN (SELECT id FROM users WHERE supervisor_id = ?)) 
-        AND status = 'expired'");
+        AND (status = 'expired' OR (status IN ('inprogress', 'needs_improvement') AND due_date < CURDATE()))");
     $expired_tasks->bind_param("i", $user_id);
     $expired_tasks->execute();
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
@@ -661,16 +661,24 @@ include_once "./include/headerLinks.php"; ?>
                                             $currentDate = date('Y-m-d');
                                             $dueDate = $task['due_date'];
 
-                                            if (strtotime($dueDate) < strtotime($currentDate)) {
+                                            if (strtotime($dueDate) < strtotime($currentDate) && in_array($task['status'], ['inprogress', 'needs_improvement'])) {
                                                 $statusText = 'Expired';
                                                 $statusClass = 'bg-red-100 text-red-800';
                                             } elseif ($task['status'] === 'inprogress') {
                                                 $statusText = 'In Progress';
                                                 $statusClass = 'bg-yellow-100 text-yellow-800';
+                                            } elseif ($task['status'] === 'pending_review') {
+                                                $statusText = 'Pending Review';
+                                                $statusClass = 'bg-indigo-100 text-indigo-800';
+                                            } elseif ($task['status'] === 'needs_improvement') {
+                                                $statusText = 'Needs Improvement';
+                                                $statusClass = 'bg-orange-100 text-orange-800';
+                                            } elseif ($task['status'] === 'complete') {
+                                                $statusText = 'Complete';
+                                                $statusClass = 'bg-green-100 text-green-800';
                                             } else {
-                                                // For complete or any other status
                                                 $statusText = ucfirst($task['status']);
-                                                $statusClass = $task['status'] == 'complete' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                                                $statusClass = 'bg-red-100 text-red-800';
                                             }
                                             ?>
 
@@ -880,8 +888,31 @@ include_once "./include/headerLinks.php"; ?>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= htmlspecialchars($task['title']) ?></td>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= htmlspecialchars($task['assign_to']) ?></td>
                                                     <td class="py-3 text-sm">
-                                                        <span class="px-2 py-1 rounded-full text-xs <?= ($task['due_date'] < date('Y-m-d') && $task['status'] !== 'complete') ? 'bg-red-100 text-red-800' : ($task['status'] === 'complete' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800') ?>">
-                                                            <?= ucfirst(($task['due_date'] < date('Y-m-d') && $task['status'] !== 'complete') ? 'expired' : $task['status']) ?>
+                                                        <?php
+                                                        $isExpired = ($task['due_date'] < date('Y-m-d') && in_array($task['status'], ['inprogress', 'needs_improvement']));
+                                                        $displayStatus = $isExpired ? 'expired' : $task['status'];
+                                                        $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                        $statusLabel = ucfirst($displayStatus);
+
+                                                        if ($displayStatus === 'expired') {
+                                                            $statusClass = 'bg-red-100 text-red-800';
+                                                            $statusLabel = 'Expired';
+                                                        } elseif ($displayStatus === 'complete') {
+                                                            $statusClass = 'bg-green-100 text-green-800';
+                                                            $statusLabel = 'Complete';
+                                                        } elseif ($displayStatus === 'pending_review') {
+                                                            $statusClass = 'bg-indigo-100 text-indigo-800';
+                                                            $statusLabel = 'Pending Review';
+                                                        } elseif ($displayStatus === 'needs_improvement') {
+                                                            $statusClass = 'bg-orange-100 text-orange-800';
+                                                            $statusLabel = 'Needs Improvement';
+                                                        } elseif ($displayStatus === 'rejected') {
+                                                            $statusClass = 'bg-red-100 text-red-800';
+                                                            $statusLabel = 'Rejected';
+                                                        }
+                                                        ?>
+                                                        <span class="px-2 py-1 rounded-full text-xs <?= $statusClass ?>">
+                                                            <?= $statusLabel ?>
                                                         </span>
                                                     </td>
                                                     <td class="py-3 text-sm text-gray-600 dark:text-gray-300"><?= date('j F Y', strtotime($task['due_date'])) ?></td>

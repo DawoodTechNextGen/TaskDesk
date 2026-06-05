@@ -228,7 +228,7 @@ if ($data['action'] === 'getAssignedTask') {
     u.name as assign_by from tasks t JOIN users u on u.id = t.created_by where assign_to = ?";
 
     if ($status === 'expired') {
-        $sql .= " AND (t.status = 'expired' OR (t.status = 'inprogress' AND t.due_date < CURDATE()))";
+        $sql .= " AND (t.status = 'expired' OR (t.status IN ('inprogress', 'needs_improvement') AND t.due_date < CURDATE()))";
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
         $stmt->bind_param("s", $user_id);
     } elseif ($status == 'inprogress') {

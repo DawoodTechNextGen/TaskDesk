@@ -127,3 +127,168 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
         return null;
     }
 }
+
+/**
+ * Generates Certificate PDF content
+ * 
+ * @param string $name Intern name
+ * @param string $startDate Start date
+ * @param string $endDate End date
+ * @param string $techName Technology name
+ * @param string $issueDate Issue date
+ * @param int $internshipType Internship type (0 for participation, 1 for completion)
+ * @param string $verifyUrl Verification URL for QR code
+ * @return string|null PDF content as string
+ */
+function generateCertificateHelper($name, $startDate, $endDate, $techName, $issueDate, $internshipType, $verifyUrl) {
+    try {
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $dompdf = new Dompdf($options);
+
+        // Get template background (always certificate.png per user request)
+        $bg_filename = 'certificate.png';
+        $bgImagePath = __DIR__ . '/../assets/images/' . $bg_filename;
+        if (file_exists($bgImagePath)) {
+            $imageData = base64_encode(file_get_contents($bgImagePath));
+            $bgImageUri = 'data:image/png;base64,' . $imageData;
+        } else {
+            // Fallback to URL if local file not found
+            if (defined('BASE_URL')) {
+                $bgImageUri = BASE_URL . "assets/images/" . $bg_filename;
+            } else {
+                $bgImageUri = "";
+            }
+        }
+
+        // Fetch QR Code image as base64 for embedding (more robust than remote URL in HTML)
+        $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($verifyUrl);
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 3.0, // 3 seconds timeout
+            ]
+        ]);
+        $qrCodeContent = @file_get_contents($qrCodeUrl, false, $ctx);
+        if ($qrCodeContent !== false) {
+            $qrCodeUri = 'data:image/png;base64,' . base64_encode($qrCodeContent);
+        } else {
+            $qrCodeUri = $qrCodeUrl;
+        }
+
+        // Load local font as base64 to prevent remote downloads & delays
+        $fontPath = __DIR__ . '/../assets/fonts/static/Caveat-Bold.ttf';
+        if (file_exists($fontPath)) {
+            $fontData = base64_encode(file_get_contents($fontPath));
+            $fontUri = 'data:font/truetype;charset=utf-8;base64,' . $fontData;
+        } else {
+            $fontUri = '';
+        }
+
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <style>
+                @font-face {
+                    font-family: "Caveat";
+                    font-style: normal;
+                    font-weight: 700;
+                    src: url("' . $fontUri . '") format("truetype");
+                }
+                @page { margin: 0; padding: 0; size: A4 landscape; }
+                body {
+                    margin: 0;
+                    padding: 0;
+                    width: 842pt;
+                    height: 595pt;
+                    font-family: Arial, sans-serif;
+                    position: relative;
+                    background-image: url("' . $bgImageUri . '");
+                    background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                .name-text {
+                    position: absolute;
+                    top: 275pt;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    font-family: \'Caveat\', \'Georgia\', cursive, serif;
+                    font-size: 38pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+                .cert-text {
+                    position: absolute;
+                    top: 340pt;
+                    left: 60pt;
+                    right: 60pt;
+                    text-align: center;
+                    font-size: 13pt;
+                    line-height: 1.5;
+                    color: #2c3e50;
+                }
+                .underline-text {
+                    font-weight: bold;
+                    text-decoration: underline;
+                }
+                .bold-text {
+                    font-weight: bold;
+                }
+                .issue-date {
+                    position: absolute;
+                    left: 296pt;
+                    top: 550pt;
+                    font-size: 13pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+                .qr-code {
+                    position: absolute;
+                    left: 70pt;
+                    top: 70pt;
+                }
+                .qr-code img {
+                    width: 55pt;
+                    height: 55pt;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="name-text">
+                ' . htmlspecialchars($name) . '
+            </div>
+            
+            <div class="cert-text">
+                This is to certify that <span class="underline-text">' . htmlspecialchars($name) . '</span>
+                has successfully completed his/her internship at <span class="bold-text">DawoodTech NextGen</span>
+                <br/>
+                from <span class="underline-text">' . htmlspecialchars($startDate) . '</span> to <span class="underline-text">' . htmlspecialchars($endDate) . '</span>
+                in <span class="underline-text">' . htmlspecialchars($techName) . '</span>.
+                <br/>
+                <span style="font-size: 11pt;">During this period, the intern showed dedication, professionalism, and a strong willingness to learn while contributing effectively to assigned projects.</span>
+            </div>
+            
+            <div class="issue-date">
+                ' . htmlspecialchars($issueDate) . '
+            </div>
+            
+            <div class="qr-code">
+                <img src="' . $qrCodeUri . '" />
+            </div>
+        </body>
+        </html>';
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return $dompdf->output();
+    } catch (Exception $e) {
+        error_log("Certificate PDF Helper Error: " . $e->getMessage());
+        return null;
+    }
+}

@@ -187,20 +187,24 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
             $mail->setFrom(GMAIL_MAIL_USERNAME, MAIL_FROM_NAME);
         }
 
-        $mail->Timeout  = 30; // Increased timeout
+        $mail->Timeout  = 10; // Set to 10s to prevent AJAX timeouts in browser
         $mail->addAddress($toEmail, $toName);
         $mail->isHTML(true);
         
-        // Embed logo as inline CID attachment
-        $logoPath = dirname(__DIR__) . '/assets/images/logo.png';
-        if (file_exists($logoPath)) {
-            $mail->addEmbeddedImage($logoPath, 'logo_cid', 'logo.png', 'base64', 'image/png');
+        // Embed logo as inline CID attachment only if referenced in HTML
+        if (strpos($htmlContent, 'cid:logo_cid') !== false) {
+            $logoPath = dirname(__DIR__) . '/assets/images/logo.png';
+            if (file_exists($logoPath)) {
+                $mail->addEmbeddedImage($logoPath, 'logo_cid', 'logo.png', 'base64', 'image/png');
+            }
         }
 
-        // Embed WhatsApp logo as inline CID attachment
-        $waLogoPath = dirname(__DIR__) . '/assets/images/whatsapp_logo.png';
-        if (file_exists($waLogoPath)) {
-            $mail->addEmbeddedImage($waLogoPath, 'whatsapp_logo_cid', 'whatsapp_logo.png', 'base64', 'image/png');
+        // Embed WhatsApp logo as inline CID attachment only if referenced in HTML
+        if (strpos($htmlContent, 'cid:whatsapp_logo_cid') !== false) {
+            $waLogoPath = dirname(__DIR__) . '/assets/images/whatsapp_logo.png';
+            if (file_exists($waLogoPath)) {
+                $mail->addEmbeddedImage($waLogoPath, 'whatsapp_logo_cid', 'whatsapp_logo.png', 'base64', 'image/png');
+            }
         }
         
         $mail->Subject = $subject;

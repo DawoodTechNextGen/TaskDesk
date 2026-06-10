@@ -6,7 +6,7 @@
  */
 
 
-require "/home2/dawoodte/public_html/taskdesk/include/connection.php";
+require_once __DIR__ . "/include/connection.php";
 date_default_timezone_set('Asia/Karachi');
 
 // Find users whose freeze period has ended

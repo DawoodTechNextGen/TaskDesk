@@ -24,6 +24,7 @@ if ($user_role == 1) {
     $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)")->fetch_assoc()['total'];
     $completed_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'complete'")->fetch_assoc()['total'];
     $expired_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'expired' OR (status IN ('inprogress', 'needs_improvement') AND due_date < CURDATE())")->fetch_assoc()['total'];
+    $contacted_last_24h = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'contact' AND updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetch_assoc()['total'];
 
     // Monthly task trends
     $monthly_tasks = $conn->query("SELECT 
@@ -257,6 +258,19 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-red-100 dark:bg-red-900 p-2 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-800 transition-all">
                                         <svg class="w-5 h-5 text-red-600 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </a>
+                            <a href="registrations_contact.php" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border-l-4 border-blue-500 hover:shadow-lg transition-all group">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500 dark:text-gray-300 text-sm font-medium group-hover:text-blue-500 transition-colors">Contacted (24h)</p>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white"><?= $contacted_last_24h ?></h3>
+                                    </div>
+                                    <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-all">
+                                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                         </svg>
                                     </div>
                                 </div>

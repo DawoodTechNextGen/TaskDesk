@@ -3,6 +3,30 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 
+if ($_POST['action'] === 'get_cert_id') {
+    $intern_id = (int)$_POST['id'];
+    
+    $stmt = $conn->prepare("SELECT id FROM certificate WHERE intern_id = ?");
+    $stmt->bind_param("i", $intern_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $cert_id = null;
+    if ($row = $result->fetch_assoc()) {
+        $cert_id = $row['id'];
+    } else {
+        $ins = $conn->prepare("INSERT INTO certificate (intern_id, approve_status, created_at) VALUES (?, 1, NOW())");
+        $ins->bind_param("i", $intern_id);
+        $ins->execute();
+        $cert_id = $conn->insert_id;
+        $ins->close();
+    }
+    $stmt->close();
+    
+    echo json_encode(["success" => true, "cert_id" => $cert_id]);
+    exit;
+}
+
 if ($_POST['action'] === 'approve') {
     $intern_id = $_POST['id'];
 

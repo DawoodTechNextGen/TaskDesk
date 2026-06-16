@@ -408,6 +408,36 @@ if ($user_result->num_rows > 0) {
                             
                             <form id="certificateForm">
                                 <div class="form-group">
+                                    <label for="selectIntern">Select Intern (Optional)</label>
+                                    <select class="form-control" id="selectIntern" onchange="onInternSelectChange()">
+                                        <option value="">-- Custom (No Verification QR) --</option>
+                                        <?php
+                                        // Fetch all active/approved interns
+                                        $interns_query = $conn->query("
+                                            SELECT u.id, u.name, u.created_at, u.internship_type, u.internship_duration, t.name AS tech_name 
+                                            FROM users u 
+                                            LEFT JOIN technologies t ON u.tech_id = t.id 
+                                            WHERE u.user_role = 2 
+                                            ORDER BY u.name ASC
+                                        ");
+                                        if ($interns_query) {
+                                            while ($intern = $interns_query->fetch_assoc()) {
+                                                $i_duration = $intern['internship_duration'];
+                                                if (empty($i_duration)) {
+                                                    $i_duration = ($intern['internship_type'] == 0) ? '4 weeks' : '12 weeks';
+                                                }
+                                                $i_start = date('j F Y', strtotime($intern['created_at']));
+                                                $i_end = date('j F Y', strtotime($intern['created_at'] . ' +' . $i_duration));
+                                                $i_tech = $intern['tech_name'] ?: 'Technology';
+                                                $i_type = $intern['internship_type'] ?: 1;
+                                                echo "<option value='{$intern['id']}' data-name='" . htmlspecialchars($intern['name'], ENT_QUOTES) . "' data-start='" . htmlspecialchars($i_start, ENT_QUOTES) . "' data-end='" . htmlspecialchars($i_end, ENT_QUOTES) . "' data-tech='" . htmlspecialchars($i_tech, ENT_QUOTES) . "' data-type='{$i_type}'>{$intern['name']} ({$i_tech})</option>";
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
                                     <label for="studentName">Student Name</label>
                                     <input type="text" 
                                            class="form-control" 
@@ -530,6 +560,90 @@ if ($user_result->num_rows > 0) {
         // Current certificate data (can be modified by user)
         let certificateData = {...defaultCertificateData};
 
+        // QR Code details
+        let qrImage = null;
+        let qrLoaded = false;
+
+        function loadQRCode(certId) {
+            if (!certId) {
+                qrImage = null;
+                qrLoaded = false;
+                drawCertificate();
+                return;
+            }
+            const verifyUrl = "<?php echo BASE_URL; ?>verify_certificate.php?id=" + certId;
+            qrImage = new Image();
+            qrImage.crossOrigin = "anonymous";
+            qrImage.src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(verifyUrl);
+            qrImage.onload = function() {
+                qrLoaded = true;
+                drawCertificate();
+            };
+            qrImage.onerror = function() {
+                qrLoaded = false;
+                qrImage = null;
+                drawCertificate();
+            };
+        }
+
+        function onInternSelectChange() {
+            const select = document.getElementById('selectIntern');
+            if (!select) return;
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (!selectedOption.value) {
+                // Reset to manual input defaults
+                resetToDefaults();
+                loadQRCode(null);
+                return;
+            }
+            
+            // Populate form fields
+            document.getElementById('studentName').value = selectedOption.getAttribute('data-name');
+            document.getElementById('technology').value = selectedOption.getAttribute('data-tech');
+            document.getElementById('startDate').value = selectedOption.getAttribute('data-start');
+            document.getElementById('endDate').value = selectedOption.getAttribute('data-end');
+            document.getElementById('issueDate').value = selectedOption.getAttribute('data-end');
+            
+            // Update certificate data structure
+            certificateData.name = selectedOption.getAttribute('data-name');
+            certificateData.technology = selectedOption.getAttribute('data-tech');
+            certificateData.start_date = selectedOption.getAttribute('data-start');
+            certificateData.end_date = selectedOption.getAttribute('data-end');
+            certificateData.issue_date = selectedOption.getAttribute('data-end');
+            
+            // Update display details card
+            document.getElementById('displayName').textContent = certificateData.name;
+            document.getElementById('displayTech').textContent = certificateData.technology;
+            document.getElementById('displayPeriod').textContent = certificateData.start_date + ' to ' + certificateData.end_date;
+            document.getElementById('displayIssue').textContent = certificateData.issue_date;
+            
+            // Fetch certificate ID from controller
+            const formData = new FormData();
+            formData.append('action', 'get_cert_id');
+            formData.append('id', selectedOption.value);
+            
+            fetch('controller/certificate-approval.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.cert_id) {
+                    loadQRCode(data.cert_id);
+                    showStatus('Intern data and QR Code loaded!', 'success');
+                } else {
+                    showStatus('Failed to retrieve certificate ID.', 'error');
+                    loadQRCode(null);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching cert_id:', error);
+                showStatus('Network error while fetching certificate ID.', 'error');
+                loadQRCode(null);
+            });
+        }
+
         // Load certificate template
         const template = new Image();
         template.src = "assets/images/certificate.png"; // Your certificate background image
@@ -593,27 +707,53 @@ if ($user_result->num_rows > 0) {
         }
 
         function resetToDefaults() {
-            // Reset input fields to default values
-            document.getElementById('studentName').value = defaultCertificateData.name;
-            document.getElementById('technology').value = defaultCertificateData.technology;
-            document.getElementById('startDate').value = defaultCertificateData.start_date;
-            document.getElementById('endDate').value = defaultCertificateData.end_date;
-            document.getElementById('issueDate').value = defaultCertificateData.issue_date;
+            const select = document.getElementById('selectIntern');
+            if (select && select.value) {
+                // Reset to selected intern's values
+                const selectedOption = select.options[select.selectedIndex];
+                document.getElementById('studentName').value = selectedOption.getAttribute('data-name');
+                document.getElementById('technology').value = selectedOption.getAttribute('data-tech');
+                document.getElementById('startDate').value = selectedOption.getAttribute('data-start');
+                document.getElementById('endDate').value = selectedOption.getAttribute('data-end');
+                document.getElementById('issueDate').value = selectedOption.getAttribute('data-end');
 
-            // Reset certificate data
-            certificateData = {...defaultCertificateData};
+                certificateData.name = selectedOption.getAttribute('data-name');
+                certificateData.technology = selectedOption.getAttribute('data-tech');
+                certificateData.start_date = selectedOption.getAttribute('data-start');
+                certificateData.end_date = selectedOption.getAttribute('data-end');
+                certificateData.issue_date = selectedOption.getAttribute('data-end');
 
-            // Update display
-            document.getElementById('displayName').textContent = defaultCertificateData.name;
-            document.getElementById('displayTech').textContent = defaultCertificateData.technology;
-            document.getElementById('displayPeriod').textContent = defaultCertificateData.start_date + ' to ' + defaultCertificateData.end_date;
-            document.getElementById('displayIssue').textContent = defaultCertificateData.issue_date;
+                // Update display
+                document.getElementById('displayName').textContent = certificateData.name;
+                document.getElementById('displayTech').textContent = certificateData.technology;
+                document.getElementById('displayPeriod').textContent = certificateData.start_date + ' to ' + certificateData.end_date;
+                document.getElementById('displayIssue').textContent = certificateData.issue_date;
 
-            // Redraw certificate
-            drawCertificate();
+                drawCertificate();
+                showStatus('Certificate reset to intern default values!', 'success');
+            } else {
+                // Reset input fields to default values
+                document.getElementById('studentName').value = defaultCertificateData.name;
+                document.getElementById('technology').value = defaultCertificateData.technology;
+                document.getElementById('startDate').value = defaultCertificateData.start_date;
+                document.getElementById('endDate').value = defaultCertificateData.end_date;
+                document.getElementById('issueDate').value = defaultCertificateData.issue_date;
 
-            // Show success message
-            showStatus('Certificate reset to default values!', 'success');
+                // Reset certificate data
+                certificateData = {...defaultCertificateData};
+
+                // Update display
+                document.getElementById('displayName').textContent = defaultCertificateData.name;
+                document.getElementById('displayTech').textContent = defaultCertificateData.technology;
+                document.getElementById('displayPeriod').textContent = defaultCertificateData.start_date + ' to ' + defaultCertificateData.end_date;
+                document.getElementById('displayIssue').textContent = defaultCertificateData.issue_date;
+
+                // Redraw certificate
+                drawCertificate();
+
+                // Show success message
+                showStatus('Certificate reset to default values!', 'success');
+            }
         }
 
         function showStatus(message, type = 'success') {
@@ -794,6 +934,14 @@ if ($user_result->num_rows > 0) {
             ctx.font = "bold 30px Arial";
             ctx.textAlign = "left";
             ctx.fillText(`${issueDate}`, 630, canvas.height - 75);
+
+            // Draw QR code if loaded
+            if (qrLoaded && qrImage) {
+                const qrX = (70 / 842) * canvas.width;
+                const qrY = (70 / 595) * canvas.height;
+                const qrSize = (55 / 842) * canvas.width;
+                ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+            }
         }
 
         function generatePDF() {

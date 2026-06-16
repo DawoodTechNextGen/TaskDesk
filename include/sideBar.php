@@ -194,7 +194,22 @@
                                                     </g>
                                                 </svg>
                                             </div>
-                                            <span class="sidebar-item">Review</span>
+                                            <span class="sidebar-item flex-1 flex justify-between items-center">
+                                                <span>Review</span>
+                                                <?php
+                                                $rev_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM tasks WHERE status = 'pending_review'" . ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 ? " AND created_by = ?" : ""));
+                                                if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+                                                    $rev_stmt->bind_param("i", $_SESSION['user_id']);
+                                                }
+                                                if ($rev_stmt->execute()) {
+                                                    $rev_count = $rev_stmt->get_result()->fetch_assoc()['total'];
+                                                    if ($rev_count > 0) {
+                                                        echo '<span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">' . $rev_count . '</span>';
+                                                    }
+                                                }
+                                                $rev_stmt->close();
+                                                ?>
+                                            </span>
                                         </a>
                                     </li>
                                     <li>
@@ -517,7 +532,20 @@
                                             </g>
                                         </svg>
                                     </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Assigned Tasks</span>
+                                    <span class="sidebar-item flex-1 flex justify-between items-center text-gray-700 dark:text-gray-200">
+                                        <span>Assigned Tasks</span>
+                                        <?php
+                                        $imp_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM tasks WHERE assign_to = ? AND status = 'needs_improvement'");
+                                        $imp_stmt->bind_param("i", $_SESSION['user_id']);
+                                        if ($imp_stmt->execute()) {
+                                            $imp_count = $imp_stmt->get_result()->fetch_assoc()['total'];
+                                            if ($imp_count > 0) {
+                                                echo '<span class="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ml-2" title="Tasks needing improvement">' . $imp_count . '</span>';
+                                            }
+                                        }
+                                        $imp_stmt->close();
+                                        ?>
+                                    </span>
                                 </a>
                             </li>
                             <?php if ($_SESSION['approval_status'] == 1) { ?>

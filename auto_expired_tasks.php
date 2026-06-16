@@ -13,11 +13,13 @@ date_default_timezone_set('Asia/Karachi');
 $today = date("Y-m-d");
 
 // SQL to update tasks
-$sql = "UPDATE tasks 
-        SET status = 'expired' 
-        WHERE status = 'inprogress'
-        AND due_date < ? 
-        AND due_date IS NOT NULL";
+$sql = "UPDATE tasks t
+        JOIN users u ON t.assign_to = u.id
+        SET t.status = 'expired' 
+        WHERE t.status IN ('inprogress', 'needs_improvement')
+        AND t.due_date < ? 
+        AND t.due_date IS NOT NULL
+        AND u.freeze_status != 'frozen'";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $today);

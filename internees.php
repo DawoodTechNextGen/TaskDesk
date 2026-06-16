@@ -22,13 +22,22 @@ include_once "./include/headerLinks.php"; ?>
             <?php include_once "./include/header.php"; ?>
 
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Active Interns</h2>
-                    
-                        <!-- <button class="open-modal bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium"
-                            data-modal="add-internee-modal">
-                            Add Internee
-                        </button> -->
+                    <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                        <div class="flex items-center space-x-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Supervisor:</label>
+                            <select id="supervisorFilter" class="text-sm border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">All Supervisors</option>
+                                <?php
+                                $supervisors = $conn->query("SELECT id, name FROM users WHERE user_role = 3 ORDER BY name");
+                                while ($s = $supervisors->fetch_assoc()) {
+                                    echo "<option value='" . htmlspecialchars($s['name']) . "'>" . htmlspecialchars($s['name']) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    <?php } ?>
                 </div>
 
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -43,6 +52,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Email</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Technology</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Supervisor</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -338,6 +348,11 @@ include_once "./include/headerLinks.php"; ?>
             }
         });
 
+        document.getElementById('supervisorFilter')?.addEventListener('change', function() {
+            const val = this.value;
+            table.column(4).search(val ? '^' + val + '$' : '', true, false).draw();
+        });
+
         // Store internees data globally
         let interneesData = [];
 
@@ -444,6 +459,7 @@ include_once "./include/headerLinks.php"; ?>
                             u.name,
                             u.email || '<em class="text-gray-400">No email</em>',
                             u.tech_name ? `<span class="text-indigo-600 font-medium">${u.tech_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
+                            u.supervisor_name ? `<span class="text-indigo-600 font-medium">${u.supervisor_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
                             actionsHTML
                         ]);
                     });

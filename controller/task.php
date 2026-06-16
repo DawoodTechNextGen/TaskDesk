@@ -111,7 +111,7 @@ if ($data['action'] === 'get') {
         if ($status === 'expired') {
             $sql .= " AND t.status = 'expired'";
         } elseif ($status == 'inprogress') {
-            $sql .= " AND t.status = ? AND t.due_date >= CURDATE()";
+            $sql .= " AND t.status IN ('inprogress', 'needs_improvement') AND t.due_date >= CURDATE()";
         } else {
             $sql .= " AND t.status = ?";
         }
@@ -120,13 +120,13 @@ if ($data['action'] === 'get') {
     $stmt = $conn->prepare($sql);
     
     if ($user_role != 1 && $user_role != 4) {
-        if ($status && $status !== 'expired') {
+        if ($status && $status !== 'expired' && $status !== 'inprogress') {
             $stmt->bind_param("ss", $user_id, $status);
         } else {
             $stmt->bind_param("s", $user_id);
         }
     } else {
-        if ($status && $status !== 'expired') {
+        if ($status && $status !== 'expired' && $status !== 'inprogress') {
             $stmt->bind_param("s", $status);
         }
     }
@@ -232,9 +232,9 @@ if ($data['action'] === 'getAssignedTask') {
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
         $stmt->bind_param("s", $user_id);
     } elseif ($status == 'inprogress') {
-        $sql .= " AND t.status = ? AND t.due_date >= CURDATE()";
+        $sql .= " AND t.status IN ('inprogress', 'needs_improvement') AND t.due_date >= CURDATE()";
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
-        $stmt->bind_param("ss", $user_id, $status);
+        $stmt->bind_param("s", $user_id);
     } elseif ($status) {
         $sql .= " AND t.status = ?";
         $stmt = $conn->prepare($sql . " ORDER BY id DESC");
@@ -326,7 +326,7 @@ if ($data['action'] === 'getCompleteTasks') {
 if ($data['action'] === 'getWorkingTasks') {
     $user_id = (int)$_SESSION['user_id'];
     $user_role = $_SESSION['user_role'];
-    $stmt = $conn->prepare("SELECT t.title, t.status, u.name AS assign_to FROM tasks t JOIN users u ON u.id = t.assign_to WHERE t.status = 'inprogress' AND (? IN ('hod','manager') OR t.assign_to = ? OR t.created_by = ?)");
+    $stmt = $conn->prepare("SELECT t.title, t.status, u.name AS assign_to FROM tasks t JOIN users u ON u.id = t.assign_to WHERE t.status IN ('inprogress', 'needs_improvement') AND (? IN ('hod','manager') OR t.assign_to = ? OR t.created_by = ?)");
     $stmt->bind_param("sii", $user_role, $user_id, $user_id);
 
     if ($stmt->execute()) {
@@ -354,7 +354,7 @@ if ($data['action'] === 'getWorkingTasks') {
 if ($data['action'] === 'getPendingTasks') {
     $user_id = (int)$_SESSION['user_id'];
     $user_role = $_SESSION['user_role'];
-    $stmt = $conn->prepare("SELECT t.title,t.status, u.name as assign_to FROM tasks t JOIN users u on u.id = t.assign_to WHERE status = 'inprogress' AND (? IN ('hod','manager') OR assign_to = ? OR created_by = ?)");
+    $stmt = $conn->prepare("SELECT t.title,t.status, u.name as assign_to FROM tasks t JOIN users u on u.id = t.assign_to WHERE status IN ('inprogress', 'needs_improvement') AND (? IN ('hod','manager') OR assign_to = ? OR created_by = ?)");
     $stmt->bind_param("sii", $user_role, $user_id, $user_id);
 
     if ($stmt->execute()) {
@@ -377,7 +377,6 @@ if ($data['action'] === 'getPendingTasks') {
         ]);
     }
 
-    $stmt->close();
     $stmt->close();
 }
 
@@ -508,7 +507,7 @@ if ($data['action'] === 'review_task') {
     }
     
     if ($new_status === 'needs_improvement') {
-        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL, notification = 0 WHERE id = ?");
     } else {
         $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
     }

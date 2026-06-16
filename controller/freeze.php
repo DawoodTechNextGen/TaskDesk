@@ -189,6 +189,29 @@ if ($data['action'] === 'approve_freeze') {
     $stmt->bind_param("ii", $approver_id, $intern_id);
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
+        // Find freeze duration and extend active tasks' due dates
+        $date_stmt = $conn->prepare("SELECT freeze_start_date, freeze_end_date FROM users WHERE id = ?");
+        $date_stmt->bind_param("i", $intern_id);
+        $date_stmt->execute();
+        $date_stmt->bind_result($start_date, $end_date);
+        $date_stmt->fetch();
+        $date_stmt->close();
+
+        if ($start_date && $end_date) {
+            $start = new DateTime($start_date);
+            $end = new DateTime($end_date);
+            $days = $start->diff($end)->days + 1;
+
+            $task_stmt = $conn->prepare("
+                UPDATE tasks 
+                SET due_date = DATE_ADD(due_date, INTERVAL ? DAY) 
+                WHERE assign_to = ? AND status IN ('inprogress', 'needs_improvement')
+            ");
+            $task_stmt->bind_param("ii", $days, $intern_id);
+            $task_stmt->execute();
+            $task_stmt->close();
+        }
+
         // Get intern details for notification
         $notify_stmt = $conn->prepare("
             SELECT u.name, u.email, r.mbl_number, u.freeze_start_date, u.freeze_end_date, u.freeze_reason

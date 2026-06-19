@@ -247,16 +247,16 @@ if ($action === 'intern_weekly_hours') {
         $calc_user_id = $requested_id;
     }
     
-    // Get weekly hours for the current week
+    // Get weekly hours for the current week (locale-independent and year-spanning safe)
     $stmt = $conn->prepare("SELECT 
-    DAYNAME(start_time) AS day,
+    WEEKDAY(start_time) AS day_index,
     SUM(duration) AS total_seconds
 FROM time_logs
 WHERE user_id = ?
-  AND YEAR(start_time) = YEAR(NOW())
-  AND WEEK(start_time, 1) = WEEK(NOW(), 1)
-GROUP BY DAYOFWEEK(start_time)
-ORDER BY DAYOFWEEK(start_time);
+  AND start_time >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+  AND start_time < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)
+GROUP BY WEEKDAY(start_time)
+ORDER BY WEEKDAY(start_time);
 ");
     $stmt->bind_param("i", $calc_user_id);
     $stmt->execute();
@@ -266,9 +266,9 @@ ORDER BY DAYOFWEEK(start_time);
     $hours = array_fill(0, 7, 0);
 
     while ($row = $result->fetch_assoc()) {
-        $day_index = array_search(substr($row['day'], 0, 3), $days);
-        if ($day_index !== false) {
-            $hours[$day_index] = round($row['total_seconds'] / 3600, 1);
+        $day_idx = (int)$row['day_index'];
+        if ($day_idx >= 0 && $day_idx <= 6) {
+            $hours[$day_idx] = round($row['total_seconds'] / 3600, 1);
         }
     }
 

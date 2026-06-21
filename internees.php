@@ -368,7 +368,7 @@ include_once "./include/headerLinks.php"; ?>
                     interneesData = json.data; // Store the data
                     table.clear();
                     json.data.forEach(u => {
-                        const canEdit = (user_role == 1 || user_role == 4) || (user_role == 3 && u.supervisor_id == user_id);
+                        const canEdit = (user_role == 1 || user_role == 4);
                         const canDelete = (user_role == 1 || user_role == 4);
 
                         // Build actions HTML conditionally

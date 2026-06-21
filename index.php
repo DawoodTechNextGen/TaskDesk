@@ -752,19 +752,18 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="mb-8">
                         <!-- Supervisor Monthly Earnings Card (Isolated at Top) -->
                         <div class="mb-6">
-                            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-2xl shadow-lg p-6 relative overflow-hidden">
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden">
                                 <div class="relative z-10 flex items-center justify-between">
                                     <div>
-                                        <p class="text-indigo-100 text-sm font-medium mb-1">This Month Earning</p>
-                                        <h3 class="text-3xl font-bold"><?= number_format($monthly_earnings) ?> PKR</h3>
+                                        <p class="text-indigo-600 dark:text-indigo-400 text-sm font-medium mb-1">This Month Earning</p>
+                                        <h3 class="text-3xl font-bold text-gray-800 dark:text-white"><?= number_format($monthly_earnings) ?> PKR</h3>
                                     </div>
-                                    <div class="bg-white/20 p-4 rounded-xl text-white">
+                                    <div class="bg-indigo-50 dark:bg-indigo-900/50 p-4 rounded-xl text-indigo-600 dark:text-indigo-400">
                                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
                                 </div>
-                                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
                             </div>
                         </div>
 

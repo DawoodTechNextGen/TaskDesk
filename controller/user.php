@@ -287,18 +287,10 @@ switch ($action) {
             exit;
         }
 
-        // Security check: Supervisors can only edit their own interns
+        // Security check: Supervisors are not allowed to edit intern details
         if ($acting_user_role == 3) {
-            $check_stmt = $conn->prepare("SELECT supervisor_id FROM users WHERE id = ?");
-            $check_stmt->bind_param("i", $id);
-            $check_stmt->execute();
-            $intern_data = $check_stmt->get_result()->fetch_assoc();
-            $check_stmt->close();
-
-            if (!$intern_data || $intern_data['supervisor_id'] != $acting_user_id) {
-                echo json_encode(['success' => false, 'message' => 'Unauthorized: You can only edit your own interns']);
-                exit;
-            }
+            echo json_encode(['success' => false, 'message' => 'Unauthorized: Supervisors are not allowed to edit intern details']);
+            exit;
         }
 
         if (!empty($password)) {

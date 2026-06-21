@@ -28,6 +28,11 @@ if ($_POST['action'] === 'get_cert_id') {
 }
 
 if ($_POST['action'] === 'approve') {
+    // Only Admin (1) and Manager (4) can approve certificates
+    if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized: Only Admins and Managers can approve certificates.']);
+        exit;
+    }
     $intern_id = $_POST['id'];
 
     /*

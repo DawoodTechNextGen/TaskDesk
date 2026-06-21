@@ -174,6 +174,7 @@ include_once "./include/headerLinks.php"; ?>
     <?php include_once "./include/footerLinks.php"; ?>
 
     <script>
+        const userRole = <?php echo (int)($_SESSION['user_role'] ?? 0); ?>;
         const style = document.createElement('style');
         style.textContent = `
             .approve-loader {
@@ -238,8 +239,8 @@ include_once "./include/headerLinks.php"; ?>
                                 </svg>
                             </button>`;
 
-                        // Approve Certificate Button (always show if not approved)
-                        if (u.approve_status != 1) {
+                        // Approve Certificate Button (always show if not approved, unless supervisor)
+                        if (u.approve_status != 1 && userRole != 3) {
                             actionsHTML += `
                                 <button class="approve-certificate text-amber-500 hover:text-amber-600 transition-colors" 
                                         data-id="${u.id}"

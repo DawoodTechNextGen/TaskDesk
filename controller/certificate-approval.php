@@ -95,6 +95,15 @@ if ($_POST['action'] === 'approve') {
             $cert_id = $conn->insert_id;
         }
 
+        // Fetch intern name for logging
+        $log_user_stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+        $log_user_stmt->bind_param("i", $intern_id);
+        $log_user_stmt->execute();
+        $log_user_res = $log_user_stmt->get_result()->fetch_assoc();
+        $internName = $log_user_res['name'] ?? 'ID ' . $intern_id;
+        $log_user_stmt->close();
+        logActivity('Approve Certificate', "Approved certificate for intern $internName (ID $intern_id)");
+
         // Fetch intern details for PDF and Email
         $user_stmt = $conn->prepare("
             SELECT u.name, u.email, u.created_at, u.internship_type, u.internship_duration, t.name AS tech_name 

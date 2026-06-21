@@ -935,12 +935,18 @@ if ($user_result->num_rows > 0) {
             ctx.textAlign = "left";
             ctx.fillText(`${issueDate}`, 630, canvas.height - 75);
 
-            // Draw QR code if loaded
+            // Draw QR code if loaded (top-right bordered triangle center with "Scan to Verify" text)
             if (qrLoaded && qrImage) {
-                const qrX = (70 / 842) * canvas.width;
-                const qrY = (70 / 595) * canvas.height;
-                const qrSize = (55 / 842) * canvas.width;
+                const qrX = (690 / 842) * canvas.width;
+                const qrY = (72 / 595) * canvas.height;
+                const qrSize = (45 / 842) * canvas.width;
                 ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+                
+                // Draw verification text
+                ctx.font = "bold " + Math.round((7.5 / 842) * canvas.width) + "px Arial";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#2c3e50";
+                ctx.fillText("SCAN TO VERIFY", qrX + qrSize / 2, qrY + qrSize + Math.round((14 / 595) * canvas.height));
             }
         }
 

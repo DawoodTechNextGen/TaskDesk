@@ -248,12 +248,23 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
                 }
                 .qr-code {
                     position: absolute;
-                    left: 70pt;
-                    top: 70pt;
+                    left: 690pt;
+                    top: 72pt;
+                    text-align: center;
                 }
                 .qr-code img {
-                    width: 55pt;
-                    height: 55pt;
+                    width: 45pt;
+                    height: 45pt;
+                    display: block;
+                    margin: 0 auto;
+                }
+                .qr-text {
+                    font-size: 7.5pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-top: 4pt;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
                 }
             </style>
         </head>
@@ -278,6 +289,7 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
             
             <div class="qr-code">
                 <img src="' . $qrCodeUri . '" />
+                <div class="qr-text">Scan to Verify</div>
             </div>
         </body>
         </html>';

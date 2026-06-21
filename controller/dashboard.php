@@ -1123,3 +1123,53 @@ if ($action === "intern_daily_history") {
         "history" => $history
     ]);
 }
+
+if ($action === 'admin_commission_trends') {
+    if ($user_role != 1 && $user_role != 4) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
+
+    $stmt = $conn->query("SELECT
+        DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH), '%b') AS month,
+        COALESCE(c.payout_total, 0) AS payout
+    FROM
+        (
+            SELECT 0 AS month_offset UNION ALL
+            SELECT 1 UNION ALL
+            SELECT 2 UNION ALL
+            SELECT 3 UNION ALL
+            SELECT 4 UNION ALL
+            SELECT 5
+        ) AS seq
+    LEFT JOIN
+        (
+            SELECT 
+                YEAR(created_at) AS year,
+                MONTH(created_at) AS month,
+                SUM(amount) AS payout_total
+            FROM commissions
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+            GROUP BY YEAR(created_at), MONTH(created_at)
+        ) AS c
+        ON YEAR(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)) = c.year
+        AND MONTH(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)) = c.month
+    ORDER BY
+        YEAR(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH)),
+        MONTH(DATE_SUB(CURDATE(), INTERVAL seq.month_offset MONTH));");
+
+    $months = [];
+    $payouts = [];
+
+    while ($row = $stmt->fetch_assoc()) {
+        $months[] = $row['month'];
+        $payouts[] = (int)$row['payout'];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'months' => $months,
+        'payouts' => $payouts
+    ]);
+}
+?>

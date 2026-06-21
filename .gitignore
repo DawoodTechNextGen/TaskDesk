@@ -4,6 +4,10 @@
 /vendor/
 composer.lock
 
+# Node
+/node_modules/
+package-lock.json
+
 # Certificates (generated files)
 /certificates/*.html
 /certificates/*.pdf
@@ -26,9 +30,18 @@ Thumbs.db
 # Environment files
 .env
 .env.local
+.env.production
 
 # Temporary files
 *.tmp
 *.cache
+/temp/
 
-".env" 
+# Database Backups (local only)
+/backups/
+
+# Windows-only scripts (not needed on Linux/cPanel)
+run_backup.bat
+
+# PHP debug/testing files
+xdebug*.html

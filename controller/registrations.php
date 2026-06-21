@@ -903,7 +903,7 @@ switch ($action) {
                     <h3 style='margin-top: 0;'>🔐 Your Login Credentials:</h3>
                     <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
                     <p><strong>Email:</strong> " . $registration['email'] . "</p>
-                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>$password</code></p>
+                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>
                 </div>
 
                 <p>We look forward to your valuable contribution!</p>
@@ -928,6 +928,9 @@ switch ($action) {
             ]);
 
             $conn->commit();
+
+            // Log hiring activity
+            logActivity('Hire Intern', "Approved registration and hired intern: " . $registration['name'] . " (" . $registration['email'] . ") under User ID " . $tech_id);
 
             echo json_encode([
                 'success' => true, 
@@ -1084,6 +1087,16 @@ switch ($action) {
         $stmt->bind_param('sii', $newStatus, $email_status, $id);
 
         if ($stmt->execute()) {
+            // Fetch registration name for logging
+            $reg_name_stmt = $conn->prepare("SELECT name FROM registrations WHERE id = ?");
+            $reg_name_stmt->bind_param("i", $id);
+            $reg_name_stmt->execute();
+            $reg_name_res = $reg_name_stmt->get_result()->fetch_assoc();
+            $candidateName = $reg_name_res['name'] ?? 'ID ' . $id;
+            $reg_name_stmt->close();
+
+            logActivity('Update Registration Status', "Updated registration status for $candidateName to: " . ucfirst($newStatus));
+
             if ($sendEmail) {
                 $successMsg = $emailSent 
                     ? 'Status updated to contact and email sent successfully' 
@@ -1233,7 +1246,7 @@ function generateStrictPassword($length = 12)
     $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $lower = 'abcdefghijklmnopqrstuvwxyz';
     $numbers = '0123456789';
-    $symbols = '!@#$%^&*()-_=+{}[]<>?';
+    $symbols = '!@#$%^&*()-_=+{}?';
 
     $all = $upper . $lower . $numbers . $symbols;
 

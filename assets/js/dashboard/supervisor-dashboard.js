@@ -97,9 +97,11 @@ function initializeSupervisorCharts() {
                   const statusColors = {
                     'Complete': '#10B981',
                     'Working': '#F59E0B',
+                    'Inprogress': '#F59E0B',
+                    'In progress': '#F59E0B',
                     'Pending': '#6366F1',
-                    'Expired': '#6B7280',
-                    'Rejected': '#EF4444',
+                    'Expired': '#EF4444',
+                    'Rejected': '#DC2626',
                     'Approved': '#059669',
                     'Needs improvement': '#D97706',
                     'Pending review': '#8B5CF6'

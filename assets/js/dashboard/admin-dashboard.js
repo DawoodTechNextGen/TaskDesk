@@ -1,49 +1,67 @@
-// Modern Admin Charts with Enhanced Styling
+let unifiedChartInstance = null;
+let currentTrendType = 'commission'; // default type
+let commissionData = null;
+let taskData = null;
+
+// Global theme coloring helper (matches the theme of the app)
+function getThemeColors() {
+  const isDarkMode = document.documentElement.classList.contains('dark');
+  return {
+    isDarkMode: isDarkMode,
+    textColor: isDarkMode ? '#F3F4F6' : '#1F2937',
+    gridColor: isDarkMode ? 'rgba(75, 85, 99, 0.2)' : 'rgba(243, 244, 246, 1)',
+    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF'
+  };
+}
+
 function initializeAdminCharts() {
-  const { isDarkMode, textColor, gridColor, backgroundColor } =
-    getThemeColors();
-  // Task Status Distribution - Modern Donut Chart
+  // 1. Load and initialize Task Status Distribution Donut Chart
+  initializeTaskStatusChart();
+
+  // 2. Load and initialize the Unified Trends Chart
+  loadUnifiedTrendsData();
+}
+
+function initializeTaskStatusChart() {
+  const { textColor, gridColor, backgroundColor } = getThemeColors();
+
   fetch("controller/dashboard.php?action=admin_task_stats")
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        const taskStatusCtx = document
-          .getElementById("taskStatusChart")
-          .getContext("2d");
-        const taskStatusChart = new Chart(taskStatusCtx, {
+        const ctx = document.getElementById("taskStatusChart").getContext("2d");
+        const taskStatusChart = new Chart(ctx, {
           type: "doughnut",
           data: {
             labels: data.labels,
-            datasets: [
-              {
-                data: data.values.map(Number),
-                backgroundColor: data.labels.map(label => {
-                  const statusColors = {
-                    'Complete': '#10B981',
-                    'Working': '#F59E0B',
-                    'Pending': '#6366F1',
-                    'Expired': '#6B7280',
-                    'Rejected': '#EF4444',
-                    'Approved': '#059669',
-                    'Needs improvement': '#D97706',
-                    'Pending review': '#8B5CF6'
-                  };
-                  return statusColors[label] || '#6B7280';
-                }),
-                borderWidth: 0,
-                borderRadius: 8,
-                spacing: 4,
-              },
-            ],
+            datasets: [{
+              data: data.values.map(Number),
+              backgroundColor: data.labels.map(label => {
+                const statusColors = {
+                  'Complete': '#10B981',
+                  'Working': '#F59E0B',
+                  'Inprogress': '#F59E0B',
+                  'In progress': '#F59E0B',
+                  'Pending': '#6366F1',
+                  'Expired': '#EF4444',
+                  'Rejected': '#DC2626',
+                  'Approved': '#059669',
+                  'Needs improvement': '#D97706',
+                  'Pending review': '#8B5CF6'
+                };
+                return statusColors[label] || '#6B7280';
+              }),
+              borderWidth: 0,
+              borderRadius: 6,
+              spacing: 3,
+            }],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: "70%",
+            cutout: "75%",
             plugins: {
-              legend: {
-                display: false,
-              },
+              legend: { display: false },
               tooltip: {
                 backgroundColor: backgroundColor,
                 titleColor: textColor,
@@ -54,393 +72,237 @@ function initializeAdminCharts() {
                   label: function (context) {
                     const label = context.label || "";
                     const value = context.raw || 0;
-                    const ratio = data.ratios ? data.ratios[context.dataIndex] : (total > 0 ? ((value / total) * 100).toFixed(1) : 0);
-                    return `${label}: ${value} (${ratio}%)`;
-                  },
-                },
-              },
-            },
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const ratio = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return ` ${label}: ${value} (${ratio}%)`;
+                  }
+                }
+              }
+            }
           },
-          plugins: [
-            {
-              afterDraw: function (chart) {
-                const ctx = chart.ctx;
-                const width = chart.width;
-                const height = chart.height;
-                ctx.save();
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.font = "bold 24px sans-serif";
-                ctx.fillStyle = textColor;
+          plugins: [{
+            afterDraw: function (chart) {
+              const ctx = chart.ctx;
+              const width = chart.width;
+              const height = chart.height;
+              ctx.save();
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.font = "bold 20px sans-serif";
+              ctx.fillStyle = textColor;
 
-                const total = chart.data.datasets[0].data.reduce(
-                  (a, b) => a + b,
-                  0
-                );
-                ctx.fillText(total, width / 2, height / 2);
+              const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+              ctx.fillText(total, width / 2, height / 2 - 10);
 
-                ctx.font = "12px sans-serif";
-                ctx.fillStyle = isDarkMode ? "#9CA3AF" : "#6B7280";
-                ctx.fillText("Total Tasks", width / 2, height / 2 + 24);
-                ctx.restore();
-              },
-            },
-          ],
+              ctx.font = "11px sans-serif";
+              ctx.fillStyle = '#6B7280';
+              ctx.fillText("Total Tasks", width / 2, height / 2 + 15);
+              ctx.restore();
+            }
+          }]
         });
 
-        // Update legend
+        // Populate custom legend
         const legendContainer = document.getElementById("taskStatusLegend");
         if (legendContainer) {
           legendContainer.innerHTML = "";
           data.labels.forEach((label, index) => {
             const value = Number(data.values[index]);
             const total = data.values.map(Number).reduce((a, b) => a + b, 0);
-            const percentage = Math.round((value / total) * 100);
-
-            const legendItem = document.createElement("div");
-            legendItem.className = "flex items-center justify-between";
-            legendItem.innerHTML = `
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 rounded mr-2" style="background-color: ${taskStatusChart.data.datasets[0].backgroundColor[index]}"></div>
-                                <span class="text-sm text-gray-600 dark:text-gray-300">${label}</span>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm font-semibold text-gray-800 dark:text-white">${value}</div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">${percentage}%</div>
-                            </div>
-                        `;
-            legendContainer.appendChild(legendItem);
-          });
-        }
-      }
-    });
-
-  // Monthly Task Trends - Modern Line Chart with Enhanced Features
-  fetch("controller/dashboard.php?action=admin_monthly_trends")
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        const monthlyTrendsCtx = document
-          .getElementById("monthlyTrendsChart")
-          .getContext("2d");
-
-        // Create gradient for the chart
-        const gradient = monthlyTrendsCtx.createLinearGradient(0, 0, 0, 400);
-        if (isDarkMode) {
-          gradient.addColorStop(0, "rgba(59, 130, 246, 0.3)");
-          gradient.addColorStop(1, "rgba(59, 130, 246, 0.05)");
-        } else {
-          gradient.addColorStop(0, "rgba(59, 130, 246, 0.2)");
-          gradient.addColorStop(1, "rgba(59, 130, 246, 0.02)");
-        }
-
-        const chart = new Chart(monthlyTrendsCtx, {
-          type: "line",
-          data: {
-            labels: data.months,
-            datasets: [
-              {
-                label: "Tasks Created",
-                data: data.tasks,
-                borderColor: "#3B82F6",
-                backgroundColor: gradient,
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: "#3B82F6",
-                pointBorderColor: backgroundColor,
-                pointBorderWidth: 2,
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointHoverBackgroundColor: "#3B82F6",
-                pointHoverBorderColor: backgroundColor,
-                pointHoverBorderWidth: 3,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-              intersect: false,
-              mode: "index",
-            },
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                backgroundColor: backgroundColor,
-                titleColor: textColor,
-                bodyColor: textColor,
-                borderColor: gridColor,
-                borderWidth: 1,
-                padding: 12,
-                cornerRadius: 8,
-                displayColors: false,
-                callbacks: {
-                  label: function (context) {
-                    let label = `Tasks: ${context.parsed.y}`;
-                    if (data.percentages && context.dataIndex > 0) {
-                      const percentage = data.percentages[context.dataIndex];
-                      const arrow = percentage >= 0 ? "↑" : "↓";
-                      const color = percentage >= 0 ? "🟢" : "🔴";
-                      label += ` ${color} ${arrow} ${Math.abs(percentage)}% MoM`;
-                    }
-                    return label;
-                  },
-                  title: function (context) {
-                    return `Month: ${context[0].label}`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: gridColor,
-                  drawBorder: false,
-                },
-                ticks: {
-                  color: textColor,
-                  padding: 10,
-                  callback: function (value) {
-                    return value;
-                  },
-                },
-                // title: {
-                //     display: true,
-                //     text: 'Number of Tasks',
-                //     color: textColor,
-                //     font: {
-                //         weight: 'normal'
-                //     }
-                // }
-              },
-              x: {
-                grid: {
-                  color: gridColor,
-                  drawBorder: false,
-                },
-                ticks: {
-                  color: textColor,
-                  padding: 10,
-                },
-                // title: {
-                //     display: true,
-                //     text: 'Months',
-                //     color: textColor,
-                //     font: {
-                //         weight: 'normal'
-                //     }
-                // }
-              },
-            },
-            elements: {
-              line: {
-                tension: 0.4,
-              },
-            },
-          },
-        });
-
-        // Add custom statistics below the chart
-        updateMonthlyTrendsStats(data.tasks, data.months);
-      }
-    })
-    .catch((error) => {
-      console.error("Error loading monthly trends:", error);
-      const chartContainer = document.getElementById("monthlyTrendsChart");
-      if (chartContainer) {
-        chartContainer.innerHTML = `
-                    <div class="flex items-center justify-center h-full text-red-500">
-                        <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <span>Failed to load chart data</span>
-                    </div>
-                `;
-      }
-    });
-
-  // User Role Distribution - Modern Pie Chart
-  fetch("controller/dashboard.php?action=admin_role_stats")
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        const userRoleCtx = document
-          .getElementById("userRoleChart")
-          .getContext("2d");
-
-        // Define specific colors for each role
-        const roleColors = {
-          'Admins': '#EF4444',      // Red
-          'Interns': '#10B981',     // Green
-          'Supervisors': '#3B82F6',  // Blue
-          'Managers': '#6366F1'      // Indigo
-        };
-
-        const chartColors = data.labels.map(label => roleColors[label] || '#6B7280');
-
-        const userRoleChart = new Chart(userRoleCtx, {
-          type: "pie",
-          data: {
-            labels: data.labels,
-            datasets: [
-              {
-                data: data.values,
-                backgroundColor: chartColors,
-                borderWidth: 0,
-                borderRadius: 8,
-                spacing: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                backgroundColor: backgroundColor,
-                titleColor: textColor,
-                bodyColor: textColor,
-                borderColor: gridColor,
-                borderWidth: 1,
-                callbacks: {
-                  label: function (context) {
-                    const label = context.label || "";
-                    const value = context.raw || 0;
-                    const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
-                    return `${label}: ${value} (${ratio}%)`;
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        // Update legend
-        const legendContainer = document.getElementById("userRoleLegend");
-        if (legendContainer) {
-          legendContainer.innerHTML = "";
-          data.labels.forEach((label, index) => {
-            const value = data.values[index];
-
-            const total = data.values.map(Number).reduce((a, b) => a + b, 0);
-
             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
 
             const legendItem = document.createElement("div");
-            legendItem.className = "flex flex-col items-center";
+            legendItem.className = "flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800";
             legendItem.innerHTML = `
-                            <div class="flex items-center mb-2">
-                                <div class="w-3 h-3 rounded mr-2" style="background-color: ${userRoleChart.data.datasets[0].backgroundColor[index]}"></div>
-                                <span class="text-sm text-gray-600 dark:text-gray-300">${label}</span>
-                            </div>
-                            <div class="text-lg font-bold text-gray-800 dark:text-white">${value}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">${percentage}%</div>
-                        `;
+              <div class="flex items-center truncate">
+                <div class="w-2.5 h-2.5 rounded-full mr-2 flex-shrink-0" style="background-color: ${taskStatusChart.data.datasets[0].backgroundColor[index]}"></div>
+                <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400 truncate">${label}</span>
+              </div>
+              <span class="text-[11px] font-semibold text-gray-800 dark:text-white pl-2">${value} (${percentage}%)</span>
+            `;
             legendContainer.appendChild(legendItem);
           });
         }
-      }
-    });
-
-  // Technology-wise Task Distribution
-  fetch("controller/dashboard.php?action=admin_tech_tasks")
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        const techTaskCtx = document
-          .getElementById("techTaskChart")
-          .getContext("2d");
-        new Chart(techTaskCtx, {
-          type: "bar",
-          data: {
-            labels: data.technologies,
-            datasets: [
-              {
-                label: "Tasks",
-                data: data.tasks,
-                backgroundColor: [
-                  "rgba(59, 130, 246, 0.8)",
-                  "rgba(16, 185, 129, 0.8)",
-                  "rgba(139, 92, 246, 0.8)",
-                  "rgba(245, 158, 11, 0.8)",
-                  "rgba(239, 68, 68, 0.8)",
-                ],
-                borderColor: [
-                  "rgb(59, 130, 246)",
-                  "rgb(16, 185, 129)",
-                  "rgb(139, 92, 246)",
-                  "rgb(245, 158, 11)",
-                  "rgb(239, 68, 68)",
-                ],
-                borderWidth: 2,
-                borderRadius: 8,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                backgroundColor: backgroundColor,
-                titleColor: textColor,
-                bodyColor: textColor,
-                borderColor: gridColor,
-                borderWidth: 1,
-                callbacks: {
-                  label: function (context) {
-                    const label = context.dataset.label || "";
-                    const value = context.raw || 0;
-                    const ratio = data.ratios ? data.ratios[context.dataIndex] : 0;
-                    return `${label}: ${value} (${ratio}%)`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: gridColor,
-                },
-                ticks: {
-                  color: textColor,
-                },
-              },
-              x: {
-                grid: {
-                  display: false,
-                },
-                ticks: {
-                  color: textColor,
-                },
-              },
-            },
-          },
-        });
       }
     });
 }
 
-function updateMonthlyTrendsStats(tasks, months) {
-  const statsContainer = document.getElementById("monthlyTrendsStats");
+function loadUnifiedTrendsData() {
+  // Parallel fetch both datasets
+  Promise.all([
+    fetch("controller/dashboard.php?action=admin_commission_trends").then(r => r.json()),
+    fetch("controller/dashboard.php?action=admin_monthly_trends").then(r => r.json())
+  ]).then(([commJson, taskJson]) => {
+    if (commJson.success) commissionData = commJson;
+    if (taskJson.success) taskData = taskJson;
 
+    // Render the default view
+    renderUnifiedChart();
+  }).catch(err => {
+    console.error("Error loading dashboard trend datasets:", err);
+  });
+}
+
+function renderUnifiedChart() {
+  const { isDarkMode, textColor, gridColor, backgroundColor } = getThemeColors();
+  const ctx = document.getElementById("unifiedTrendsChart");
+  if (!ctx) return;
+
+  if (unifiedChartInstance) {
+    unifiedChartInstance.destroy();
+  }
+
+  const dataObj = currentTrendType === 'commission' ? commissionData : taskData;
+  if (!dataObj) {
+    ctx.parentNode.innerHTML = `<div class="flex items-center justify-center h-full text-red-500">Failed to load chart data</div>`;
+    return;
+  }
+
+  const gradient = ctx.getContext("2d").createLinearGradient(0, 0, 0, 320);
+  const primaryColor = currentTrendType === 'commission' ? '#10B981' : '#3B82F6';
+
+  if (isDarkMode) {
+    gradient.addColorStop(0, currentTrendType === 'commission' ? "rgba(16, 185, 129, 0.3)" : "rgba(59, 130, 246, 0.3)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+  } else {
+    gradient.addColorStop(0, currentTrendType === 'commission' ? "rgba(16, 185, 129, 0.15)" : "rgba(59, 130, 246, 0.15)");
+    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+  }
+
+  const datasets = [{
+    label: currentTrendType === 'commission' ? "Payout (PKR)" : "Tasks Created",
+    data: currentTrendType === 'commission' ? dataObj.payouts : dataObj.tasks,
+    borderColor: primaryColor,
+    backgroundColor: gradient,
+    borderWidth: 3,
+    tension: 0.38,
+    fill: true,
+    pointBackgroundColor: primaryColor,
+    pointBorderColor: backgroundColor,
+    pointBorderWidth: 2,
+    pointRadius: 5,
+    pointHoverRadius: 7,
+    pointHoverBackgroundColor: primaryColor,
+    pointHoverBorderColor: backgroundColor,
+    pointHoverBorderWidth: 2
+  }];
+
+  unifiedChartInstance = new Chart(ctx.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: dataObj.months,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index",
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: backgroundColor,
+          titleColor: textColor,
+          bodyColor: textColor,
+          borderColor: gridColor,
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: false,
+          callbacks: {
+            label: function (context) {
+              if (currentTrendType === 'commission') {
+                return `Payout: ${context.parsed.y.toLocaleString()} PKR`;
+              } else {
+                let label = `Tasks Created: ${context.parsed.y}`;
+                if (dataObj.percentages && context.dataIndex > 0) {
+                  const percentage = dataObj.percentages[context.dataIndex];
+                  const arrow = percentage >= 0 ? "↑" : "↓";
+                  label += ` (${percentage >= 0 ? "+" : ""}${percentage}% MoM)`;
+                }
+                return label;
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: gridColor,
+            drawBorder: false
+          },
+          ticks: {
+            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+            font: { size: 11 },
+            padding: 8,
+            callback: function (value) {
+              if (currentTrendType === 'commission') {
+                return value >= 1000 ? (value / 1000) + 'k PKR' : value + ' PKR';
+              }
+              return value;
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: isDarkMode ? '#9CA3AF' : '#4B5563',
+            font: { size: 11 },
+            padding: 8
+          }
+        }
+      }
+    }
+  });
+
+  // Update stats container below chart if tasks is active
+  const statsContainer = document.getElementById("monthlyTrendsStatsContainer");
+  if (statsContainer) {
+    if (currentTrendType === 'tasks') {
+      statsContainer.classList.remove('hidden');
+      updateMonthlyTrendsStats(dataObj.tasks, dataObj.months);
+    } else {
+      statsContainer.classList.add('hidden');
+    }
+  }
+}
+
+function switchTrendChart(type) {
+  if (currentTrendType === type) return;
+  currentTrendType = type;
+
+  // Toggle button styles
+  const btnComm = document.getElementById("btnCommissionTrends");
+  const btnTask = document.getElementById("btnTaskTrends");
+  const title = document.getElementById("trendChartTitle");
+  const subtitle = document.getElementById("trendChartSubtitle");
+
+  if (type === 'commission') {
+    btnComm.className = "px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
+    btnTask.className = "px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-white";
+    title.textContent = "Commission Payout Trends";
+    subtitle.textContent = "Monthly aggregate commission payouts for the last 6 months";
+  } else {
+    btnTask.className = "px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
+    btnComm.className = "px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-white";
+    title.textContent = "Monthly Task Trends";
+    subtitle.textContent = "Trend of tasks assigned across all technologies over the last 6 months";
+  }
+
+  renderUnifiedChart();
+}
+
+function updateMonthlyTrendsStats(tasks, months) {
+  const statsContainer = document.getElementById("monthlyTrendsStatsContainer");
   if (!statsContainer) return;
 
-  // FIX: Convert strings to numbers
   tasks = tasks.map(Number);
-
   const totalTasks = tasks.reduce((sum, value) => sum + value, 0);
   const averageTasks = Math.round(totalTasks / tasks.length);
   const peakValue = Math.max(...tasks);
@@ -452,27 +314,25 @@ function updateMonthlyTrendsStats(tasks, months) {
   const growthRate = prevMonth > 0
     ? Math.round(((currentMonth - prevMonth) / prevMonth) * 100)
     : (currentMonth * 100);
+
   statsContainer.innerHTML = `
-        <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${totalTasks}</div>
-            <div class="text-sm text-blue-600 dark:text-blue-300">Total Tasks</div>
-        </div>
-        <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <div class="text-2xl font-bold text-green-600 dark:text-green-400">${averageTasks}</div>
-            <div class="text-sm text-green-600 dark:text-green-300">Average/Month</div>
-        </div>
-        <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">${peakValue}</div>
-            <div class="text-sm text-purple-600 dark:text-purple-300">Peak (${peakMonth})</div>
-        </div>
-        <div class="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <div class="text-2xl font-bold ${growthRate >= 0
-      ? "text-green-600 dark:text-green-400"
-      : "text-red-600 dark:text-red-400"
-    }">
-                ${growthRate >= 0 ? "+" : ""}${growthRate}%
-            </div>
-            <div class="text-sm text-orange-600 dark:text-orange-300">Growth Rate (MoM)</div>
-        </div>
-        `;
+    <div class="text-center p-2.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-950/20">
+      <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">${totalTasks}</div>
+      <div class="text-[10px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500">Total Tasks</div>
+    </div>
+    <div class="text-center p-2.5 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100/50 dark:border-emerald-950/20">
+      <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">${averageTasks}</div>
+      <div class="text-[10px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500">Avg/Month</div>
+    </div>
+    <div class="text-center p-2.5 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl border border-purple-100/50 dark:border-purple-950/20">
+      <div class="text-lg font-bold text-purple-600 dark:text-purple-400">${peakValue}</div>
+      <div class="text-[10px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500">Peak (${peakMonth})</div>
+    </div>
+    <div class="text-center p-2.5 bg-orange-50/50 dark:bg-orange-900/10 rounded-xl border border-orange-100/50 dark:border-orange-950/20">
+      <div class="text-lg font-bold ${growthRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}">
+        ${growthRate >= 0 ? "+" : ""}${growthRate}%
+      </div>
+      <div class="text-[10px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500">Growth (MoM)</div>
+    </div>
+  `;
 }

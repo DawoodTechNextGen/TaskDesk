@@ -95,17 +95,31 @@ if ($user_role == 1) {
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
 
     // Fetch Monthly Earnings
-    $monthly_earnings_query = $conn->prepare("SELECT SUM(amount) as total FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $monthly_earnings_query = $conn->prepare("SELECT 
+        SUM(amount) as total,
+        SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as earned,
+        SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as refunded
+        FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
     $monthly_earnings_query->bind_param("i", $user_id);
     $monthly_earnings_query->execute();
-    $monthly_earnings = (int)($monthly_earnings_query->get_result()->fetch_assoc()['total'] ?? 0);
+    $earnings_res = $monthly_earnings_query->get_result()->fetch_assoc();
+    $monthly_earnings = (int)($earnings_res['total'] ?? 0);
+    $monthly_earned = (int)($earnings_res['earned'] ?? 0);
+    $monthly_refunded = (int)($earnings_res['refunded'] ?? 0);
     $monthly_earnings_query->close();
 } elseif ($user_role == 4) {
     // Manager Monthly Earnings
-    $monthly_earnings_query = $conn->prepare("SELECT SUM(amount) as total FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $monthly_earnings_query = $conn->prepare("SELECT 
+        SUM(amount) as total,
+        SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as earned,
+        SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as refunded
+        FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
     $monthly_earnings_query->bind_param("i", $user_id);
     $monthly_earnings_query->execute();
-    $monthly_earnings = (int)($monthly_earnings_query->get_result()->fetch_assoc()['total'] ?? 0);
+    $earnings_res = $monthly_earnings_query->get_result()->fetch_assoc();
+    $monthly_earnings = (int)($earnings_res['total'] ?? 0);
+    $monthly_earned = (int)($earnings_res['earned'] ?? 0);
+    $monthly_refunded = (int)($earnings_res['refunded'] ?? 0);
     $monthly_earnings_query->close();
 }
 ?>
@@ -291,61 +305,45 @@ include_once "./include/headerLinks.php"; ?>
                             </a>
                         </div>
 
-                        <!-- Modern Charts Section -->
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                            <!-- Task Status Distribution - Modern Donut Chart -->
-                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Task Status Distribution</h3>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">Real-time</span>
+                        <!-- Redesigned Analytics Section -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                            <!-- Platform Activity & Payout Trends Card (2/3 width) -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 lg:col-span-2 flex flex-col justify-between">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white" id="trendChartTitle">Commission Payout Trends</h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400" id="trendChartSubtitle">Monthly aggregate commission payouts for the last 6 months</p>
+                                    </div>
+                                    <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900/50">
+                                        <button id="btnCommissionTrends" class="px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm" onclick="switchTrendChart('commission')">
+                                            Commission Payouts
+                                        </button>
+                                        <button id="btnTaskTrends" class="px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-white" onclick="switchTrendChart('tasks')">
+                                            Task Activity
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="h-80 relative">
+                                <div class="h-80 w-full relative">
+                                    <canvas id="unifiedTrendsChart"></canvas>
+                                </div>
+                                <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 hidden" id="monthlyTrendsStatsContainer">
+                                    <!-- Dynamic stats for tasks will load here when tasks is selected -->
+                                </div>
+                            </div>
+
+                            <!-- Task Status Distribution - Modern Donut Chart (1/3 width) -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col justify-between">
+                                <div class="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Task Operational Status</h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Real-time status breakdown</p>
+                                    </div>
+                                </div>
+                                <div class="h-64 relative">
                                     <canvas id="taskStatusChart"></canvas>
                                 </div>
-                                <div class="mt-4 grid grid-cols-2 gap-4" id="taskStatusLegend">
+                                <div class="mt-6 grid grid-cols-2 gap-3" id="taskStatusLegend">
                                     <!-- Legend will be populated by JavaScript -->
-                                </div>
-                            </div>
-
-                            <!-- Monthly Task Trends - Modern Line Chart -->
-                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Monthly Task Trends</h3>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">Last 6 months</span>
-                                </div>
-                                <div class="h-80">
-                                    <canvas id="monthlyTrendsChart"></canvas>
-                                </div>
-                                <div class="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4" id="monthlyTrendsStats">
-                                    <!-- Stats will be populated by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Additional Charts Row -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                            <!-- User Role Distribution - Modern Pie Chart -->
-                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">User Distribution</h3>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">By Role</span>
-                                </div>
-                                <div class="h-80 relative">
-                                    <canvas id="userRoleChart"></canvas>
-                                </div>
-                                <div class="mt-4 flex justify-center space-x-6" id="userRoleLegend">
-                                    <!-- Legend will be populated by JavaScript -->
-                                </div>
-                            </div>
-
-                            <!-- Technology-wise Task Distribution -->
-                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Tasks by Technology</h3>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">Top 5</span>
-                                </div>
-                                <div class="h-80">
-                                    <canvas id="techTaskChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -757,6 +755,12 @@ include_once "./include/headerLinks.php"; ?>
                                     <div>
                                         <p class="text-indigo-600 dark:text-indigo-400 text-sm font-medium mb-1">This Month Earning</p>
                                         <h3 class="text-3xl font-bold text-gray-800 dark:text-white"><?= number_format($monthly_earnings) ?> PKR</h3>
+                                        <div class="flex items-center space-x-4 mt-2 text-xs">
+                                            <span class="text-green-600 dark:text-green-400 font-semibold">Earned: +<?= number_format($monthly_earned) ?> PKR</span>
+                                            <?php if ($monthly_refunded < 0): ?>
+                                                <span class="text-red-600 dark:text-red-400 font-semibold">Refunded: <?= number_format($monthly_refunded) ?> PKR</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                     <div class="bg-indigo-50 dark:bg-indigo-900/50 p-4 rounded-xl text-indigo-600 dark:text-indigo-400">
                                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -985,6 +989,12 @@ include_once "./include/headerLinks.php"; ?>
                                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
                                             <?= number_format($monthly_earnings) ?> PKR
                                         </h3>
+                                        <div class="flex flex-col mt-1 text-[10px] space-y-0.5">
+                                            <span class="text-green-600 dark:text-green-400 font-semibold">Earned: +<?= number_format($monthly_earned) ?> PKR</span>
+                                            <?php if ($monthly_refunded < 0): ?>
+                                                <span class="text-red-600 dark:text-red-400 font-semibold">Refunded: <?= number_format($monthly_refunded) ?> PKR</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                     <div class="bg-indigo-100 dark:bg-indigo-900 p-3 rounded-lg">
                                         <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

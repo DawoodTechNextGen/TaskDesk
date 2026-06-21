@@ -47,4 +47,27 @@ class Database {
 // Create global database instance
 $database = new Database();
 $conn = $database->getConnection();
+
+if (!function_exists('logActivity')) {
+    function logActivity($action, $details) {
+        global $conn;
+        if (!isset($conn) || !$conn) {
+            return false;
+        }
+
+        $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+        if ($userId <= 0) {
+            $userId = 1; // Default to Admin/System
+        }
+
+        $stmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, details) VALUES (?, ?, ?)");
+        if ($stmt) {
+            $stmt->bind_param("iss", $userId, $action, $details);
+            $result = $stmt->execute();
+            $stmt->close();
+            return $result;
+        }
+        return false;
+    }
+}
 ?>

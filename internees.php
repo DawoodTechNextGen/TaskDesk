@@ -285,6 +285,17 @@ include_once "./include/headerLinks.php"; ?>
             vertical-align: middle;
         }
         
+        .refund-loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(249, 115, 22, .3);
+            border-radius: 50%;
+            border-top-color: #f97316;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+        }
+        
         .approve-loader {
             display: inline-block;
             width: 16px;
@@ -434,6 +445,16 @@ include_once "./include/headerLinks.php"; ?>
                                 <path d="M17.3197 17.9957C19.2921 17.9748 20.3915 17.8512 21.1213 17.1213C22 16.2426 22 14.8284 22 12V9M7 17.9983C4.82497 17.9862 3.64706 17.8897 2.87868 17.1213C2 16.2426 2 14.8284 2 12L2 8C2 5.17157 2 3.75736 2.87868 2.87868C3.75736 2 5.17157 2 8 2L16 2C18.8284 2 20.2426 2 21.1213 2.87868C21.6112 3.36857 21.828 4.02491 21.9239 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
                                 <path d="M9 6L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
                                 <path d="M7 9.5H9M17 9.5H12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                            </svg>
+                        </button>`;
+                        }
+
+                        // Refund button - only for roles 1 or 4, and only if internship_type == 1
+                        if (canDelete && u.internship_type == 1) {
+                            actionsHTML += `
+                        <button class="refund-internee text-orange-600 hover:text-orange-850 transition-colors" data-id="${u.id}" title="Refund & Deactivate">
+                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         </button>`;
                         }
@@ -672,6 +693,39 @@ include_once "./include/headerLinks.php"; ?>
                     } finally {
                         delBtn.innerHTML = originalHTML;
                         delBtn.classList.remove('btn-disabled');
+                    }
+                }
+            });
+
+            // Refund Internee with loading state
+            document.addEventListener('click', async e => {
+                const refundBtn = e.target.closest('.refund-internee');
+                if (refundBtn) {
+                    if (!confirm('Are you sure you want to refund and deactivate this internee? This will deduct their commission from the supervisor/manager and deactivate their account.')) {
+                        return;
+                    }
+
+                    const originalHTML = refundBtn.innerHTML;
+                    refundBtn.innerHTML = '<span class="refund-loader"></span>';
+                    refundBtn.classList.add('btn-disabled');
+
+                    try {
+                        const res = await fetch('controller/user.php', {
+                            method: 'POST',
+                            body: new URLSearchParams({
+                                action: 'refund',
+                                id: refundBtn.dataset.id
+                            })
+                        });
+                        const json = await res.json();
+                        showToast(json.success ? 'success' : 'error', json.message);
+                        if (json.success) await loadInternees();
+                    } catch (error) {
+                        showToast('error', 'Network error. Please try again.');
+                        console.error('Refund error:', error);
+                    } finally {
+                        refundBtn.innerHTML = originalHTML;
+                        refundBtn.classList.remove('btn-disabled');
                     }
                 }
             });

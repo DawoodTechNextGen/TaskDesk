@@ -10,7 +10,7 @@ switch ($action) {
     // Get all Managers
     case 'get_managers':
         $stmt = $conn->prepare("
-            SELECT u.id, u.name,u.email, u.plain_password
+            SELECT u.id, u.name,u.email, u.plain_password, u.commission_rate
             FROM users u 
             WHERE u.user_role = 4 
             ORDER BY u.name ASC
@@ -29,7 +29,8 @@ switch ($action) {
                 u.email, 
                 u.plain_password, 
                 u.tech_id,
-                t.name AS tech_name
+                t.name AS tech_name,
+                u.commission_rate
             FROM users u 
             LEFT JOIN technologies t ON u.tech_id = t.id
             WHERE u.user_role = 3 
@@ -241,6 +242,7 @@ switch ($action) {
         $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : 0;
         $email = trim($_POST['email']);
         $supervisor_id = $_POST['supervisor_id'] ?? 0;
+        $commission_rate = isset($_POST['commission_rate']) ? (int)$_POST['commission_rate'] : 1000;
         if (empty($name) || !in_array($role, ['3', '2', '4'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid data']);
             exit;
@@ -253,8 +255,8 @@ switch ($action) {
 
         $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-        $stmt = $conn->prepare("INSERT INTO users (name, password, user_role, tech_id, email, plain_password, supervisor_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('sssissi', $name, $hashed, $role, $tech_id, $email, $password, $supervisor_id);
+        $stmt = $conn->prepare("INSERT INTO users (name, password, user_role, tech_id, email, plain_password, supervisor_id, commission_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('sssissii', $name, $hashed, $role, $tech_id, $email, $password, $supervisor_id, $commission_rate);
 
         if ($stmt->execute()) {
             echo json_encode([
@@ -274,12 +276,13 @@ switch ($action) {
         $tech_id = !empty($_POST['tech_id']) ? (int)$_POST['tech_id'] : 0;
         $password = $_POST['password'] ?? '';
         $supervisor_id = $_POST['supervisor_id'] ?? 0;
+        $commission_rate = isset($_POST['commission_rate']) ? (int)$_POST['commission_rate'] : 1000;
 
         // Current user info
         $acting_user_id = $_SESSION['user_id'];
         $acting_user_role = $_SESSION['user_role'];
 
-        if ($id <= 0 || empty($name) || !in_array($role, ['3', '2'])) {
+        if ($id <= 0 || empty($name) || !in_array($role, ['3', '2', '4'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid data']);
             exit;
         }
@@ -300,8 +303,8 @@ switch ($action) {
 
         if (!empty($password)) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?, tech_id = ?, supervisor_id = ? WHERE id = ?");
-            $stmt->bind_param('ssssiiii', $name, $password, $email, $hashed, $role, $tech_id, $supervisor_id, $id);
+            $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?, tech_id = ?, supervisor_id = ?, commission_rate = ? WHERE id = ?");
+            $stmt->bind_param('ssssiiiii', $name, $password, $email, $hashed, $role, $tech_id, $supervisor_id, $commission_rate, $id);
 
             if ($stmt->execute()) {
                 echo json_encode([
@@ -312,8 +315,8 @@ switch ($action) {
                 echo json_encode(['success' => false, 'message' => 'Update failed']);
             }
         } else {
-            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, user_role = ?, tech_id = ? WHERE id = ?");
-            $stmt->bind_param('sssii', $name, $email, $role, $tech_id, $id);
+            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, user_role = ?, tech_id = ?, commission_rate = ? WHERE id = ?");
+            $stmt->bind_param('sssiii', $name, $email, $role, $tech_id, $commission_rate, $id);
             $success = $stmt->execute();
 
             echo json_encode([

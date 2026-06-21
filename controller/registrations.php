@@ -837,6 +837,37 @@ switch ($action) {
             $tech_id = $conn->insert_id;
             $insertHire->close();
 
+            // Record commission if learning base (internship_type = 1)
+            if ($internshipType === 1) {
+                $activeRole = (int)($_SESSION['user_role'] ?? 0);
+                $activeUserId = (int)($_SESSION['user_id'] ?? 0);
+
+                $recipient_id = 0;
+                if ($activeRole === 4) {
+                    $recipient_id = $activeUserId;
+                } else {
+                    $recipient_id = (int)$trainer;
+                }
+
+                if ($recipient_id > 0) {
+                    // Fetch recipient's commission rate
+                    $rate_stmt = $conn->prepare("SELECT commission_rate FROM users WHERE id = ?");
+                    $rate_stmt->bind_param("i", $recipient_id);
+                    $rate_stmt->execute();
+                    $rate_res = $rate_stmt->get_result()->fetch_assoc();
+                    $commission_rate = (int)($rate_res['commission_rate'] ?? 1000);
+                    $rate_stmt->close();
+
+                    // Insert commission transaction
+                    $comm_stmt = $conn->prepare("INSERT INTO commissions (supervisor_id, intern_id, amount) VALUES (?, ?, ?)");
+                    $comm_stmt->bind_param("iii", $recipient_id, $tech_id, $commission_rate);
+                    if (!$comm_stmt->execute()) {
+                        throw new Exception('Failed to log commission payment');
+                    }
+                    $comm_stmt->close();
+                }
+            }
+
             // Create certificate record
             $stmt = $conn->prepare("INSERT INTO certificate (intern_id) VALUES (?)");
             $stmt->bind_param('i', $tech_id);

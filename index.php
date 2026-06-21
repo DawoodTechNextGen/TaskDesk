@@ -93,6 +93,20 @@ if ($user_role == 1) {
     $expired_tasks->bind_param("i", $user_id);
     $expired_tasks->execute();
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
+
+    // Fetch Monthly Earnings
+    $monthly_earnings_query = $conn->prepare("SELECT SUM(amount) as total FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $monthly_earnings_query->bind_param("i", $user_id);
+    $monthly_earnings_query->execute();
+    $monthly_earnings = (int)($monthly_earnings_query->get_result()->fetch_assoc()['total'] ?? 0);
+    $monthly_earnings_query->close();
+} elseif ($user_role == 4) {
+    // Manager Monthly Earnings
+    $monthly_earnings_query = $conn->prepare("SELECT SUM(amount) as total FROM commissions WHERE supervisor_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $monthly_earnings_query->bind_param("i", $user_id);
+    $monthly_earnings_query->execute();
+    $monthly_earnings = (int)($monthly_earnings_query->get_result()->fetch_assoc()['total'] ?? 0);
+    $monthly_earnings_query->close();
 }
 ?>
 <!DOCTYPE html>
@@ -732,10 +746,29 @@ include_once "./include/headerLinks.php"; ?>
                             </div>
                         </div>
                     </div>
+
                 <?php elseif ($user_role == 3): ?>
                     <!-- ==================== SUPERVISOR DASHBOARD ==================== -->
                     <div class="mb-8">
-                        <!-- Supervisor Stats Cards -->
+                        <!-- Supervisor Monthly Earnings Card (Isolated at Top) -->
+                        <div class="mb-6">
+                            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-2xl shadow-lg p-6 relative overflow-hidden">
+                                <div class="relative z-10 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-indigo-100 text-sm font-medium mb-1">This Month Earning</p>
+                                        <h3 class="text-3xl font-bold"><?= number_format($monthly_earnings) ?> PKR</h3>
+                                    </div>
+                                    <div class="bg-white/20 p-4 rounded-xl text-white">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                            </div>
+                        </div>
+
+                        <!-- Supervisor Stats Cards Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                             <!-- Total Generated Tasks -->
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
@@ -944,7 +977,23 @@ include_once "./include/headerLinks.php"; ?>
                     <!-- ==================== MANAGER DASHBOARD ==================== -->
                     <div class="mb-8">
                         <!-- Manager Stats Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                            <!-- Monthly Earnings -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-indigo-500 dark:text-indigo-300 text-sm font-medium">This Month Earning</p>
+                                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
+                                            <?= number_format($monthly_earnings) ?> PKR
+                                        </h3>
+                                    </div>
+                                    <div class="bg-indigo-100 dark:bg-indigo-900 p-3 rounded-lg">
+                                        <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                             <!-- Total Registrations -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
                                 <div class="relative">

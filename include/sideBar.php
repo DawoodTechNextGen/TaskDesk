@@ -427,7 +427,19 @@
                                     </div>
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Managers</span>
                                 </a>
-                            </li>
+                             </li>
+                             <li>
+                                <a href="salaries.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'salaries.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2V22M17 5H9.5C8.11929 5 7 6.11929 7 7.5C7 8.88071 8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5C17 13.8807 15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Salaries</span>
+                                </a>
+                             </li>
                         <?php
                         } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>

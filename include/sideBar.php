@@ -65,6 +65,19 @@
             </button>
         </div>
 
+        <?php
+        $chatRequestBadgeCount = 0;
+        if (!isset($conn)) {
+            @include_once './include/connection.php';
+        }
+        if (isset($conn)) {
+            $countResult = $conn->query("SELECT COUNT(*) AS total FROM chat_requests WHERE status = 'pending'");
+            if ($countResult) {
+                $chatRequestBadgeCount = (int)$countResult->fetch_assoc()['total'];
+            }
+        }
+        ?>
+
         <!-- Sidebar Content with Modern Navigation -->
         <div class="flex-1 overflow-y-auto py-4 custom-scrollbar">
             <nav>
@@ -101,6 +114,22 @@
                                         </svg>
                                     </div>
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Reports</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                            <li>
+                                <a href="chat_requests.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'chat_requests.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M21 15V10C21 7.79086 19.2091 6 17 6H7C4.79086 6 3 7.79086 3 10V15C3 17.2091 4.79086 19 7 19H17C19.2091 19 21 17.2091 21 15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M8 11H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M8 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Chat Approvals</span>
+                                    <span id="chat-requests-badge" class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-semibold px-2.5 py-0.5 ml-auto" style="display: <?= $chatRequestBadgeCount > 0 ? 'inline-flex' : 'none' ?>;"><?= $chatRequestBadgeCount > 0 ? $chatRequestBadgeCount : '' ?></span>
                                 </a>
                             </li>
                         <?php } ?>

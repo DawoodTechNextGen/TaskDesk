@@ -73,7 +73,7 @@ define('APP_TIMEZONE', getenv('APP_TIMEZONE') ?: 'UTC');
 // Security
 define('SECRET_KEY', getenv('SECRET_KEY') ?: 'default-secret-key-change-in-production');
 define('BASE_URL', getenv('BASE_URL') ?: 'http://localhost/task-management');
-define('DOTALK_URL', getenv('DOTALK_URL') ?: 'http://localhost:5173');
+define('DOTALK_URL', getenv('DOTALK_URL') ?: 'https://dotalk.dawoodtechnextgen.com/');
 define('URL_CRON_FILE', getenv('URL_CRON_FILE') ?: './include/');
 // Set timezone
 date_default_timezone_set(APP_TIMEZONE);

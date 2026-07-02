@@ -145,6 +145,32 @@ include_once "./include/headerLinks.php"; ?>
             <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
 
+                <!-- DoTalk Quick Launch Card -->
+                <div class="mb-8 px-0 md:px-0">
+                    <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-6 transition hover:shadow-md hover:-translate-y-0.5 duration-150">
+                        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-sky-600 dark:text-sky-300 uppercase tracking-[0.18em]">DoTalk</p>
+                                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mt-2">Open DoTalk from TaskDesk</h3>
+                                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
+                                    Jump directly into DoTalk in a new browser tab. This dashboard card appears for every role and opens DoTalk with your TaskDesk role context.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <a href="<?= DOTALK_URL ?>?source=taskdesk&role=<?= urlencode($_SESSION['user_role'] == 1 ? 'Admin' : ($_SESSION['user_role'] == 2 ? 'Intern' : ($_SESSION['user_role'] == 3 ? 'Supervisor' : ($_SESSION['user_role'] == 4 ? 'Manager' : 'User')))) ?>"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="inline-flex items-center justify-center rounded-2xl bg-sky-600 hover:bg-sky-700 text-white px-5 py-3 text-sm font-semibold transition duration-150 shadow-md shadow-sky-500/20">
+                                    Open DoTalk
+                                </a>
+                                <span class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-2 text-xs font-medium">
+                                    Open in new tab
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Role-based Dashboard Sections -->
                 <?php if ($user_role == 1): ?>
                     <!-- ==================== ADMIN DASHBOARD ==================== -->

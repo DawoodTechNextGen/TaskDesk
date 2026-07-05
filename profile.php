@@ -31,10 +31,10 @@ include "./include/headerLinks.php" ?>
                         <!-- Settings Tabs -->
                         <div class="border-b dark:border-gray-600">
                             <nav class="flex -mb-px">
-                                <!-- <a href="#" data-target="personal-info"
+                                <a href="#" data-target="personal-info"
                                     class="tab-btn py-4 px-6 text-center border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">
                                     Account
-                                </a> -->
+                                </a>
 
                                 <a href="#" data-target="password-settings"
                                     class="tab-btn py-4 px-6 text-center border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -45,13 +45,13 @@ include "./include/headerLinks.php" ?>
                         </div>
 
                         <!-- Account Settings Form -->
-                        <!-- <div class="p-6 tab-content" id="personal-info"> -->
-                            <!-- <h3 class="text-lg font-medium text-gray-900 mb-6 dark:text-white">Profile Information</h3> -->
+                        <div class="p-6 tab-content" id="personal-info">
+                            <h3 class="text-lg font-medium text-gray-900 mb-6 dark:text-white">Profile Information</h3>
 
-                            <!-- <form class="space-y-6"> -->
-                                <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label for="last-name"
+                                        <label for="name"
                                             class="block text-sm font-medium text-gray-700 mb-1 dark:text-white">Name</label>
                                         <input type="text" id="name" value="<?= $_SESSION['user_name'] ?>"
                                             readonly class="cursor-not-allowed bg-gray-200 dark:bg-gray-700 w-full px-3 py-2 dark:text-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -63,64 +63,9 @@ include "./include/headerLinks.php" ?>
                                         <input type="email" readonly id="email" value="<?= $_SESSION['user_email'] ?>"
                                             class="cursor-not-allowed w-full bg-gray-200 dark:bg-gray-700 px-3 py-2 dark:text-white border border-gray-300 rounded-md shadow-sm focus:outline-none">
                                     </div>
-                                </div> -->
+                                </div>
 
-                                <!-- <div>
-                                    <label for="bio"
-                                        class="block text-sm font-medium text-gray-700 mb-1 dark:text-white">Bio</label>
-                                    <textarea id="bio" rows="3"
-                                        class="w-full px-3 py-2 dark:text-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">UX designer with 5+ years of experience creating intuitive and engaging user experiences. Passionate about user-centered design and frontend development.</textarea>
-                                </div> -->
-
-                                <!-- <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-white">Profile
-                                        photo</label>
-                                    <div class="flex items-center">
-                                        <div class="relative mr-4">
-                                            <img src="./assets/images/user.png" alt="Profile"
-                                                class="h-16 w-16 rounded-full object-cover">
-                                            <button
-                                                class="absolute bottom-0 right-0 bg-indigo-600 text-white p-1 rounded-full hover:bg-indigo-700 transition">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 14 14" fill="none">
-                                                    <path
-                                                        d="M8.03006 2.35161L2.23203 8.14964C2.00274 8.37893 1.78984 8.80472 1.7407 9.11591L1.42951 11.327C1.31486 12.1295 1.87174 12.6864 2.67428 12.5717L4.88533 12.2605C5.19652 12.2114 5.63878 11.9985 5.8517 11.7692L11.6496 5.97128C12.6487 4.9722 13.1237 3.80928 11.6496 2.33522C10.1919 0.877541 9.02914 1.35253 8.03006 2.35161Z"
-                                                        stroke="white" stroke-width="1.5" stroke-miterlimit="10"
-                                                        stroke-linecap="round" stroke-linejoin="round" />
-                                                    <path
-                                                        d="M7.19482 3.18695C7.68618 4.95582 9.06192 6.33156 10.8308 6.82291"
-                                                        stroke="white" stroke-width="1.5" stroke-miterlimit="10"
-                                                        stroke-linecap="round" stroke-linejoin="round" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div>
-                                            <button type="button"
-                                                class="bg-white dark:bg-gray-800  dark:text-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                                Change
-                                            </button>
-                                            <button type="button"
-                                                class="ml-3 bg-white dark:bg-gray-800 dark:text-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div> -->
-
-                                <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="country"
-                                            class="block text-sm font-medium text-gray-700 mb-1 dark:text-white">Country</label>
-                                        <select id="country"
-                                            class="w-full px-3 py-2 border bg-gray-50 border-gray-300 dark:text-white  dark:bg-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                            <option>United States</option>
-                                            <option>Canada</option>
-                                            <option>Mexico</option>
-                                        </select>
-                                    </div>
-                                </div> -->
-
-                                <!-- <div class="flex justify-end space-x-3 pt-6 border-t dark:border-gray-700">
+                                <div class="flex justify-end space-x-3 pt-6 border-t dark:border-gray-700">
                                     <button type="button"
                                         class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                         Cancel
@@ -130,9 +75,9 @@ include "./include/headerLinks.php" ?>
                                         Save Changes
                                     </button>
                                 </div>
-                            </form> -->
-                        <!-- </div> -->
-                        <div class="p-6 tab-content" id="password-settings">
+                            </form>
+                        </div>
+                        <div class="p-6 tab-content hidden" id="password-settings">
                             <h3 class="text-lg font-medium text-gray-900 mb-6 dark:text-white">Change Password</h3>
 
                             <form class="space-y-6" id="settings">
@@ -176,147 +121,207 @@ include "./include/headerLinks.php" ?>
         // Profile edit functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Tab switching functionality
-            // const tabButtons = document.querySelectorAll('.tab-btn');
-            // const tabContents = document.querySelectorAll('.tab-content');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
 
-            // tabButtons.forEach(button => {
-            //     button.addEventListener('click', function(e) {
-            //         e.preventDefault();
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
 
-            //         // Remove active class from all tabs
-            //         tabButtons.forEach(btn => {
-            //             btn.classList.remove('border-indigo-500', 'text-indigo-600');
-            //             btn.classList.add('border-transparent', 'text-gray-500');
-            //         });
+                    // Remove active class from all tabs
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('border-indigo-500', 'text-indigo-600');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    });
 
-            //         // Add active class to clicked tab
-            //         this.classList.remove('border-transparent', 'text-gray-500');
-            //         this.classList.add('border-indigo-500', 'text-indigo-600');
+                    // Add active class to clicked tab
+                    this.classList.remove('border-transparent', 'text-gray-500');
+                    this.classList.add('border-indigo-500', 'text-indigo-600');
 
-            //         // Hide all tab contents
-            //         tabContents.forEach(content => {
-            //             content.classList.add('hidden');
-            //         });
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
 
-            //         // Show selected tab content
-            //         const targetId = this.getAttribute('data-target');
-            //         document.getElementById(targetId).classList.remove('hidden');
-            //     });
-            // });
+                    // Show selected tab content
+                    const targetId = this.getAttribute('data-target');
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
 
             // Profile Information Edit Toggle
-            // const profileForm = document.querySelector('#personal-info form');
-            // const profileFields = profileForm.querySelectorAll('input, textarea');
-            // const profileSaveBtn = profileForm.querySelector('button[type="submit"]');
-            // const profileCancelBtn = profileForm.querySelector('button[type="button"]');
-            // const editProfileBtn = document.createElement('button');
+            const profileForm = document.querySelector('#personal-info form');
+            const profileFields = profileForm.querySelectorAll('input, textarea');
+            const editProfileBtn = document.createElement('button');
 
             // Create Edit Profile button
-            // editProfileBtn.type = 'button';
-            // editProfileBtn.className = 'inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500';
-            // editProfileBtn.textContent = 'Edit Profile';
+            editProfileBtn.type = 'button';
+            editProfileBtn.className = 'inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500';
+            editProfileBtn.textContent = 'Edit Profile';
 
             // Add Edit Profile button to the form
-            // const profileButtonContainer = profileForm.querySelector('.flex.justify-end');
-            // profileButtonContainer.innerHTML = '';
-            // profileButtonContainer.appendChild(editProfileBtn);
+            const profileButtonContainer = profileForm.querySelector('.flex.justify-end');
+            profileButtonContainer.innerHTML = '';
+            profileButtonContainer.appendChild(editProfileBtn);
 
             // Store original values
-            // const originalValues = {};
-            // profileFields.forEach(field => {
-            //     originalValues[field.id] = field.value;
-            // });
+            const originalValues = {};
+            profileFields.forEach(field => {
+                originalValues[field.id] = field.value;
+            });
 
             // Edit Profile button click handler
-            // editProfileBtn.addEventListener('click', function() {
-                // Enable all fields except email (as per requirement)
-                // profileFields.forEach(field => {
-                //     if (field.id !== 'email') {
-                //         field.removeAttribute('readonly');
-                //         field.classList.remove('cursor-not-allowed', 'bg-gray-200', 'dark:bg-gray-700');
-                //     }
-                // });
+            editProfileBtn.addEventListener('click', function() {
+                // Enable all fields
+                profileFields.forEach(field => {
+                    field.removeAttribute('readonly');
+                    field.classList.remove('cursor-not-allowed', 'bg-gray-200', 'dark:bg-gray-700');
+                });
 
                 // Show Save and Cancel buttons
-        //         profileButtonContainer.innerHTML = `
-        //     <button type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-        //         Cancel
-        //     </button>
-        //     <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-        //         Save Changes
-        //     </button>
-        // `;
+                profileButtonContainer.innerHTML = `
+                    <button type="button" id="cancelEditBtn" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveEditBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Save Changes
+                    </button>
+                `;
 
                 // Add event listeners to the new buttons
-            //     const newCancelBtn = profileButtonContainer.querySelector('button[type="button"]');
-            //     const newSaveBtn = profileButtonContainer.querySelector('button[type="submit"]');
-
-            //     newCancelBtn.addEventListener('click', cancelProfileEdit);
-            //     newSaveBtn.addEventListener('click', saveProfileChanges);
-            // });
+                document.getElementById('cancelEditBtn').addEventListener('click', cancelProfileEdit);
+                document.getElementById('saveEditBtn').addEventListener('click', saveProfileChanges);
+            });
 
             // Cancel profile edit
-            // function cancelProfileEdit() {
+            function cancelProfileEdit() {
                 // Restore original values
-                // profileFields.forEach(field => {
-                //     field.value = originalValues[field.id];
-                //     if (field.id !== 'email') {
-                //         field.setAttribute('readonly', true);
-                //         field.classList.add('cursor-not-allowed', 'bg-gray-200', 'dark:bg-gray-700');
-                //     }
-                // });
+                profileFields.forEach(field => {
+                    field.value = originalValues[field.id];
+                    field.setAttribute('readonly', true);
+                    field.classList.add('cursor-not-allowed', 'bg-gray-200', 'dark:bg-gray-700');
+                });
 
                 // Show Edit Profile button again
-            //     profileButtonContainer.innerHTML = '';
-            //     profileButtonContainer.appendChild(editProfileBtn);
-            // }
+                profileButtonContainer.innerHTML = '';
+                profileButtonContainer.appendChild(editProfileBtn);
+            }
+
+            // OTP Modal state
+            let otpMode = ''; // 'profile' or 'password'
+            const otpModal = document.getElementById('otpModal');
+            const otpForm = document.getElementById('otpForm');
+            const otpCode = document.getElementById('otpCode');
+            const otpMessage = document.getElementById('otpMessage');
+            const closeOtpBtn = document.getElementById('closeOtpBtn');
+
+            const openOtpModal = (mode) => {
+                otpMode = mode;
+                otpCode.value = '';
+                otpMessage.classList.add('hidden');
+                otpModal.classList.remove('hidden');
+            };
+
+            const closeOtpModal = () => {
+                otpModal.classList.add('hidden');
+            };
+
+            closeOtpBtn.addEventListener('click', closeOtpModal);
+
+            otpForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const code = otpCode.value.trim();
+                const url = otpMode === 'profile' ? 'controller/update_profile.php' : 'controller/update_password.php';
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'verify_otp', otp: code })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Updated successfully', 'success');
+                        closeOtpModal();
+                        if (otpMode === 'profile') {
+                            // Update name everywhere in header/sidebar
+                            const newName = document.getElementById('name').value;
+                            if (document.getElementById('nav-name')) document.getElementById('nav-name').textContent = newName;
+                            if (document.getElementById('name-short')) document.getElementById('name-short').textContent = getInitials(newName);
+                            if (document.getElementById('sidebar-name')) document.getElementById('sidebar-name').textContent = newName;
+                            if (document.getElementById('sidebar-short-name')) document.getElementById('sidebar-short-name').textContent = getInitials(newName);
+                            
+                            // Update original values
+                            profileFields.forEach(field => {
+                                originalValues[field.id] = field.value;
+                            });
+
+                            // Return to view mode
+                            cancelProfileEdit();
+                        } else {
+                            passwordForm.reset();
+                        }
+                    } else {
+                        otpMessage.textContent = data.error || 'Invalid OTP code.';
+                        otpMessage.className = 'mb-4 rounded-xl px-3 py-2 text-xs bg-red-105 text-red-700 dark:bg-red-900/50 dark:text-red-200';
+                        otpMessage.classList.remove('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    otpMessage.textContent = 'An error occurred. Please try again.';
+                    otpMessage.className = 'mb-4 rounded-xl px-3 py-2 text-xs bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200';
+                    otpMessage.classList.remove('hidden');
+                });
+            });
 
             // Save profile changes
-            // function saveProfileChanges(e) {
-            //     e.preventDefault();
+            function saveProfileChanges(e) {
+                e.preventDefault();
 
-            //     // Get form data
-            //     const formData = new FormData();
-            //     formData.append('name', document.getElementById('name').value);
-            //     // Note: Email is not editable as per requirement
+                // Send AJAX request to update profile
+                fetch('controller/update_profile.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: document.getElementById('name').value,
+                            email: document.getElementById('email').value,
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.otp_required) {
+                                openOtpModal('profile');
+                            } else {
+                                showToast('Profile updated successfully', 'success');
+                                
+                                // Update name everywhere in header/sidebar
+                                const newName = document.getElementById('name').value;
+                                if (document.getElementById('nav-name')) document.getElementById('nav-name').textContent = newName;
+                                if (document.getElementById('name-short')) document.getElementById('name-short').textContent = getInitials(newName);
+                                if (document.getElementById('sidebar-name')) document.getElementById('sidebar-name').textContent = newName;
+                                if (document.getElementById('sidebar-short-name')) document.getElementById('sidebar-short-name').textContent = getInitials(newName);
+                                
+                                // Update original values
+                                profileFields.forEach(field => {
+                                    originalValues[field.id] = field.value;
+                                });
 
-            //     // Send AJAX request to update profile
-            //     fetch('controller/update_profile.php', {
-            //             method: 'POST',
-            //             headers: {
-            //                 'Content-Type': 'application/json',
-            //             },
-            //             body: JSON.stringify({
-            //                 name: document.getElementById('name').value,
-            //             })
-            //         })
-            //         .then(response => response.json())
-            //         .then(data => {
-            //             if (data.success) {
-            //                 showToast('Profile updated successfully', 'success');
-            //                 // Update the readonly input value to the new name (in case it's not already)
-            //                 document.getElementById('name').value = document.getElementById('name').value;
-            //                 document.getElementById('nav-name').textContent = document.getElementById('name').value;
-            //                 document.getElementById('name-short').textContent = getInitials(document.getElementById('name').value);
-
-            //                 document.getElementById('sidebar-name').textContent = document.getElementById('name').value;
-            //                 document.getElementById('sidebar-short-name').textContent = getInitials(document.getElementById('name').value);
-            //                 // Update original values
-            //                 profileFields.forEach(field => {
-            //                     originalValues[field.id] = field.value;
-            //                 });
-
-            //                 // Return to view mode
-            //                 cancelProfileEdit();
-            //             } else {
-            //                 showToast(data.error || 'Failed to update profile', 'error');
-            //             }
-            //         })
-            //         .catch(error => {
-            //             console.error('Error:', error);
-            //             showToast('An error occurred while updating profile', 'error');
-            //         });
-            // }
+                                // Return to view mode
+                                cancelProfileEdit();
+                            }
+                        } else {
+                            showToast(data.error || 'Failed to update profile', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while updating profile', 'error');
+                    });
+            }
 
             // Password Change Form Handling
             const passwordForm = document.getElementById('settings');
@@ -352,8 +357,12 @@ include "./include/headerLinks.php" ?>
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            showToast('Password updated successfully', 'success');
-                            passwordForm.reset();
+                            if (data.otp_required) {
+                                openOtpModal('password');
+                            } else {
+                                showToast('Password updated successfully', 'success');
+                                passwordForm.reset();
+                            }
                         } else {
                             showToast(data.error || 'Failed to update password', 'error');
                         }
@@ -420,6 +429,39 @@ include "./include/headerLinks.php" ?>
             return initials.toUpperCase();
         }
     </script>
+
+    <!-- OTP Verification Modal -->
+    <div id="otpModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
+        
+        <!-- Container -->
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-200 dark:border-gray-700 p-6 flex flex-col">
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Verify Your Identity</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">A verification code (OTP) has been sent to your email. Please enter it below to confirm the changes.</p>
+                </div>
+                
+                <form id="otpForm" class="space-y-4">
+                    <div id="otpMessage" class="hidden rounded-xl px-3 py-2 text-xs"></div>
+                    <div>
+                        <label for="otpCode" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">6-Digit Code</label>
+                        <input type="text" id="otpCode" required maxlength="6" pattern="\d{6}" class="w-full text-center tracking-widest text-lg font-bold px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="123456">
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
+                        <button type="button" id="closeOtpBtn" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow">
+                            Verify & Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

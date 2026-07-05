@@ -145,30 +145,47 @@ include_once "./include/headerLinks.php"; ?>
             <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
 
-                <!-- DoTalk Quick Launch Card -->
-                <div class="mb-8 px-0 md:px-0">
-                    <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-sm p-6 transition hover:shadow-md hover:-translate-y-0.5 duration-150">
-                        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-                            <div>
-                                <p class="text-sm font-semibold text-sky-600 dark:text-sky-300 uppercase tracking-[0.18em]">DoTalk</p>
-                                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mt-2">Open DoTalk from TaskDesk</h3>
-                                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
-                                    Jump directly into DoTalk in a new browser tab. This dashboard card appears for every role and opens DoTalk with your TaskDesk role context.
-                                </p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <a href="<?= DOTALK_URL ?>?source=taskdesk&role=<?= urlencode($_SESSION['user_role'] == 1 ? 'Admin' : ($_SESSION['user_role'] == 2 ? 'Intern' : ($_SESSION['user_role'] == 3 ? 'Supervisor' : ($_SESSION['user_role'] == 4 ? 'Manager' : 'User')))) ?>"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="inline-flex items-center justify-center rounded-2xl bg-sky-600 hover:bg-sky-700 text-white px-5 py-3 text-sm font-semibold transition duration-150 shadow-md shadow-sky-500/20">
-                                    Open DoTalk
-                                </a>
-                                <span class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-2 text-xs font-medium">
-                                    Open in new tab
-                                </span>
-                            </div>
+                <!-- DoTalk Quick Launch Banner -->
+                <?php
+                $unreadChatCount = 0;
+                if (isset($conn) && isset($_SESSION['user_id'])) {
+                    $currentUserId = $_SESSION['user_id'];
+                    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM chat_messages WHERE receiver_id = ? AND is_read = 0");
+                    if ($stmt) {
+                        $stmt->bind_param('i', $currentUserId);
+                        $stmt->execute();
+                        $result = $stmt->get_result()->fetch_assoc();
+                        $unreadChatCount = (int)$result['total'];
+                        $stmt->close();
+                    }
+                }
+                ?>
+                <div class="mb-6 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 transition hover:shadow-sm duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/10 shrink-0">
+                            <!-- Chat Icon SVG -->
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 10.742h.01m3.481 0h.01m3.481 0h.01M12 21a9.003 9.003 0 008.354-5.646 9.003 9.003 0 00-.01-7.048A9.003 9.003 0 0012 3a9 9 0 00-8.7 9H3.75a.75.75 0 01-.75-.75V8.25m18 0h.008v.008H21V8.25z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                Connect with DoTalk
+                                <?php if ($unreadChatCount > 0): ?>
+                                    <span class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 animate-pulse">
+                                        <?= $unreadChatCount ?> New
+                                    </span>
+                                <?php endif; ?>
+                            </h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Launch the chat application in a new browser tab.</p>
                         </div>
                     </div>
+                    <a href="<?= DOTALK_URL ?>"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-flex items-center justify-center rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 text-xs font-semibold transition duration-150 shadow-md shadow-sky-500/10 shrink-0">
+                        Open Chat
+                    </a>
                 </div>
 
                 <!-- Role-based Dashboard Sections -->

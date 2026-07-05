@@ -128,8 +128,7 @@
                                             <path d="M8 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                                         </svg>
                                     </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Chat Approvals</span>
-                                    <span id="chat-requests-badge" class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-semibold px-2.5 py-0.5 ml-auto" style="display: <?= $chatRequestBadgeCount > 0 ? 'inline-flex' : 'none' ?>;"><?= $chatRequestBadgeCount > 0 ? $chatRequestBadgeCount : '' ?></span>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Chat Management</span>
                                 </a>
                             </li>
                         <?php } ?>

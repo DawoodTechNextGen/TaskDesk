@@ -821,7 +821,7 @@ if ($action === 'supervisor_intern_attendance') {
             LEFT JOIN technologies t ON u.tech_id = t.id
             LEFT JOIN attendance a ON u.id = a.user_id
             LEFT JOIN tasks task ON u.id = task.assign_to AND task.status = 'complete' AND DATE(task.completed_at) = DATE(a.date)
-            WHERE u.user_role = 2";
+            WHERE u.user_role = 2 AND u.status = 1";
             
     if ($user_role != 1 && $user_role != 4) {
         $sql .= " AND u.supervisor_id = ?";

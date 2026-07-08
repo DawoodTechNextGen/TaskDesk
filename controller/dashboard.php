@@ -812,6 +812,8 @@ if ($action === 'supervisor_intern_attendance') {
                 u.email,
                 t.name as technology,
                 u.created_at,
+                u.internship_type,
+                u.internship_duration,
                 COUNT(DISTINCT a.id) as total_attendance_rows,
                 COUNT(DISTINCT CASE 
                     WHEN a.total_work_seconds >= 10800 OR task.id IS NOT NULL THEN a.date 
@@ -842,6 +844,28 @@ if ($action === 'supervisor_intern_attendance') {
     $today->setTime(0, 0, 0);
 
     while ($row = $result->fetch_assoc()) {
+        // Skip intern if their internship duration is already completed
+        $start_date = new DateTime($row['created_at']);
+        $start_date->setTime(0, 0, 0);
+        $current_date = new DateTime();
+        $current_date->setTime(0, 0, 0);
+
+        $duration_weeks = 12;
+        if (!empty($row['internship_duration'])) {
+            if ($row['internship_duration'] === '4 weeks') $duration_weeks = 4;
+            elseif ($row['internship_duration'] === '8 weeks') $duration_weeks = 8;
+            elseif ($row['internship_duration'] === '12 weeks') $duration_weeks = 12;
+        } else {
+            $duration_weeks = ($row['internship_type'] == 0) ? 4 : 12;
+        }
+
+        $end_date = clone $start_date;
+        $end_date->modify("+$duration_weeks weeks");
+
+        if ($current_date > $end_date) {
+            continue; // Skip this intern
+        }
+
         $createdAt = new DateTime($row['created_at']);
         $createdAt->setTime(0, 0, 0);
         

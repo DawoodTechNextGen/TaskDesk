@@ -977,10 +977,10 @@ if ($action === "intern_daily_history") {
 
 
 
-    // Get attendance records
-    $att_sql = "SELECT a.date, a.total_work_seconds, a.status, a.task_id, t.title as task_name 
+    $att_sql = "SELECT a.date, a.total_work_seconds, at.name as status, a.task_id, t.title as task_name 
                 FROM attendance a 
                 LEFT JOIN tasks t ON a.task_id = t.id 
+                LEFT JOIN attendance_types at ON a.attendance_type = at.id
                 WHERE a.user_id = ?";
     $stmt = $conn->prepare($att_sql);
     $stmt->bind_param("i", $calc_user_id);
@@ -1062,7 +1062,7 @@ if ($action === "intern_daily_history") {
 
         if (isset($attendance_map[$date_str])) {
             $total_seconds = $attendance_map[$date_str]['total_work_seconds'];
-            $status = ($attendance_map[$date_str]['status'] === 'Present') ? 'Present' : $status;
+            $status = (strtolower($attendance_map[$date_str]['status'] ?? '') === 'present') ? 'Present' : $status;
             
             $tid = $attendance_map[$date_str]['task_id'];
             if ($tid !== null && $tid > 0) {

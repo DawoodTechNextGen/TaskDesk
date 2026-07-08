@@ -224,7 +224,7 @@ if ($data['action'] === 'getAssignedTask') {
     $user_id = $_SESSION['user_id'];
     $status = $data['status'] ?? null;
     $sql = "select t.id, t.title,t.description, t.due_date, t.status,t.created_at,t.started_at,
-    t.completed_at,u.id as assign_id, 
+    t.completed_at, t.review_notes, u.id as assign_id, 
     u.name as assign_by from tasks t JOIN users u on u.id = t.created_by where assign_to = ?";
 
     if ($status === 'expired') {
@@ -507,7 +507,7 @@ if ($data['action'] === 'review_task') {
     }
     
     if ($new_status === 'needs_improvement') {
-        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL, notification = 0 WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL, notification = 0, due_date = DATE_ADD(CURDATE(), INTERVAL 1 DAY) WHERE id = ?");
     } else {
         $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
     }

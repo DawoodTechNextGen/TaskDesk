@@ -129,16 +129,28 @@ include_once "./include/headerLinks.php"; ?>
                         const isExpired = (task.due_date && task.due_date < new Date().toISOString().split('T')[0] && ['inprogress', 'needs_improvement'].includes(task.status));
                         const displayStatus = isExpired ? 'expired' : task.status;
 
+                        let titleHtml = `<div class="font-semibold text-gray-900 dark:text-white">${task.title}</div>`;
+
+                        let statusHtml = `<div class="flex items-center gap-1.5 flex-wrap">
+                            ${getStatusBadge(displayStatus)}`;
+                        if (task.status === 'needs_improvement' && task.review_notes) {
+                            const escapedNotes = task.review_notes.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                            statusHtml += `
+                            <button onclick="toggleRequirements(${task.id}, this)" data-notes="${escapedNotes}" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transform hover:scale-105 active:scale-95" title="What's Required?" id="req-btn-${task.id}">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </button>`;
+                        }
+                        statusHtml += `</div>`;
+
                         dataTable.row.add([
                             task.id,
-                            task.title,
+                            titleHtml,
                             task.assign_by_name || task.assign_by || 'System',
-                            getStatusBadge(displayStatus),
+                            statusHtml,
                             formatDateTime(task.created_at),
-                            `<div class="flex gap-2 items-center">
-                                <button onclick="viewTaskDetails(${task.id})" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 text-white rounded text-xs font-bold transition-all shadow-sm flex items-center gap-1" title="View Details">
+                            `<div class="flex gap-2 items-center flex-wrap md:flex-nowrap">
+                                <button onclick="viewTaskDetails(${task.id})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 transition-all cursor-pointer shadow-sm border border-blue-200 dark:border-blue-800 focus:outline-none" title="View Details">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    <span>View Details</span>
                                 </button>
 
                                 ${displayStatus === 'expired' ? `
@@ -249,6 +261,32 @@ include_once "./include/headerLinks.php"; ?>
             const now = new Date();
             return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0') + " " +
                    String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+        }
+
+        function toggleRequirements(taskId, btn) {
+            const tr = btn.closest('tr');
+            const row = dataTable.row(tr);
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.classList.remove('shown');
+                btn.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
+            } else {
+                const notes = btn.getAttribute('data-notes');
+                row.child(`
+                    <div class="p-4 bg-amber-50/80 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded-r-xl text-gray-800 dark:text-gray-200 text-xs shadow-inner transition-all duration-300">
+                        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-amber-200/50 dark:border-amber-900/40">
+                            <span class="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                                Supervisor's Improvement Instructions:
+                            </span>
+                        </div>
+                        <div class="whitespace-pre-line leading-relaxed font-semibold">${notes}</div>
+                    </div>
+                `).show();
+                tr.classList.add('shown');
+                btn.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2');
+            }
         }
     </script>
 </body>

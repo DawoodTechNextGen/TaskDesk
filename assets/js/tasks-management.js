@@ -48,7 +48,13 @@ function renderRichText(container, html, emptyMessage = 'No description provided
     }
 
     const shouldDecode = /&lt;\/?[a-z][\s\S]*&gt;/i.test(content);
-    container.innerHTML = `<div class="ql-editor">${shouldDecode ? decodeHtmlEntities(content) : content}</div>`;
+    const decoded = shouldDecode ? decodeHtmlEntities(content) : content;
+    
+    if (decoded.includes('space-y-') || decoded.includes('Learning Phase') || decoded.includes('Objective')) {
+        container.innerHTML = decoded;
+    } else {
+        container.innerHTML = `<div class="ql-editor">${decoded}</div>`;
+    }
 }
 
 // Initialize Task Management Page

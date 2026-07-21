@@ -53,6 +53,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Email</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Technology</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Supervisor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Curriculum</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -62,6 +63,34 @@ include_once "./include/headerLinks.php"; ?>
                 </div>
             </main>
             <?php include_once "./include/footer.php"; ?>
+        </div>
+    </div>
+
+    <!-- Start Curriculum Modal -->
+    <div id="start-curriculum-modal" class="modal hidden fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-11/12 max-w-sm p-6 animate-fadeIn">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-950 dark:text-gray-50">Assign Curriculum Task</h3>
+                <button type="button" class="close-curriculum-modal text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="startCurriculumForm">
+                <input type="hidden" name="intern_id" id="curriculumInternId">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" id="curriculumInternText"></p>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Select Starting Week</label>
+                    <select name="week_number" id="curriculumWeekSelect" class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-200 dark:border-gray-600">
+                        <!-- Options generated dynamically based on student duration -->
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" class="close-curriculum-modal px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Assign Task</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -190,6 +219,15 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-indigo-600 h-2 rounded-full" id="view-progress-bar"></div>
                                 </div>
                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100" id="view-completion">0%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Curriculum Progress</p>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div class="bg-violet-600 h-2 rounded-full" id="view-curriculum-bar" style="width: 0%;"></div>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 shrink-0 text-xs" id="view-curriculum-pct">0% (Week 0)</span>
                             </div>
                         </div>
                         <div>
@@ -406,6 +444,8 @@ include_once "./include/headerLinks.php"; ?>
                                 data-completed-tasks="${u.completed_tasks || 0}"
                                 data-pending-tasks="${u.pending_tasks || 0}"
                                 data-overdue-tasks="${u.overdue_tasks || 0}"
+                                data-completed-weeks="${u.completed_weeks || 0}"
+                                data-active-week="${u.active_week || ''}"
                                 title="View Details">
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z" stroke="currentColor" stroke-width="1.5"></path>
@@ -427,6 +467,23 @@ include_once "./include/headerLinks.php"; ?>
                             <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22C16.714 22 19.0711 22 20.5355 20.5355C22 19.0711 22 16.714 22 12V10.5M13.5 2H12C7.28595 2 4.92893 2 3.46447 3.46447C2.49073 4.43821 2.16444 5.80655 2.0551 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
                                 <path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795M16.652 3.45506C16.652 3.45506 16.7331 4.83379 17.9497 6.05032C19.1662 7.26685 20.5449 7.34795 20.5449 7.34795M16.652 3.45506L10.6872 9.41993C10.2832 9.82394 10.0812 10.0259 9.90743 10.2487C9.70249 10.5114 9.52679 10.7957 9.38344 11.0965C9.26191 11.3515 9.17157 11.6225 8.99089 12.1646L8.41242 13.9M20.5449 7.34795L17.5625 10.3304M14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876M10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 8.9492 15.2897 8.03811 15.0229L8.41242 13.9M10.1 15.5876L8.41242 13.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                            </svg>
+                        </button>`;
+                        }
+
+                        // Start Curriculum Button - only for roles 1, 3, 4
+                        if (user_role == 1 || user_role == 3 || user_role == 4) {
+                            actionsHTML += `
+                        <button class="start-curriculum text-indigo-600 hover:text-indigo-800 transition-colors" 
+                                data-id="${u.id}" 
+                                data-name="${u.name}"
+                                data-duration="${u.internship_duration || ''}"
+                                title="Start Curriculum">
+                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M15.5 8.5L20.5 3.5M20.5 3.5H16.5M20.5 3.5V7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M13.5 10.5C11.5 12.5 7.5 15.5 7.5 15.5L3.5 16.5L4.5 12.5C4.5 12.5 7.5 8.5 9.5 6.5C11.5 4.5 13.5 5.5 13.5 5.5L18.5 5.5L18.5 10.5C18.5 10.5 19.5 12.5 17.5 14.5C15.5 16.5 13.5 10.5 13.5 10.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 20C9.66667 18.5 11.5 15.5 11.5 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M4 15C5.5 15 8.5 13.1667 8.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                             </svg>
                         </button>`;
                         }
@@ -475,12 +532,33 @@ include_once "./include/headerLinks.php"; ?>
 
                         actionsHTML += '</div>';
 
+                        // Determine curriculum status
+                        let curHTML = '';
+                        if (u.active_week !== null || u.completed_weeks > 0) {
+                            const currentWeek = u.active_week ? `Week ${u.active_week}` : `Week ${u.completed_weeks} (Completed)`;
+                            const totalWeeks = parseInt(u.internship_duration) || 8;
+                            const compWeeks = parseInt(u.completed_weeks) || 0;
+                            const percentage = Math.round((compWeeks / totalWeeks) * 100);
+                            
+                            curHTML = `
+                                <div class="flex flex-col space-y-1 w-24">
+                                    <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${currentWeek}</span>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-indigo-600 h-1.5 rounded-full" style="width: ${percentage}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            curHTML = `<span class="text-[10px] text-gray-400">Not Started</span>`;
+                        }
+
                         table.row.add([
                             u.id,
                             u.name,
                             u.email || '<em class="text-gray-400">No email</em>',
                             u.tech_name ? `<span class="text-indigo-600 font-medium">${u.tech_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
                             u.supervisor_name ? `<span class="text-indigo-600 font-medium">${u.supervisor_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
+                            curHTML,
                             actionsHTML
                         ]);
                     });
@@ -526,6 +604,22 @@ include_once "./include/headerLinks.php"; ?>
             document.getElementById('view-attendance').textContent = attendance + '%';
             document.getElementById('view-attendance-bar').style.width = attendance + '%';
             document.getElementById('view-months').textContent = months;
+
+            // Update curriculum progress bar
+            const completedWeeks = parseInt(btn.dataset.completedWeeks) || 0;
+            const activeWeek = btn.dataset.activeWeek || '';
+            const curBar = document.getElementById('view-curriculum-bar');
+            const curPct = document.getElementById('view-curriculum-pct');
+            if (completedWeeks > 0 || activeWeek !== '') {
+                const totalWeeks = parseInt(duration) || 8;
+                const percentage = Math.round((completedWeeks / totalWeeks) * 100);
+                const text = activeWeek !== '' ? `Week ${activeWeek}` : `Week ${completedWeeks} (Completed)`;
+                curBar.style.width = percentage + '%';
+                curPct.textContent = `${percentage}% (${text})`;
+            } else {
+                curBar.style.width = '0%';
+                curPct.textContent = '0% (Not Started)';
+            }
 
             // Update supervisor info
             document.getElementById('view-supervisor').textContent = supervisorName || 'Not assigned';
@@ -606,6 +700,77 @@ include_once "./include/headerLinks.php"; ?>
                 const viewBtn = e.target.closest('.view-internee');
                 if (viewBtn) {
                     viewInterneeDetails(viewBtn);
+                }
+            });
+
+            // Start Curriculum Click Handler (Modal-based)
+            document.addEventListener('click', e => {
+                const startBtn = e.target.closest('.start-curriculum');
+                if (startBtn) {
+                    const id = startBtn.dataset.id;
+                    const name = startBtn.dataset.name;
+                    const duration = startBtn.dataset.duration || '';
+
+                    if (!duration) {
+                        showToast('error', 'Please set the internship duration for this intern first before assigning curriculum.');
+                        return;
+                    }
+
+                    // Parse weeks from duration (e.g. "8 weeks" -> 8)
+                    const maxWeeks = parseInt(duration);
+                    if (isNaN(maxWeeks) || maxWeeks <= 0) {
+                        showToast('error', 'Invalid internship duration.');
+                        return;
+                    }
+
+                    // Populate select options
+                    const select = document.getElementById('curriculumWeekSelect');
+                    select.innerHTML = '';
+                    for (let w = 1; w <= maxWeeks; w++) {
+                        const opt = document.createElement('option');
+                        opt.value = w;
+                        opt.textContent = `Week ${w}`;
+                        select.appendChild(opt);
+                    }
+
+                    // Set modal values
+                    document.getElementById('curriculumInternId').value = id;
+                    document.getElementById('curriculumInternText').textContent = `Choose which week of the curriculum you want to assign to ${name} (${duration}):`;
+
+                    // Show Modal
+                    document.getElementById('start-curriculum-modal').classList.remove('hidden');
+                }
+            });
+
+            // Close Curriculum Modal
+            document.querySelectorAll('.close-curriculum-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('start-curriculum-modal').classList.add('hidden');
+                });
+            });
+
+            // Form Submit for Start Curriculum
+            document.getElementById('startCurriculumForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                fd.append('action', 'start_curriculum');
+
+                try {
+                    const res = await fetch('controller/curriculum.php', {
+                        method: 'POST',
+                        body: new URLSearchParams(fd)
+                    });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) {
+                        document.getElementById('start-curriculum-modal').classList.add('hidden');
+                        if (typeof loadInternees === 'function') {
+                            loadInternees();
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('error', 'Something went wrong while assigning task');
                 }
             });
 

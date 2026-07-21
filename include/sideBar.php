@@ -415,6 +415,20 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="curriculum.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'curriculum.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M9 10L11 12L15 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M2 12H22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Curriculum</span>
+                                </a>
+                            </li>
+                            <li>
                                 <a href="supervisors.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'supervisors.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">

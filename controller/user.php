@@ -86,7 +86,17 @@ switch ($action) {
                 WHEN u.internship_duration = '12 weeks' THEN 12
                 ELSE IF(u.internship_type = 0, 4, 12)
             END) WEEK), NOW()) as days_left,
-            c.approve_status
+            c.approve_status,
+            (
+                SELECT COALESCE(MAX(week_number), 0)
+                FROM tasks
+                WHERE assign_to = u.id AND is_curriculum_task = 1 AND status = 'complete'
+            ) AS completed_weeks,
+            (
+                SELECT MIN(week_number)
+                FROM tasks
+                WHERE assign_to = u.id AND is_curriculum_task = 1 AND status IN ('inprogress', 'needs_improvement')
+            ) AS active_week
         FROM users u
         LEFT JOIN technologies t ON u.tech_id = t.id
         LEFT JOIN certificate c ON c.intern_id = u.id

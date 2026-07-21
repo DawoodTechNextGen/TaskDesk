@@ -68,13 +68,45 @@ if ($user_role == 1) {
     $expired_tasks = $expired_tasks->get_result()->fetch_assoc()['total'];
 
     // Fetch intern details for progress calculation
-    $intern_details_query = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
+    $intern_details_query = $conn->prepare("SELECT created_at, internship_type, internship_duration, tech_id FROM users WHERE id = ?");
     $intern_details_query->bind_param("i", $user_id);
     $intern_details_query->execute();
     $intern_details = $intern_details_query->get_result()->fetch_assoc();
     $joining_date = $intern_details['created_at'];
     $internship_type = $intern_details['internship_type'];
     $internship_duration = $intern_details['internship_duration'];
+    $user_tech_id = $intern_details['tech_id'];
+
+    // Check if started curriculum
+    $check_cur_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND is_curriculum_task = 1 LIMIT 1");
+    $check_cur_stmt->bind_param("i", $user_id);
+    $check_cur_stmt->execute();
+    $has_started_curriculum = ($check_cur_stmt->get_result()->num_rows > 0);
+    $check_cur_stmt->close();
+
+    // Get completed week numbers
+    $completed_weeks = [];
+    $comp_weeks_query = $conn->prepare("SELECT week_number FROM tasks WHERE assign_to = ? AND is_curriculum_task = 1 AND status = 'complete'");
+    $comp_weeks_query->bind_param("i", $user_id);
+    $comp_weeks_query->execute();
+    $comp_res = $comp_weeks_query->get_result();
+    while ($w_row = $comp_res->fetch_assoc()) {
+        $completed_weeks[] = (int)$w_row['week_number'];
+    }
+    $comp_weeks_query->close();
+
+    // Get roadmap tasks
+    $roadmap_tasks = [];
+    if ($user_tech_id > 0) {
+        $road_stmt = $conn->prepare("SELECT week_number, title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? ORDER BY week_number ASC");
+        $road_stmt->bind_param("is", $user_tech_id, $internship_duration);
+        $road_stmt->execute();
+        $road_res = $road_stmt->get_result();
+        while ($r_row = $road_res->fetch_assoc()) {
+            $roadmap_tasks[] = $r_row;
+        }
+        $road_stmt->close();
+    }
 } elseif ($user_role == 3) {
     // Supervisor data
     $generated_tasks = $conn->prepare("SELECT COUNT(id) as total FROM tasks WHERE created_by = ?");
@@ -786,6 +818,52 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Intern Roadmap Timeline Card -->
+                        <?php if ($user_tech_id > 0 && !empty($roadmap_tasks)): ?>
+                        <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Your Curriculum Roadmap
+                            </h3>
+                            <div class="relative border-l-2 border-indigo-100 dark:border-gray-700 ml-4 space-y-8">
+                                <?php foreach ($roadmap_tasks as $rt): 
+                                    $is_done = in_array((int)$rt['week_number'], $completed_weeks);
+                                ?>
+                                    <div class="relative pl-8 group">
+                                        <!-- Dot Indicator -->
+                                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 transition-all duration-300 <?= $is_done ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' : 'bg-gray-200 dark:bg-gray-700 border-white dark:border-gray-800 group-hover:border-indigo-400' ?>"></div>
+                                        
+                                        <!-- Roadmap Card -->
+                                        <div class="bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/80 rounded-xl p-5 hover:shadow-md transition-all duration-300">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <h4 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                                    Week <?= $rt['week_number'] ?>: <?= htmlspecialchars($rt['title']) ?>
+                                                </h4>
+                                                <?php if ($is_done): ?>
+                                                    <span class="flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                        Completed
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                                                        Pending
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                                <?= $rt['description'] ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                 <?php elseif ($user_role == 3): ?>
@@ -1356,6 +1434,60 @@ include_once "./include/headerLinks.php"; ?>
                 <?php endif; ?>
             <?php if ($_SESSION['user_role'] == 3): ?>
                 <!-- Supervisor Dashboard elements remain, but the detailed table is removed -->
+            <?php endif; ?>
+
+            <?php if ($user_role == 2 && !$has_started_curriculum): ?>
+            <!-- Welcome Start Internship Modal -->
+            <div id="welcome-internship-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                <div class="bg-white/95 dark:bg-gray-800/95 border border-gray-100 dark:border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md p-8 text-center transform scale-100 transition-all duration-300">
+                    <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-bounce">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to TaskDesk!</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                        Your account is active. To initialize your personalized week-wise curriculum roadmap and start receiving your practical internship tasks, please click the button below.
+                    </p>
+                    <button id="btnStartInternship" class="w-full py-3 px-6 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-[0.98]">
+                        🚀 Start My Internship
+                    </button>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const startBtn = document.getElementById('btnStartInternship');
+                    if (startBtn) {
+                        startBtn.addEventListener('click', async () => {
+                            startBtn.disabled = true;
+                            startBtn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+                            try {
+                                const res = await fetch('controller/curriculum.php', {
+                                    method: 'POST',
+                                    body: new URLSearchParams({
+                                        action: 'start_curriculum',
+                                        intern_id: '<?= $user_id ?>',
+                                        week_number: 1
+                                    })
+                                });
+                                const result = await res.json();
+                                if (result.success) {
+                                    location.reload();
+                                } else {
+                                    alert(result.message);
+                                    startBtn.disabled = false;
+                                    startBtn.innerHTML = '🚀 Start My Internship';
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Something went wrong. Please try again.');
+                                startBtn.disabled = false;
+                                startBtn.innerHTML = '🚀 Start My Internship';
+                            }
+                        });
+                    }
+                });
+            </script>
             <?php endif; ?>
 
             <?php include_once "./include/footer.php"; ?>

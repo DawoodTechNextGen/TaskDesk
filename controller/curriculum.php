@@ -156,27 +156,6 @@ switch ($action) {
 
             $completed_weeks = max($max_w, $cnt);
             $week_num = $completed_weeks + 1;
-
-            // Mock complete previous weeks if transitioning
-            if ($completed_weeks > 0) {
-                $creator = (!empty($intern['supervisor_id']) && $intern['supervisor_id'] > 0) ? (int)$intern['supervisor_id'] : 1;
-                $prev_cur_stmt = $conn->prepare("SELECT week_number, title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number <= ? ORDER BY week_number ASC");
-                $prev_cur_stmt->bind_param("isi", $intern['tech_id'], $intern['internship_duration'], $completed_weeks);
-                $prev_cur_stmt->execute();
-                $prev_cur_res = $prev_cur_stmt->get_result();
-
-                $mock_ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at, completed_at) VALUES (?, ?, ?, ?, 'complete', NOW(), ?, 1, NOW(), NOW())");
-
-                while ($prev_task = $prev_cur_res->fetch_assoc()) {
-                    $p_week = (int)$prev_task['week_number'];
-                    $p_title = $prev_task['title'];
-                    $p_desc = $prev_task['description'];
-                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $creator, $p_week);
-                    $mock_ins_stmt->execute();
-                }
-                $mock_ins_stmt->close();
-                $prev_cur_stmt->close();
-            }
         }
 
         // Fetch specified week task from curriculum

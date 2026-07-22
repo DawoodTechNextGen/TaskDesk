@@ -644,26 +644,6 @@ if ($data['action'] === 'review_task') {
                             $completed_count = max($max_w, $cnt);
                             $next_week = $completed_count + 1;
 
-                            // 1. Insert mock completed curriculum tasks for previous weeks (from Week 1 to Week C)
-                            if ($completed_count > 0) {
-                                $prev_cur_stmt = $conn->prepare("SELECT week_number, title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number <= ? ORDER BY week_number ASC");
-                                $prev_cur_stmt->bind_param("isi", $tech_id, $duration, $completed_count);
-                                $prev_cur_stmt->execute();
-                                $prev_cur_res = $prev_cur_stmt->get_result();
-                                
-                                $mock_ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at, completed_at) VALUES (?, ?, ?, ?, 'complete', NOW(), ?, 1, NOW(), NOW())");
-                                
-                                while ($prev_task = $prev_cur_res->fetch_assoc()) {
-                                    $p_week = (int)$prev_task['week_number'];
-                                    $p_title = $prev_task['title'];
-                                    $p_desc = $prev_task['description'];
-                                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $creator_id, $p_week);
-                                    $mock_ins_stmt->execute();
-                                }
-                                $mock_ins_stmt->close();
-                                $prev_cur_stmt->close();
-                            }
-
                             // 2. Fetch the next week task from curriculum
                             $cur_stmt = $conn->prepare("SELECT title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number = ?");
                             $cur_stmt->bind_param("isi", $tech_id, $duration, $next_week);

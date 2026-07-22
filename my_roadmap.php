@@ -136,37 +136,30 @@ include_once "./include/headerLinks.php"; ?>
                                             <div class="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-800 group-hover:border-indigo-400 transition-all"></div>
                                         <?php endif; ?>
 
-                                        <!-- Milestone Box -->
-                                        <div class="bg-gray-50 dark:bg-gray-900/50 border <?= $is_current ? 'border-indigo-300 dark:border-indigo-600/60 ring-2 ring-indigo-500/10' : 'border-gray-100 dark:border-gray-800' ?> rounded-xl p-5 md:p-6 transition-all duration-300 hover:shadow-md">
-                                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                                <h4 class="text-base md:text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                                                    <span>Week <?= $w_num ?>:</span>
-                                                    <span class="text-indigo-600 dark:text-indigo-400"><?= htmlspecialchars($rt['title']) ?></span>
+                                        <!-- Milestone Box (Identical to Admin Curriculum Card) -->
+                                        <div class="flex-1 w-full p-6 bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-100 dark:border-gray-700/80 shadow-md hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:border-indigo-400/50 dark:group-hover:border-indigo-500/40">
+                                            <!-- Background gradient flare -->
+                                            <div class="absolute -right-20 -top-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-300"></div>
+                                            
+                                            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2 pb-3 border-b border-gray-100 dark:border-gray-700/50">
+                                                <h4 class="font-bold text-gray-900 dark:text-white text-lg sm:text-xl flex items-center gap-2">
+                                                    <span class="w-2.5 h-2.5 rounded-full <?= $is_done ? 'bg-emerald-500' : ($is_current ? 'bg-indigo-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-600') ?>"></span>
+                                                    <?= htmlspecialchars($rt['title']) ?>
                                                 </h4>
-
-                                                <div>
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-950/80 dark:to-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200/50 dark:border-indigo-900/60 shadow-sm">Week <?= $w_num ?></span>
                                                     <?php if ($is_done): ?>
-                                                        <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                                            </svg>
-                                                            Completed
-                                                        </span>
+                                                        <span class="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-900/60">✓ Completed</span>
                                                     <?php elseif ($is_current): ?>
-                                                        <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800/50">
-                                                            <span class="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-ping"></span>
-                                                            In Progress
-                                                        </span>
+                                                        <span class="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200/50 dark:border-indigo-900/60">In Progress</span>
                                                     <?php else: ?>
-                                                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-                                                            🔒 Locked / Upcoming
-                                                        </span>
+                                                        <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">🔒 Upcoming</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
 
-                                            <div class="mt-3 text-sm text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-800/80 p-4 md:p-5 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-xs">
-                                                <?= nl2br($rt['description']) ?>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400 prose dark:prose-invert max-w-none leading-relaxed">
+                                                <?= $rt['description'] ?>
                                             </div>
                                         </div>
                                     </div>

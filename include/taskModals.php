@@ -93,7 +93,7 @@
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
                     Task Description
                 </h4>
-                <div id="task-view-description" class="ql-snow bg-gray-50 dark:bg-gray-700/50 p-5 md:p-6 rounded-xl border border-gray-100 dark:border-gray-600 text-sm leading-relaxed min-h-[100px]"></div>
+                <div id="task-view-description" class="ql-snow text-sm text-gray-600 dark:text-gray-400 prose dark:prose-invert max-w-none leading-relaxed p-4 bg-gray-50/50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800 min-h-[80px]"></div>
             </div>
 
             <!-- Feedback Section (Populated dynamically) -->

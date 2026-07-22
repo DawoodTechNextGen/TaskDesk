@@ -414,6 +414,9 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Tech</span>
                                 </a>
                             </li>
+                        <?php } ?>
+                        
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4) { ?>
                             <li>
                                 <a href="curriculum.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -428,6 +431,9 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Curriculum</span>
                                 </a>
                             </li>
+                        <?php } ?>
+
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
                             <li>
                                 <a href="supervisors.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -447,9 +453,9 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Surpervisors</span>
                                 </a>
                             </li>
-                        <?php }
-                        if ($_SESSION['user_role'] == 1) {
-                        ?>
+                        <?php } ?>
+                        
+                        <?php if ($_SESSION['user_role'] == 1) { ?>
 
                             <li>
                                 <a href="managers.php" onclick="window.location=this.href"

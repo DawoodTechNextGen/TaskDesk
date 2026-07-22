@@ -77,8 +77,8 @@ if ($user_role == 1) {
     $internship_duration = $intern_details['internship_duration'];
     $user_tech_id = $intern_details['tech_id'];
 
-    // Check if started curriculum
-    $check_cur_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND is_curriculum_task = 1 LIMIT 1");
+    // Check if started curriculum or has any existing tasks assigned
+    $check_cur_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? LIMIT 1");
     $check_cur_stmt->bind_param("i", $user_id);
     $check_cur_stmt->execute();
     $has_started_curriculum = ($check_cur_stmt->get_result()->num_rows > 0);
@@ -1446,11 +1446,30 @@ include_once "./include/headerLinks.php"; ?>
                         </svg>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to TaskDesk!</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Your account is active. To initialize your personalized week-wise curriculum roadmap and start receiving your practical internship tasks, please click the button below.
                     </p>
-                    <button id="btnStartInternship" class="w-full py-3 px-6 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-[0.98]">
-                        🚀 Start My Internship
+                    <div class="bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 rounded-xl p-4 mb-6 text-left text-xs text-gray-700 dark:text-gray-300">
+                        <span class="font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5 mb-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Attendance & Timer Policy:
+                        </span>
+                        <p class="mb-2">Your daily attendance is automatically marked present once your cumulative active tracking time reaches at least <strong>3 hours (180 minutes)</strong>.</p>
+                        <p class="font-semibold mb-1">How to Check-In & Check-Out:</p>
+                        <ol class="list-decimal pl-4 space-y-1">
+                            <li>To start tracking, click the <strong class="text-indigo-600 dark:text-indigo-400">"Check In"</strong> button at the top header bar.</li>
+                            <li>If you take a break or leave, click <strong class="text-indigo-600 dark:text-indigo-400">"Check Out"</strong> to pause tracking.</li>
+                            <li>Ensure your total accumulated hours displayed in the header reaches 3 hours daily before finishing.</li>
+                        </ol>
+                    </div>
+                    <button id="btnStartInternship" class="w-full py-3 px-6 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Start My Internship
                     </button>
                 </div>
             </div>
@@ -1476,13 +1495,13 @@ include_once "./include/headerLinks.php"; ?>
                                 } else {
                                     alert(result.message);
                                     startBtn.disabled = false;
-                                    startBtn.innerHTML = '🚀 Start My Internship';
+                                    startBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Start My Internship`;
                                 }
                             } catch (err) {
                                 console.error(err);
                                 alert('Something went wrong. Please try again.');
                                 startBtn.disabled = false;
-                                startBtn.innerHTML = '🚀 Start My Internship';
+                                startBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Start My Internship`;
                             }
                         });
                     }

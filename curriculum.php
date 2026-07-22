@@ -38,9 +38,27 @@ include_once "./include/headerLinks.php"; ?>
                             <select id="techSelect" class="w-full px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 <option value="">-- Choose Technology --</option>
                                 <?php
-                                $tech_stmt = $conn->query("SELECT id, name FROM technologies WHERE status = 1 ORDER BY name ASC");
-                                while ($t = $tech_stmt->fetch_assoc()) {
+                                if ($_SESSION['user_role'] == 3) {
+                                    // Supervisor: Only show assigned technologies
+                                    $tech_stmt = $conn->prepare("
+                                        SELECT t.id, t.name 
+                                        FROM technologies t 
+                                        JOIN supervisor_technologies st ON t.id = st.tech_id 
+                                        WHERE t.status = 1 AND st.supervisor_id = ? 
+                                        ORDER BY t.name ASC
+                                    ");
+                                    $tech_stmt->bind_param("i", $_SESSION['user_id']);
+                                    $tech_stmt->execute();
+                                    $tech_result = $tech_stmt->get_result();
+                                } else {
+                                    // Admin/Manager: Show all
+                                    $tech_result = $conn->query("SELECT id, name FROM technologies WHERE status = 1 ORDER BY name ASC");
+                                }
+                                while ($t = $tech_result->fetch_assoc()) {
                                     echo "<option value='{$t['id']}'>" . htmlspecialchars($t['name']) . "</option>";
+                                }
+                                if ($_SESSION['user_role'] == 3 && isset($tech_stmt)) {
+                                    $tech_stmt->close();
                                 }
                                 ?>
                             </select>
@@ -53,6 +71,7 @@ include_once "./include/headerLinks.php"; ?>
                                 <option value="12 weeks">12 Weeks Internship</option>
                             </select>
                         </div>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4): ?>
                         <div class="border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6">
                             <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Import Curriculum (JSON)</label>
                             <form id="importJsonForm" class="flex items-center gap-2">
@@ -60,6 +79,7 @@ include_once "./include/headerLinks.php"; ?>
                                 <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shrink-0">Import</button>
                             </form>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -132,6 +152,7 @@ include_once "./include/headerLinks.php"; ?>
     <?php include_once "./include/footerLinks.php"; ?>
 
     <script>
+        const userRole = <?php echo $_SESSION['user_role']; ?>;
         let quill;
         let curriculumTasks = [];
 
@@ -275,6 +296,21 @@ include_once "./include/headerLinks.php"; ?>
                 let nodeContent = '';
                 if (isConfigured) {
                     // Modern premium populated card
+                    let actionsHTML = '';
+                    if (userRole == 1 || userRole == 4) {
+                        actionsHTML = `
+                            <div class="flex justify-end gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/30">
+                                <button onclick="openEditModal(${w}, ${task.id}, '${escapeQuote(task.title)}', '${escapeQuote(task.description)}')" class="px-4 py-2 bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:text-blue-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm border border-blue-100/50 dark:border-blue-900/40">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    Edit Task
+                                </button>
+                                <button onclick="deleteTask(${task.id})" class="px-4 py-2 bg-red-50 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 hover:text-red-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm border border-red-100/50 dark:border-red-900/40">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Delete
+                                </button>
+                            </div>
+                        `;
+                    }
                     nodeContent = `
                         <div class="flex-1 w-full p-6 bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-100 dark:border-gray-700/80 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group-hover:border-indigo-400/50 dark:group-hover:border-indigo-500/40">
                             <!-- Background gradient flare -->
@@ -290,30 +326,32 @@ include_once "./include/headerLinks.php"; ?>
                             <div class="text-sm text-gray-600 dark:text-gray-400 mb-6 prose dark:prose-invert max-w-none">
                                 ${task.description || '<p class="italic text-gray-400">No description provided</p>'}
                             </div>
-                            <div class="flex justify-end gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/30">
-                                <button onclick="openEditModal(${w}, ${task.id}, '${escapeQuote(task.title)}', '${escapeQuote(task.description)}')" class="px-4 py-2 bg-blue-50 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:text-blue-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm border border-blue-100/50 dark:border-blue-900/40">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    Edit Task
-                                </button>
-                                <button onclick="deleteTask(${task.id})" class="px-4 py-2 bg-red-50 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 hover:text-red-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-sm border border-red-100/50 dark:border-red-900/40">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    Delete
-                                </button>
-                            </div>
+                            ${actionsHTML}
                         </div>
                     `;
                 } else {
-                    // Modern dashed add card
-                    nodeContent = `
-                        <div onclick="openAddModal(${w})" class="cursor-pointer flex-1 w-full p-8 bg-white/30 dark:bg-gray-800/20 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700/80 hover:bg-gradient-to-r hover:from-indigo-50/10 hover:to-violet-50/10 dark:hover:from-indigo-950/5 dark:hover:to-violet-950/5 hover:border-indigo-400 dark:hover:border-indigo-500/60 transition-all duration-300 flex flex-col justify-center items-center py-10 text-center shadow-sm">
-                            <span class="bg-gray-100/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full border border-gray-200/50 dark:border-gray-700/50 mb-3 shadow-inner">Week ${w}</span>
-                            <div class="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 shadow-sm border border-indigo-100/50 dark:border-indigo-900/40">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    if (userRole == 1 || userRole == 4) {
+                        // Modern dashed add card for admins/managers
+                        nodeContent = `
+                            <div onclick="openAddModal(${w})" class="cursor-pointer flex-1 w-full p-8 bg-white/30 dark:bg-gray-800/20 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700/80 hover:bg-gradient-to-r hover:from-indigo-50/10 hover:to-violet-50/10 dark:hover:from-indigo-950/5 dark:hover:to-violet-950/5 hover:border-indigo-400 dark:hover:border-indigo-500/60 transition-all duration-300 flex flex-col justify-center items-center py-10 text-center shadow-sm">
+                                <span class="bg-gray-100/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full border border-gray-200/50 dark:border-gray-700/50 mb-3 shadow-inner">Week ${w}</span>
+                                <div class="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 group-hover:scale-110 group-hover:rotate-90 transition-all duration-300 shadow-sm border border-indigo-100/50 dark:border-indigo-900/40">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                </div>
+                                <span class="text-base font-bold text-gray-700 dark:text-gray-300">Configure Week ${w} Curriculum</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">Initialize the learning metrics and deliverables for this timeline node.</span>
                             </div>
-                            <span class="text-base font-bold text-gray-700 dark:text-gray-300">Configure Week ${w} Curriculum</span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">Initialize the learning metrics and deliverables for this timeline node.</span>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        // Read only empty card for supervisors
+                        nodeContent = `
+                            <div class="flex-1 w-full p-8 bg-white/30 dark:bg-gray-800/20 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700/80 flex flex-col justify-center items-center py-10 text-center shadow-sm">
+                                <span class="bg-gray-100/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs font-bold px-3 py-1 rounded-full border border-gray-200/50 dark:border-gray-700/50 mb-3 shadow-inner">Week ${w}</span>
+                                <span class="text-base font-bold text-gray-400 dark:text-gray-500">Not Configured Yet</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-xs">No curriculum task has been assigned for this week.</span>
+                            </div>
+                        `;
+                    }
                 }
 
                 item.innerHTML = `

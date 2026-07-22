@@ -20,7 +20,6 @@ switch ($action) {
         $data = $result->fetch_all(MYSQLI_ASSOC);
         echo json_encode(['success' => true, 'data' => $data]);
         break;
-    // Get all supervisors
     case 'get_supervisors':
         $stmt = $conn->prepare("
             SELECT 
@@ -28,11 +27,19 @@ switch ($action) {
                 u.name, 
                 u.email, 
                 u.plain_password, 
-                u.tech_id,
-                t.name AS tech_name,
-                u.commission_rate
+                u.commission_rate,
+                (
+                    SELECT GROUP_CONCAT(tech_id)
+                    FROM supervisor_technologies
+                    WHERE supervisor_id = u.id
+                ) AS tech_ids,
+                (
+                    SELECT GROUP_CONCAT(t.name SEPARATOR ', ')
+                    FROM supervisor_technologies st
+                    JOIN technologies t ON st.tech_id = t.id
+                    WHERE st.supervisor_id = u.id
+                ) AS tech_names
             FROM users u 
-            LEFT JOIN technologies t ON u.tech_id = t.id
             WHERE u.user_role = 3 
             ORDER BY u.name ASC
         ");
@@ -271,6 +278,22 @@ switch ($action) {
         $stmt->bind_param('sssissii', $name, $hashed, $role, $tech_id, $email, $password, $supervisor_id, $commission_rate);
 
         if ($stmt->execute()) {
+            $new_id = $stmt->insert_id;
+            
+            // Sync technologies for Supervisor
+            if ($role == 3) {
+                $tech_ids = $_POST['tech_ids'] ?? [];
+                if (!empty($tech_ids) && is_array($tech_ids)) {
+                    $sync_stmt = $conn->prepare("INSERT INTO supervisor_technologies (supervisor_id, tech_id) VALUES (?, ?)");
+                    foreach ($tech_ids as $tid) {
+                        $tid = (int)$tid;
+                        $sync_stmt->bind_param("ii", $new_id, $tid);
+                        $sync_stmt->execute();
+                    }
+                    $sync_stmt->close();
+                }
+            }
+
             $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
             logActivity('Create User', "Created $user_role_label: $name ($email)");
             echo json_encode([
@@ -307,36 +330,44 @@ switch ($action) {
             exit;
         }
 
+        $success = false;
         if (!empty($password)) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE users SET name = ?, plain_password = ? , email = ?, password = ?, user_role = ?, tech_id = ?, supervisor_id = ?, commission_rate = ? WHERE id = ?");
             $stmt->bind_param('ssssiiiii', $name, $password, $email, $hashed, $role, $tech_id, $supervisor_id, $commission_rate, $id);
-
-            if ($stmt->execute()) {
-                $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
-                logActivity('Update User', "Updated details for $user_role_label ID $id: $name ($email)");
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Updated successfully!'
-                ]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Update failed']);
-            }
+            $success = $stmt->execute();
+            $stmt->close();
         } else {
             $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, user_role = ?, tech_id = ?, commission_rate = ? WHERE id = ?");
             $stmt->bind_param('sssiii', $name, $email, $role, $tech_id, $commission_rate, $id);
             $success = $stmt->execute();
+            $stmt->close();
+        }
 
-            if ($success) {
-                $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
-                logActivity('Update User', "Updated details for $user_role_label ID $id: $name ($email)");
+        if ($success) {
+            // Sync technologies for Supervisor
+            if ($role == 3) {
+                $conn->query("DELETE FROM supervisor_technologies WHERE supervisor_id = " . $id);
+                $tech_ids = $_POST['tech_ids'] ?? [];
+                if (!empty($tech_ids) && is_array($tech_ids)) {
+                    $sync_stmt = $conn->prepare("INSERT INTO supervisor_technologies (supervisor_id, tech_id) VALUES (?, ?)");
+                    foreach ($tech_ids as $tid) {
+                        $tid = (int)$tid;
+                        $sync_stmt->bind_param("ii", $id, $tid);
+                        $sync_stmt->execute();
+                    }
+                    $sync_stmt->close();
+                }
             }
 
-            echo json_encode([
-                'success' => $success,
-                'message' => $success ? 'Updated successfully!' : 'Update failed'
-            ]);
+            $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
+            logActivity('Update User', "Updated details for $user_role_label ID $id: $name ($email)");
         }
+
+        echo json_encode([
+            'success' => $success,
+            'message' => $success ? 'Updated successfully!' : 'Update failed'
+        ]);
         break;
 
     case 'delete':

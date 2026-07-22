@@ -78,45 +78,20 @@ include_once "./include/headerLinks.php"; ?>
                     <input type="email" name="email" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Technology</label>
-                    <div class="searchable-wrapper relative w-full">
-
-                        <!-- original select -->
-                        <select id="techId"
-                            class="searchable-select hidden"
-                            name="tech_id">
-                            <option value="">Select Technology</option>
-                            <?php
-                            $techQuery = "SELECT id, name FROM technologies WHERE status = 1 ORDER BY name ASC";
-                            $techResult = mysqli_query($conn, $techQuery);
-                            while ($tech = mysqli_fetch_assoc($techResult)) {
-                                echo "<option value=\"{$tech['id']}\">{$tech['name']}</option>";
-                            }
-                            ?>
-                        </select>
-
-                        <!-- input + arrow -->
-                        <div class="relative">
-                            <input type="text"
-                                class="searchable-input w-full px-3 py-2 pr-10 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
-                                placeholder="Select Technology"
-                                autocomplete="off">
-
-                            <!-- dropdown arrow -->
-                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500 dark:text-gray-300">
-                                <svg class="size-2" fill="currentColor" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g id="SVGRepo_iconCarrier">
-                                        <path d="M0.256 8.606c0-0.269 0.106-0.544 0.313-0.75 0.412-0.412 1.087-0.412 1.5 0l14.119 14.119 13.913-13.912c0.413-0.412 1.087-0.412 1.5 0s0.413 1.088 0 1.5l-14.663 14.669c-0.413 0.413-1.088 0.413-1.5 0l-14.869-14.869c-0.213-0.213-0.313-0.481-0.313-0.756z"></path>
-                                    </g>
-                                </svg>
-                            </span>
-                        </div>
-
-                        <!-- dropdown -->
-                        <ul class="searchable-dropdown hidden absolute z-50 w-full bg-white dark:bg-gray-700 border rounded mt-1 max-h-40 overflow-y-auto"></ul>
-
+                    <label class="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Assigned Technologies</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1.5 border rounded-lg bg-gray-50/50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700 custom-scrollbar">
+                        <?php
+                        $techQuery = "SELECT id, name FROM technologies WHERE status = 1 ORDER BY name ASC";
+                        $techResult = mysqli_query($conn, $techQuery);
+                        while ($tech = mysqli_fetch_assoc($techResult)) {
+                            echo "
+                            <label class='relative flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700/80 bg-white dark:bg-gray-800 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 cursor-pointer select-none transition-all group shadow-sm'>
+                                <span class='text-xs font-semibold text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors'>" . htmlspecialchars($tech['name']) . "</span>
+                                <input type='checkbox' name='tech_ids[]' value='{$tech['id']}' class='tech-checkbox h-4.5 w-4.5 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 transition-all'>
+                            </label>
+                            ";
+                        }
+                        ?>
                     </div>
                 </div>
                 <div class="mb-4">
@@ -163,6 +138,34 @@ include_once "./include/headerLinks.php"; ?>
         </div>
     </div>
 
+    <!-- View Assigned Technologies Modal -->
+    <div id="view-tech-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    Assigned Technologies
+                </h3>
+                <button type="button" class="close-view-tech-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mb-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3" id="view-tech-supervisor-name">Supervisor</p>
+                <div id="view-tech-list" class="flex flex-wrap gap-2 max-h-60 overflow-y-auto custom-scrollbar p-1">
+                    <!-- Badges injected by JS -->
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" class="close-view-tech-modal px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-all">Close</button>
+            </div>
+        </div>
+    </div>
+
     <?php include_once "./include/footerLinks.php"; ?>
 
     <script>
@@ -175,6 +178,15 @@ include_once "./include/headerLinks.php"; ?>
             }]
         });
 
+        function escapeHtml(text) {
+            return (text || '')
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         async function loadSupervisors() {
             try {
                 const res = await fetch('controller/user.php?action=get_supervisors');
@@ -182,11 +194,26 @@ include_once "./include/headerLinks.php"; ?>
                 if (json.success) {
                     table.clear();
                     json.data.forEach(u => {
+                        let techCell = '';
+                        if (u.tech_names) {
+                            const list = u.tech_names.split(', ');
+                            const count = list.length;
+                            techCell = `<button class="view-tech-btn inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 text-xs font-semibold rounded-full transition-all shadow-sm" data-name="${escapeHtml(u.name)}" data-techs="${escapeHtml(u.tech_names)}">
+                                <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                ${count} ${count === 1 ? 'Tech' : 'Techs'}
+                            </button>`;
+                        } else {
+                            techCell = '<em class="text-gray-400 text-xs">No technology</em>';
+                        }
+
                         table.row.add([
                             u.id,
                             u.name,
                             u.email || '<em class="text-gray-400">No email</em>',
-                            u.tech_name || '<em class="text-gray-400">No technology</em>',
+                            techCell,
                             (u.commission_rate || 1000) + ' PKR',
                             `<button class="edit-supervisor text-blue-600 mr-3" 
                                     data-id="${u.id}" 
@@ -194,8 +221,7 @@ include_once "./include/headerLinks.php"; ?>
                                     data-email="${u.email || ''}"
                                     data-pass="${u.plain_password}"
                                     data-commission-rate="${u.commission_rate || 1000}"
-                                    data-tech-id="${u.tech_id || ''}"
-                                    data-tech-name="${u.tech_name || ''}">
+                                    data-tech-id="${u.tech_ids || ''}">
                                 <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M2 12C2 16.714 2 19.0711 3.46447 20.5355C4.92893 22 7.28595 22 12 22C16.714 22 19.0711 22 20.5355 20.5355C22 19.0711 22 16.714 22 12V10.5M13.5 2H12C7.28595 2 4.92893 2 3.46447 3.46447C2.49073 4.43821 2.16444 5.80655 2.0551 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> <path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795M16.652 3.45506C16.652 3.45506 16.7331 4.83379 17.9497 6.05032C19.1662 7.26685 20.5449 7.34795 20.5449 7.34795M16.652 3.45506L10.6872 9.41993C10.2832 9.82394 10.0812 10.0259 9.90743 10.2487C9.70249 10.5114 9.52679 10.7957 9.38344 11.0965C9.26191 11.3515 9.17157 11.6225 8.99089 12.1646L8.41242 13.9M20.5449 7.34795L17.5625 10.3304M14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876M10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 7.9492 15.2897 8.03811 15.0229L8.41242 13.9M10.1 15.5876L8.41242 13.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
                             </button>
                             <button class="delete-supervisor text-red-600" data-id="${u.id}">
@@ -210,108 +236,51 @@ include_once "./include/headerLinks.php"; ?>
             }
         }
 
-        function setTechnology(techId, techName) {
-            const select = document.getElementById('techId');
-            const input = document.querySelector('.searchable-input');
-            const dropdown = document.querySelector('.searchable-dropdown');
-
-            if (!select || !input) return;
-
-            // Set the hidden select value
-            select.value = techId || '';
-            
-            // Set the visible input value
-            input.value = techName || 'Select Technology';
-            
-            // Update dropdown options
-            updateDropdownOptions();
-            
-            // Highlight the selected option in dropdown
-            if (dropdown) {
-                const dropdownItems = dropdown.querySelectorAll('li');
-                dropdownItems.forEach(item => {
-                    item.classList.remove('bg-indigo-100', 'dark:bg-indigo-600');
-                    if (item.dataset.value == techId) {
-                        item.classList.add('bg-indigo-100', 'dark:bg-indigo-600');
-                    }
-                });
-            }
-        }
-
-        function updateDropdownOptions() {
-            const select = document.getElementById('techId');
-            const dropdown = document.querySelector('.searchable-dropdown');
-            
-            if (!select || !dropdown) return;
-            
-            dropdown.innerHTML = '';
-            
-            // Create dropdown options from select
-            Array.from(select.options).forEach(option => {
-                if (option.value === '') return; // Skip "Select Technology" placeholder
-                
-                const li = document.createElement('li');
-                li.textContent = option.text;
-                li.dataset.value = option.value;
-                
-                li.className = 'px-3 py-2 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-600 dark:text-gray-200';
-                
-                li.onclick = () => {
-                    select.value = option.value;
-                    document.querySelector('.searchable-input').value = option.text;
-                    dropdown.classList.add('hidden');
-                    
-                    // Update highlight
-                    dropdown.querySelectorAll('li').forEach(item => {
-                        item.classList.remove('bg-indigo-100', 'dark:bg-indigo-600');
-                    });
-                    li.classList.add('bg-indigo-100', 'dark:bg-indigo-600');
-                };
-                
-                dropdown.appendChild(li);
+        function setSupervisorTechnologies(techIdsString) {
+            document.querySelectorAll('.tech-checkbox').forEach(cb => cb.checked = false);
+            if (!techIdsString) return;
+            const ids = techIdsString.split(',');
+            ids.forEach(id => {
+                const cb = document.querySelector(`.tech-checkbox[value="${id.trim()}"]`);
+                if (cb) cb.checked = true;
             });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize dropdown options
-            updateDropdownOptions();
-            
-            // Searchable dropdown functionality
-            const input = document.querySelector('.searchable-input');
-            const dropdown = document.querySelector('.searchable-dropdown');
-            const select = document.getElementById('techId');
-            
-            if (input && dropdown && select) {
-                // Toggle dropdown on input click
-                input.addEventListener('click', () => {
-                    dropdown.classList.toggle('hidden');
-                });
-                
-                // Filter dropdown options on input
-                input.addEventListener('input', () => {
-                    const searchTerm = input.value.toLowerCase();
-                    const options = dropdown.querySelectorAll('li');
-                    
-                    options.forEach(option => {
-                        const text = option.textContent.toLowerCase();
-                        if (text.includes(searchTerm)) {
-                            option.style.display = 'block';
-                        } else {
-                            option.style.display = 'none';
-                        }
-                    });
-                    
-                    dropdown.classList.remove('hidden');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.searchable-wrapper')) {
-                        dropdown.classList.add('hidden');
-                    }
-                });
-            }
+            // View Assigned Technologies Modal Event
+            document.addEventListener('click', e => {
+                const viewBtn = e.target.closest('.view-tech-btn');
+                if (!viewBtn) return;
 
+                const name = viewBtn.dataset.name || 'Supervisor';
+                const techs = viewBtn.dataset.techs || '';
+                
+                document.getElementById('view-tech-supervisor-name').textContent = `Assigned to: ${name}`;
+                
+                const listContainer = document.getElementById('view-tech-list');
+                listContainer.innerHTML = '';
+                
+                if (techs) {
+                    const techList = techs.split(', ');
+                    techList.forEach(techName => {
+                        listContainer.innerHTML += `
+                            <span class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/60 shadow-sm flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                ${escapeHtml(techName)}
+                            </span>
+                        `;
+                    });
+                } else {
+                    listContainer.innerHTML = '<p class="text-xs text-gray-400 italic">No technologies assigned</p>';
+                }
+
+                document.getElementById('view-tech-modal').classList.remove('hidden');
+            });
+
+            // Close View Tech Modal
+            document.querySelectorAll('.close-view-tech-modal').forEach(b => {
+                b.onclick = () => document.getElementById('view-tech-modal').classList.add('hidden');
+            });
             // Open Add Modal
             document.querySelector('.open-modal').onclick = () => {
                 document.getElementById('modal-title').textContent = 'Add Supervisor';
@@ -320,7 +289,7 @@ include_once "./include/headerLinks.php"; ?>
                 document.querySelector('[name="password"]').required = true;
                 document.querySelector('[name="commission_rate"]').value = '1000';
                 
-                setTechnology('', '');
+                setSupervisorTechnologies('');
                 document.getElementById('supervisor-modal').classList.remove('hidden');
             };
 
@@ -339,13 +308,8 @@ include_once "./include/headerLinks.php"; ?>
                 document.querySelector('[name="password"]').required = false;
                 document.querySelector('[name="password"]').value = '';
 
-                // Set technology with delay to ensure DOM is ready
-                setTimeout(() => {
-                    setTechnology(
-                        editBtn.dataset.techId || '',
-                        editBtn.dataset.techName || ''
-                    );
-                }, 10);
+                // Set technologies checkboxes
+                setSupervisorTechnologies(editBtn.dataset.techId || '');
 
                 document.getElementById('supervisor-modal').classList.remove('hidden');
             });

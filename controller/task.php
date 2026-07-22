@@ -589,6 +589,112 @@ if ($data['action'] === 'review_task') {
                         }
                     }
                 }
+            } elseif ($task_details) {
+                // Ongoing intern completes a regular task (not a curriculum task)
+                $intern_id = $task_details['assign_to'];
+
+                // Check if this intern has EVER had any curriculum task assigned
+                $check_cur_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND is_curriculum_task = 1 LIMIT 1");
+                $check_cur_stmt->bind_param("i", $intern_id);
+                $check_cur_stmt->execute();
+                $has_curriculum_started = ($check_cur_stmt->get_result()->num_rows > 0);
+                $check_cur_stmt->close();
+
+                if (!$has_curriculum_started) {
+                    // Intern has never had a curriculum task assigned yet!
+                    // Let's check if they have any remaining active tasks
+                    $active_tasks_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND id != ? AND status IN ('inprogress', 'needs_improvement') LIMIT 1");
+                    $active_tasks_stmt->bind_param("ii", $intern_id, $task_id);
+                    $active_tasks_stmt->execute();
+                    $has_other_active = ($active_tasks_stmt->get_result()->num_rows > 0);
+                    $active_tasks_stmt->close();
+
+                    // If they have no other active tasks in progress, automatically initialize their curriculum!
+                    if (!$has_other_active) {
+                        // Fetch intern details
+                        $intern_stmt = $conn->prepare("SELECT name, email, tech_id, internship_duration FROM users WHERE id = ?");
+                        $intern_stmt->bind_param("i", $intern_id);
+                        $intern_stmt->execute();
+                        $intern_details = $intern_stmt->get_result()->fetch_assoc();
+                        $intern_stmt->close();
+
+                        if ($intern_details && !empty($intern_details['internship_duration']) && $intern_details['tech_id'] > 0) {
+                            $tech_id = $intern_details['tech_id'];
+                            $duration = $intern_details['internship_duration'];
+
+                            // Calculate how many tasks they have completed in total (including the one currently approved)
+                            $count_stmt = $conn->prepare("SELECT COUNT(*) as completed_count FROM tasks WHERE assign_to = ? AND status = 'complete'");
+                            $count_stmt->bind_param("i", $intern_id);
+                            $count_stmt->execute();
+                            $completed_count_res = $count_stmt->get_result()->fetch_assoc();
+                            $completed_count = (int)($completed_count_res['completed_count'] ?? 1);
+                            $count_stmt->close();
+
+                            // The next week they should start on
+                            $next_week = $completed_count + 1;
+
+                            // 1. Insert mock completed curriculum tasks for previous weeks (from Week 1 to Week C)
+                            if ($completed_count > 0) {
+                                $prev_cur_stmt = $conn->prepare("SELECT week_number, title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number <= ? ORDER BY week_number ASC");
+                                $prev_cur_stmt->bind_param("isi", $tech_id, $duration, $completed_count);
+                                $prev_cur_stmt->execute();
+                                $prev_cur_res = $prev_cur_stmt->get_result();
+                                
+                                $mock_ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at, completed_at) VALUES (?, ?, ?, ?, 'complete', NOW(), ?, 1, NOW(), NOW())");
+                                
+                                while ($prev_task = $prev_cur_res->fetch_assoc()) {
+                                    $p_week = (int)$prev_task['week_number'];
+                                    $p_title = $prev_task['title'];
+                                    $p_desc = $prev_task['description'];
+                                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $supervisor_id, $p_week);
+                                    $mock_ins_stmt->execute();
+                                }
+                                $mock_ins_stmt->close();
+                                $prev_cur_stmt->close();
+                            }
+
+                            // 2. Fetch the next week task from curriculum
+                            $cur_stmt = $conn->prepare("SELECT title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number = ?");
+                            $cur_stmt->bind_param("isi", $tech_id, $duration, $next_week);
+                            $cur_stmt->execute();
+                            $cur_task = $cur_stmt->get_result()->fetch_assoc();
+                            $cur_stmt->close();
+
+                            if ($cur_task) {
+                                $due_date = date('Y-m-d', strtotime('+7 days'));
+                                $status = 'inprogress';
+                                $is_curriculum = 1;
+
+                                $ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                                $ins_stmt->bind_param("ssisssii", $cur_task['title'], $cur_task['description'], $intern_id, $supervisor_id, $status, $due_date, $next_week, $is_curriculum);
+                                if ($ins_stmt->execute()) {
+                                    // Send Email Notification for Next Week
+                                    if (!empty($intern_details['email'])) {
+                                        $subject = "Task Assigned: Week {$next_week} Curriculum Task";
+                                        $html_content = "
+                                            <div style='font-family: Arial, sans-serif; color: #333;'>
+                                                <h2>Assalam O Alaikum " . htmlspecialchars($intern_details['name']) . ",</h2>
+                                                <p>Your previous task has been approved. Your week-wise internship curriculum has now been automatically transitioned!</p>
+                                                <p>You have been assigned your <strong>Week {$next_week} Task: " . htmlspecialchars($cur_task['title']) . "</strong></p>
+                                                <p><strong>Due Date:</strong> " . htmlspecialchars(date('j F Y', strtotime($due_date))) . "</p>
+                                                <p>Please log in to your dashboard to start working on it.</p>
+                                                <br>
+                                                <p>Best Regards,<br>Management Team</p>
+                                            </div>
+                                        ";
+                                        sendNotificationFallback([
+                                            'email' => $intern_details['email'],
+                                            'name' => $intern_details['name'],
+                                            'subject' => $subject,
+                                            'html_content' => $html_content
+                                        ]);
+                                    }
+                                }
+                                $ins_stmt->close();
+                            }
+                        }
+                    }
+                }
             }
         }
 

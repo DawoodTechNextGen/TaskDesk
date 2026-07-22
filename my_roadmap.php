@@ -76,53 +76,44 @@ include_once "./include/headerLinks.php"; ?>
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Navbar -->
-            <?php include_once "./include/navbar.php"; ?>
+            <!-- Header Bar -->
+            <?php include_once "./include/header.php"; ?>
 
-            <!-- Main Body Content -->
-            <main class="flex-1 overflow-y-auto p-6 md:p-8">
-                <div class="max-w-5xl mx-auto space-y-6">
-
-                    <!-- Header Banner -->
-                    <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-                        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div>
-                                <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-semibold tracking-wide uppercase mb-3">
-                                    <span>🚀 <?= htmlspecialchars($tech_name) ?></span>
-                                    <span>•</span>
-                                    <span><?= htmlspecialchars($duration) ?> Program</span>
-                                </div>
-                                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Your Internship Roadmap</h1>
-                                <p class="mt-2 text-indigo-100 text-sm max-w-xl">
-                                    Follow your structured weekly learning curriculum, track your milestone completions, and excel in your tech career.
-                                </p>
-                            </div>
-
-                            <!-- Progress Circle / Card -->
-                            <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 text-center min-w-[160px]">
-                                <div class="text-xs uppercase tracking-wider text-indigo-200 font-semibold mb-1">Overall Progress</div>
-                                <div class="text-3xl font-black"><?= $progress_percent ?>%</div>
-                                <div class="mt-2 w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                                    <div class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: <?= $progress_percent ?>%;"></div>
-                                </div>
-                                <div class="text-[11px] text-indigo-100 mt-1.5 font-medium">
-                                    <?= $completed_count ?> of <?= $total_weeks ?> Weeks Completed
-                                </div>
-                            </div>
-                        </div>
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
+                
+                <!-- Page Header Title -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Your Internship Roadmap</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Technology Track: <span class="font-semibold text-indigo-600 dark:text-indigo-400"><?= htmlspecialchars($tech_name) ?></span> (<?= htmlspecialchars($duration) ?>)
+                        </p>
                     </div>
 
-                    <!-- Curriculum Roadmap Cards -->
-                    <?php if (!empty($roadmap_tasks)): ?>
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8 border border-gray-100 dark:border-gray-700">
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-8 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700 pb-4">
-                                <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                </svg>
-                                Curriculum Weekly Milestones
-                            </h2>
+                    <div class="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3">
+                        <div class="text-xs font-semibold text-gray-500 dark:text-gray-400">Progress:</div>
+                        <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: <?= $progress_percent ?>%;"></div>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400"><?= $progress_percent ?>%</span>
+                        <span class="text-[11px] text-gray-400"> (<?= $completed_count ?>/<?= $total_weeks ?> Weeks)</span>
+                    </div>
+                </div>
 
+                <!-- Admin/Supervisor Style Card Container -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700 mb-8">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Curriculum Tasks & Weekly Timeline
+                        </h3>
+                    </div>
+
+                    <div class="p-6">
+                        <?php if (!empty($roadmap_tasks)): ?>
                             <div class="relative border-l-2 border-indigo-100 dark:border-gray-700 ml-4 md:ml-6 space-y-8">
                                 <?php foreach ($roadmap_tasks as $rt): 
                                     $w_num = (int)$rt['week_number'];
@@ -148,10 +139,10 @@ include_once "./include/headerLinks.php"; ?>
                                         <!-- Milestone Box -->
                                         <div class="bg-gray-50 dark:bg-gray-900/50 border <?= $is_current ? 'border-indigo-300 dark:border-indigo-600/60 ring-2 ring-indigo-500/10' : 'border-gray-100 dark:border-gray-800' ?> rounded-xl p-5 md:p-6 transition-all duration-300 hover:shadow-md">
                                             <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                                <h3 class="text-base md:text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                                <h4 class="text-base md:text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                                                     <span>Week <?= $w_num ?>:</span>
                                                     <span class="text-indigo-600 dark:text-indigo-400"><?= htmlspecialchars($rt['title']) ?></span>
-                                                </h3>
+                                                </h4>
 
                                                 <div>
                                                     <?php if ($is_done): ?>
@@ -174,31 +165,33 @@ include_once "./include/headerLinks.php"; ?>
                                                 </div>
                                             </div>
 
-                                            <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                            <div class="mt-3 text-sm text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-800/80 p-4 md:p-5 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-xs">
                                                 <?= nl2br($rt['description']) ?>
                                             </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-100 dark:border-gray-700">
-                            <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 dark:text-indigo-400">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
+                        <?php else: ?>
+                            <div class="p-12 text-center">
+                                <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 dark:text-indigo-400">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Roadmap Not Available</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
+                                    No curriculum roadmap has been configured for your technology track yet. Please contact your supervisor for details.
+                                </p>
                             </div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Roadmap Not Available</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
-                                No curriculum roadmap has been configured for your technology track yet. Please contact your supervisor for details.
-                            </p>
-                        </div>
-                    <?php endif; ?>
-
+                        <?php endif; ?>
+                    </div>
                 </div>
+
             </main>
         </div>
     </div>
+
+    <?php include_once "./include/footerLinks.php"; ?>
 </body>
 </html>

@@ -621,6 +621,18 @@
                                 </a>
                             </li>
                             <li>
+                                <a href="my_roadmap.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'my_roadmap.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Internship Roadmap</span>
+                                </a>
+                            </li>
+                            <li>
                                 <a href="attendance_intern.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'attendance_intern.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">

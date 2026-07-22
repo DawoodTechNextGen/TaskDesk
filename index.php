@@ -818,52 +818,6 @@ include_once "./include/headerLinks.php"; ?>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Intern Roadmap Timeline Card -->
-                        <?php if ($user_tech_id > 0 && !empty($roadmap_tasks)): ?>
-                        <div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
-                            <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-                                <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                </svg>
-                                Your Curriculum Roadmap
-                            </h3>
-                            <div class="relative border-l-2 border-indigo-100 dark:border-gray-700 ml-4 space-y-8">
-                                <?php foreach ($roadmap_tasks as $rt): 
-                                    $is_done = in_array((int)$rt['week_number'], $completed_weeks);
-                                ?>
-                                    <div class="relative pl-8 group">
-                                        <!-- Dot Indicator -->
-                                        <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 transition-all duration-300 <?= $is_done ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' : 'bg-gray-200 dark:bg-gray-700 border-white dark:border-gray-800 group-hover:border-indigo-400' ?>"></div>
-                                        
-                                        <!-- Roadmap Card -->
-                                        <div class="bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/80 rounded-xl p-5 hover:shadow-md transition-all duration-300">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <h4 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                                                    Week <?= $rt['week_number'] ?>: <?= htmlspecialchars($rt['title']) ?>
-                                                </h4>
-                                                <?php if ($is_done): ?>
-                                                    <span class="flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50">
-                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                                        </svg>
-                                                        Completed
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-                                                        Pending
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                                <?= $rt['description'] ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
                     </div>
 
                 <?php elseif ($user_role == 3): ?>

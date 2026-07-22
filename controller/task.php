@@ -530,12 +530,14 @@ if ($data['action'] === 'review_task') {
                 $curr_week = $task_details['week_number'];
                 $next_week = $curr_week + 1;
 
-                // Fetch intern details (tech_id, internship_duration)
-                $intern_stmt = $conn->prepare("SELECT name, email, tech_id, internship_duration FROM users WHERE id = ?");
+                // Fetch intern details (tech_id, internship_duration, supervisor_id)
+                $intern_stmt = $conn->prepare("SELECT name, email, tech_id, internship_duration, supervisor_id FROM users WHERE id = ?");
                 $intern_stmt->bind_param("i", $intern_id);
                 $intern_stmt->execute();
                 $intern_details = $intern_stmt->get_result()->fetch_assoc();
                 $intern_stmt->close();
+
+                $creator_id = (!empty($intern_details['supervisor_id']) && $intern_details['supervisor_id'] > 0) ? (int)$intern_details['supervisor_id'] : $supervisor_id;
 
                 if ($intern_details && !empty($intern_details['internship_duration']) && $intern_details['tech_id'] > 0) {
                     $tech_id = $intern_details['tech_id'];
@@ -562,7 +564,7 @@ if ($data['action'] === 'review_task') {
                             $is_curriculum = 1;
 
                             $ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                            $ins_stmt->bind_param("ssisssii", $next_cur['title'], $next_cur['description'], $intern_id, $supervisor_id, $status, $due_date, $next_week, $is_curriculum);
+                            $ins_stmt->bind_param("ssisssii", $next_cur['title'], $next_cur['description'], $intern_id, $creator_id, $status, $due_date, $next_week, $is_curriculum);
                             if ($ins_stmt->execute()) {
                                 // Send Email Notification for new week
                                 if (!empty($intern_details['email'])) {
@@ -612,25 +614,34 @@ if ($data['action'] === 'review_task') {
                     // If they have no other active tasks in progress, automatically initialize their curriculum!
                     if (!$has_other_active) {
                         // Fetch intern details
-                        $intern_stmt = $conn->prepare("SELECT name, email, tech_id, internship_duration FROM users WHERE id = ?");
+                        $intern_stmt = $conn->prepare("SELECT name, email, tech_id, internship_duration, supervisor_id FROM users WHERE id = ?");
                         $intern_stmt->bind_param("i", $intern_id);
                         $intern_stmt->execute();
                         $intern_details = $intern_stmt->get_result()->fetch_assoc();
                         $intern_stmt->close();
 
+                        $creator_id = (!empty($intern_details['supervisor_id']) && $intern_details['supervisor_id'] > 0) ? (int)$intern_details['supervisor_id'] : $supervisor_id;
+
                         if ($intern_details && !empty($intern_details['internship_duration']) && $intern_details['tech_id'] > 0) {
                             $tech_id = $intern_details['tech_id'];
                             $duration = $intern_details['internship_duration'];
 
-                            // Calculate how many tasks they have completed in total (including the one currently approved)
-                            $count_stmt = $conn->prepare("SELECT COUNT(*) as completed_count FROM tasks WHERE assign_to = ? AND status = 'complete'");
-                            $count_stmt->bind_param("i", $intern_id);
-                            $count_stmt->execute();
-                            $completed_count_res = $count_stmt->get_result()->fetch_assoc();
-                            $completed_count = (int)($completed_count_res['completed_count'] ?? 1);
-                            $count_stmt->close();
+                            // Calculate intern's actual completed weeks
+                            $max_w_stmt = $conn->prepare("SELECT MAX(week_number) as max_w FROM tasks WHERE assign_to = ? AND week_number > 0");
+                            $max_w_stmt->bind_param("i", $intern_id);
+                            $max_w_stmt->execute();
+                            $max_w_res = $max_w_stmt->get_result()->fetch_assoc();
+                            $max_w = (int)($max_w_res['max_w'] ?? 0);
+                            $max_w_stmt->close();
 
-                            // The next week they should start on
+                            $cnt_stmt = $conn->prepare("SELECT COUNT(*) as cnt FROM tasks WHERE assign_to = ? AND status IN ('complete', 'approved')");
+                            $cnt_stmt->bind_param("i", $intern_id);
+                            $cnt_stmt->execute();
+                            $cnt_res = $cnt_stmt->get_result()->fetch_assoc();
+                            $cnt = (int)($cnt_res['cnt'] ?? 0);
+                            $cnt_stmt->close();
+
+                            $completed_count = max($max_w, $cnt);
                             $next_week = $completed_count + 1;
 
                             // 1. Insert mock completed curriculum tasks for previous weeks (from Week 1 to Week C)
@@ -646,7 +657,7 @@ if ($data['action'] === 'review_task') {
                                     $p_week = (int)$prev_task['week_number'];
                                     $p_title = $prev_task['title'];
                                     $p_desc = $prev_task['description'];
-                                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $supervisor_id, $p_week);
+                                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $creator_id, $p_week);
                                     $mock_ins_stmt->execute();
                                 }
                                 $mock_ins_stmt->close();
@@ -666,7 +677,7 @@ if ($data['action'] === 'review_task') {
                                 $is_curriculum = 1;
 
                                 $ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                                $ins_stmt->bind_param("ssisssii", $cur_task['title'], $cur_task['description'], $intern_id, $supervisor_id, $status, $due_date, $next_week, $is_curriculum);
+                                $ins_stmt->bind_param("ssisssii", $cur_task['title'], $cur_task['description'], $intern_id, $creator_id, $status, $due_date, $next_week, $is_curriculum);
                                 if ($ins_stmt->execute()) {
                                     // Send Email Notification for Next Week
                                     if (!empty($intern_details['email'])) {

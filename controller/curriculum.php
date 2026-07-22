@@ -113,8 +113,8 @@ switch ($action) {
             exit;
         }
 
-        // Fetch intern detail
-        $user_stmt = $conn->prepare("SELECT id, name, email, tech_id, internship_duration FROM users WHERE id = ? AND user_role = 2 AND status = 1");
+        // Fetch intern detail including supervisor_id
+        $user_stmt = $conn->prepare("SELECT id, name, email, tech_id, internship_duration, supervisor_id FROM users WHERE id = ? AND user_role = 2 AND status = 1");
         $user_stmt->bind_param('i', $intern_id);
         $user_stmt->execute();
         $intern = $user_stmt->get_result()->fetch_assoc();
@@ -135,9 +135,48 @@ switch ($action) {
             exit;
         }
 
-        $week_num = (int)($_POST['week_number'] ?? 1);
-        if ($week_num <= 0) {
-            $week_num = 1;
+        $posted_week = (int)($_POST['week_number'] ?? 0);
+        if ($posted_week > 0) {
+            $week_num = $posted_week;
+        } else {
+            // Calculate intern's actual target week dynamically
+            $max_w_stmt = $conn->prepare("SELECT MAX(week_number) as max_w FROM tasks WHERE assign_to = ? AND week_number > 0");
+            $max_w_stmt->bind_param("i", $intern_id);
+            $max_w_stmt->execute();
+            $max_w_res = $max_w_stmt->get_result()->fetch_assoc();
+            $max_w = (int)($max_w_res['max_w'] ?? 0);
+            $max_w_stmt->close();
+
+            $cnt_stmt = $conn->prepare("SELECT COUNT(*) as cnt FROM tasks WHERE assign_to = ? AND status IN ('complete', 'approved')");
+            $cnt_stmt->bind_param("i", $intern_id);
+            $cnt_stmt->execute();
+            $cnt_res = $cnt_stmt->get_result()->fetch_assoc();
+            $cnt = (int)($cnt_res['cnt'] ?? 0);
+            $cnt_stmt->close();
+
+            $completed_weeks = max($max_w, $cnt);
+            $week_num = $completed_weeks + 1;
+
+            // Mock complete previous weeks if transitioning
+            if ($completed_weeks > 0) {
+                $creator = (!empty($intern['supervisor_id']) && $intern['supervisor_id'] > 0) ? (int)$intern['supervisor_id'] : 1;
+                $prev_cur_stmt = $conn->prepare("SELECT week_number, title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number <= ? ORDER BY week_number ASC");
+                $prev_cur_stmt->bind_param("isi", $intern['tech_id'], $intern['internship_duration'], $completed_weeks);
+                $prev_cur_stmt->execute();
+                $prev_cur_res = $prev_cur_stmt->get_result();
+
+                $mock_ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at, completed_at) VALUES (?, ?, ?, ?, 'complete', NOW(), ?, 1, NOW(), NOW())");
+
+                while ($prev_task = $prev_cur_res->fetch_assoc()) {
+                    $p_week = (int)$prev_task['week_number'];
+                    $p_title = $prev_task['title'];
+                    $p_desc = $prev_task['description'];
+                    $mock_ins_stmt->bind_param("ssiii", $p_title, $p_desc, $intern_id, $creator, $p_week);
+                    $mock_ins_stmt->execute();
+                }
+                $mock_ins_stmt->close();
+                $prev_cur_stmt->close();
+            }
         }
 
         // Fetch specified week task from curriculum
@@ -174,9 +213,9 @@ switch ($action) {
         }
         $cur_check->close();
 
-        // Insert new task
+        // Insert new task with supervisor as created_by
         $due_date = date('Y-m-d', strtotime('+7 days'));
-        $created_by = $_SESSION['user_id'];
+        $created_by = (!empty($intern['supervisor_id']) && $intern['supervisor_id'] > 0) ? (int)$intern['supervisor_id'] : (($_SESSION['user_role'] == 3) ? $_SESSION['user_id'] : 1);
         $status = 'inprogress';
         $is_curriculum = 1;
 

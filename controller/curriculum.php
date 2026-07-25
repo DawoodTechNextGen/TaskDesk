@@ -2,6 +2,7 @@
 session_start();
 include '../include/connection.php';
 include '../include/notification_helper.php';
+include '../include/internship_helper.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) {
@@ -122,6 +123,11 @@ switch ($action) {
 
         if (!$intern) {
             echo json_encode(['success' => false, 'message' => 'Active intern not found']);
+            exit;
+        }
+
+        if (isInternshipDurationCompleted($conn, $intern_id)) {
+            echo json_encode(['success' => false, 'message' => "Cannot assign task: Intern's internship duration is already completed."]);
             exit;
         }
 

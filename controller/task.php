@@ -3,6 +3,7 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 include_once "../include/notification_helper.php";
+include_once "../include/internship_helper.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -24,6 +25,15 @@ if ($data['action'] === 'create') {
 
     if (!preg_match("/^\d{4}-\d{2}-\d{2}$/", $due_date)) {
         echo json_encode(["success" => false, "message" => "Invalid date format"]);
+        exit;
+    }
+
+    // Check if intern's internship duration is already completed
+    if (isInternshipDurationCompleted($conn, $assign_to)) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Cannot assign task: Intern's internship duration is already completed."
+        ]);
         exit;
     }
 
@@ -542,52 +552,56 @@ if ($data['action'] === 'review_task') {
                 if ($intern_details && !empty($intern_details['internship_duration']) && $intern_details['tech_id'] > 0) {
                     $tech_id = $intern_details['tech_id'];
                     $duration = $intern_details['internship_duration'];
+                    $total_allowed_weeks = getInternshipTotalWeeks($duration, $intern_details['internship_type'] ?? null);
 
-                    // Check if next week curriculum task exists
-                    $next_cur_stmt = $conn->prepare("SELECT title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number = ?");
-                    $next_cur_stmt->bind_param("isi", $tech_id, $duration, $next_week);
-                    $next_cur_stmt->execute();
-                    $next_cur = $next_cur_stmt->get_result()->fetch_assoc();
-                    $next_cur_stmt->close();
+                    // Check if internship duration is complete (e.g. curr_week >= total_allowed_weeks)
+                    if ($curr_week < $total_allowed_weeks && !isInternshipDurationCompleted($conn, $intern_id)) {
+                        // Check if next week curriculum task exists
+                        $next_cur_stmt = $conn->prepare("SELECT title, description FROM curriculum_tasks WHERE tech_id = ? AND duration = ? AND week_number = ?");
+                        $next_cur_stmt->bind_param("isi", $tech_id, $duration, $next_week);
+                        $next_cur_stmt->execute();
+                        $next_cur = $next_cur_stmt->get_result()->fetch_assoc();
+                        $next_cur_stmt->close();
 
-                    if ($next_cur) {
-                        // Check if already assigned
-                        $chk_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND week_number = ? AND is_curriculum_task = 1");
-                        $chk_stmt->bind_param("ii", $intern_id, $next_week);
-                        $chk_stmt->execute();
-                        $already_assigned = $chk_stmt->get_result()->num_rows > 0;
-                        $chk_stmt->close();
+                        if ($next_cur) {
+                            // Check if already assigned
+                            $chk_stmt = $conn->prepare("SELECT id FROM tasks WHERE assign_to = ? AND week_number = ? AND is_curriculum_task = 1");
+                            $chk_stmt->bind_param("ii", $intern_id, $next_week);
+                            $chk_stmt->execute();
+                            $already_assigned = $chk_stmt->get_result()->num_rows > 0;
+                            $chk_stmt->close();
 
-                        if (!$already_assigned) {
-                            $due_date = date('Y-m-d', strtotime('+7 days'));
-                            $status = 'inprogress';
-                            $is_curriculum = 1;
+                            if (!$already_assigned) {
+                                $due_date = date('Y-m-d', strtotime('+7 days'));
+                                $status = 'inprogress';
+                                $is_curriculum = 1;
 
-                            $ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                            $ins_stmt->bind_param("ssisssii", $next_cur['title'], $next_cur['description'], $intern_id, $creator_id, $status, $due_date, $next_week, $is_curriculum);
-                            if ($ins_stmt->execute()) {
-                                // Send Email Notification for new week
-                                if (!empty($intern_details['email'])) {
-                                    $subject = "Task Assigned: Week " . $next_week . " Task";
-                                    $html_content = "
-                                        <div style='font-family: Arial, sans-serif; color: #333;'>
-                                            <h2>Assalam O Alaikum " . htmlspecialchars($intern_details['name']) . ",</h2>
-                                            <p>Since your Week " . $curr_week . " task was approved, you have been automatically assigned your <strong>Week " . $next_week . " Task: " . htmlspecialchars($next_cur['title']) . "</strong></p>
-                                            <p><strong>Due Date:</strong> " . htmlspecialchars(date('j F Y', strtotime($due_date))) . "</p>
-                                            <p>Please log in to your dashboard to start working on it.</p>
-                                            <br>
-                                            <p>Best Regards,<br>Management Team</p>
-                                        </div>
-                                    ";
-                                    sendNotificationFallback([
-                                        'email' => $intern_details['email'],
-                                        'name' => $intern_details['name'],
-                                        'subject' => $subject,
-                                        'html_content' => $html_content
-                                    ]);
+                                $ins_stmt = $conn->prepare("INSERT INTO tasks (title, description, assign_to, created_by, status, due_date, week_number, is_curriculum_task, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                                $ins_stmt->bind_param("ssisssii", $next_cur['title'], $next_cur['description'], $intern_id, $creator_id, $status, $due_date, $next_week, $is_curriculum);
+                                if ($ins_stmt->execute()) {
+                                    // Send Email Notification for new week
+                                    if (!empty($intern_details['email'])) {
+                                        $subject = "Task Assigned: Week " . $next_week . " Task";
+                                        $html_content = "
+                                            <div style='font-family: Arial, sans-serif; color: #333;'>
+                                                <h2>Assalam O Alaikum " . htmlspecialchars($intern_details['name']) . ",</h2>
+                                                <p>Since your Week " . $curr_week . " task was approved, you have been automatically assigned your <strong>Week " . $next_week . " Task: " . htmlspecialchars($next_cur['title']) . "</strong></p>
+                                                <p><strong>Due Date:</strong> " . htmlspecialchars(date('j F Y', strtotime($due_date))) . "</p>
+                                                <p>Please log in to your dashboard to start working on it.</p>
+                                                <br>
+                                                <p>Best Regards,<br>Management Team</p>
+                                            </div>
+                                        ";
+                                        sendNotificationFallback([
+                                            'email' => $intern_details['email'],
+                                            'name' => $intern_details['name'],
+                                            'subject' => $subject,
+                                            'html_content' => $html_content
+                                        ]);
+                                    }
                                 }
+                                $ins_stmt->close();
                             }
-                            $ins_stmt->close();
                         }
                     }
                 }

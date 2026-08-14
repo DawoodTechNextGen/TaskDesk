@@ -5,22 +5,7 @@ include_once "../include/connection.php";
 require_once __DIR__ . '/../include/internship_helper.php';
 
 date_default_timezone_set('Asia/Karachi');
-
-// Permanent log of every approved freeze period, used to extend internship duration
-// and exclude frozen days from attendance calculations. Self-creates on first use.
-$conn->query("CREATE TABLE IF NOT EXISTS `freeze_logs` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT NOT NULL,
-  `start_date` DATE NOT NULL,
-  `end_date` DATE NOT NULL,
-  `days` INT NOT NULL,
-  `reason` TEXT DEFAULT NULL,
-  `approved_by` INT DEFAULT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  KEY `idx_freeze_logs_user` (`user_id`),
-  CONSTRAINT `fk_freeze_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_freeze_logs_approver` FOREIGN KEY (`approved_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+// freeze_logs table is created by include/internship_helper.php (required above)
 
 $data = json_decode(file_get_contents("php://input"), true);
 

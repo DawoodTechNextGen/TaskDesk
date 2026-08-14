@@ -1,4 +1,26 @@
 <?php
+// freeze_logs is read by several of the functions below (getUserFreezeDays,
+// getInternshipCompletionDate, getWorkingDaysExcludingFreeze). Create it here,
+// once, so it's guaranteed to exist regardless of whether controller/freeze.php
+// has ever run yet on this environment — otherwise the first query against a
+// missing table throws (PHP 8.1+ mysqli default) and breaks every caller,
+// including the admin/supervisor dashboard attendance stats.
+if (isset($conn) && $conn instanceof mysqli) {
+    $conn->query("CREATE TABLE IF NOT EXISTS `freeze_logs` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `user_id` INT NOT NULL,
+      `start_date` DATE NOT NULL,
+      `end_date` DATE NOT NULL,
+      `days` INT NOT NULL,
+      `reason` TEXT DEFAULT NULL,
+      `approved_by` INT DEFAULT NULL,
+      `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY `idx_freeze_logs_user` (`user_id`),
+      CONSTRAINT `fk_freeze_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+      CONSTRAINT `fk_freeze_logs_approver` FOREIGN KEY (`approved_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+}
+
 if (!function_exists('getInternshipTotalWeeks')) {
     function getInternshipTotalWeeks($duration_str, $internship_type = null) {
         if (!empty($duration_str)) {

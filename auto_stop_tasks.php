@@ -9,7 +9,10 @@ $current_time = date("Y-m-d H:i:s"); // Actual current time for log
 $stop_time_record = date("Y-m-d") . " 23:59:59"; // Record as end of day
 $today = date("Y-m-d");
 
-$sql = "SELECT id, started_at, assign_to, due_date FROM tasks WHERE status = 'inprogress'";
+$sql = "SELECT t.id, t.started_at, t.assign_to, t.due_date
+        FROM tasks t
+        JOIN users u ON t.assign_to = u.id
+        WHERE t.status = 'inprogress' AND u.freeze_status != 'frozen'";
 $result = $conn->query($sql);
 
 while ($task = $result->fetch_assoc()) {

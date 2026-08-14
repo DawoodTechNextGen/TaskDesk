@@ -2,42 +2,57 @@
 session_start();
 
 require_once __DIR__ . "/include/connection.php";
+require_once __DIR__ . "/include/internship_helper.php";
 date_default_timezone_set('Asia/Karachi');
 
 // This file should be called by cron job
 function markAutoAttendance() {
     global $conn;
-    
+
     $currentDate = date('Y-m-d');
     $now = date('Y-m-d H:i:s');
     $presentThresholdSeconds = 10800;
-    
+
     // Get all approved interns
-    $usersSql = "SELECT id, created_at, internship_type, internship_duration FROM users WHERE status = 1 AND user_role = 2"; 
+    $usersSql = "SELECT id, created_at, internship_type, internship_duration, freeze_status FROM users WHERE status = 1 AND user_role = 2";
     $usersResult = $conn->query($usersSql);
-    
+
     $today = new DateTime($currentDate);
 
     while ($user = $usersResult->fetch_assoc()) {
         $userId = $user['id'];
-        
-        // Calculate completion date
-        $start_date = new DateTime($user['created_at']);
-        $duration_weeks = 12;
-        if (!empty($user['internship_duration'])) {
-            if ($user['internship_duration'] === '4 weeks') $duration_weeks = 4;
-            elseif ($user['internship_duration'] === '8 weeks') $duration_weeks = 8;
-            elseif ($user['internship_duration'] === '12 weeks') $duration_weeks = 12;
-        } else {
-            $duration_weeks = ($user['internship_type'] == 0) ? 4 : 12;
-        }
-        
-        $completion_date = clone $start_date;
-        $completion_date->modify("+$duration_weeks weeks");
-        $completion_date->setTime(0, 0, 0);
+
+        // Calculate completion date (extended by any approved freeze days)
+        $completion_date = getInternshipCompletionDate($conn, $userId);
 
         // If internship is complete, skip auto-attendance
-        if ($today > $completion_date) {
+        if ($completion_date && $today > $completion_date) {
+            continue;
+        }
+
+        // Frozen interns: mark today as "Freeze" (not present, not absent) and skip normal processing
+        if (($user['freeze_status'] ?? 'active') === 'frozen') {
+            $attendanceSql = "SELECT id FROM attendance WHERE user_id = ? AND date = ? LIMIT 1";
+            $attendanceStmt = $conn->prepare($attendanceSql);
+            $attendanceStmt->bind_param("is", $userId, $currentDate);
+            $attendanceStmt->execute();
+            $hasMaster = ($attendanceStmt->get_result()->num_rows > 0);
+            $attendanceStmt->close();
+
+            if ($hasMaster) {
+                $updateFreezeSql = "UPDATE attendance SET status = 'freeze', attendance_type = 4 WHERE user_id = ? AND date = ?";
+                $updateFreezeStmt = $conn->prepare($updateFreezeSql);
+                $updateFreezeStmt->bind_param("is", $userId, $currentDate);
+                $updateFreezeStmt->execute();
+                $updateFreezeStmt->close();
+            } else {
+                $insertFreezeSql = "INSERT INTO attendance (user_id, task_id, date, status, total_work_seconds, attendance_type) VALUES (?, 0, ?, 'freeze', 0, 4)";
+                $insertFreezeStmt = $conn->prepare($insertFreezeSql);
+                $insertFreezeStmt->bind_param("is", $userId, $currentDate);
+                $insertFreezeStmt->execute();
+                $insertFreezeStmt->close();
+            }
+
             continue;
         }
 

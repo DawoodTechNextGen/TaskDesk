@@ -2,6 +2,7 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+require_once __DIR__ . '/../include/internship_helper.php';
 
 $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
@@ -127,31 +128,23 @@ if ($action === 'intern_stats') {
     $created_at = new DateTime($user_res['created_at']);
     $created_at->setTime(0, 0, 0); // Normalize to start of day
 
-    // Calculate completion date
-    $duration_weeks = 12;
-    if (!empty($user_res['internship_duration'])) {
-        if ($user_res['internship_duration'] === '4 weeks') $duration_weeks = 4;
-        elseif ($user_res['internship_duration'] === '8 weeks') $duration_weeks = 8;
-        elseif ($user_res['internship_duration'] === '12 weeks') $duration_weeks = 12;
-    } else {
-        $duration_weeks = ($user_res['internship_type'] == 0) ? 4 : 12;
-    }
-    
-    $completion_date = clone $created_at;
-    $completion_date->modify("+$duration_weeks weeks");
+    $duration_weeks = getInternshipTotalWeeks($user_res['internship_duration'] ?? '', $user_res['internship_type'] ?? null);
+
+    // Calculate completion date (extended by any approved freeze days)
+    $completion_date = getInternshipCompletionDate($conn, $calc_user_id);
 
     $now = new DateTime();
     $now->setTime(0, 0, 0); // Normalize to start of today
 
     // End date for calculation is earlier of today or completion date
     $calc_end_date = min($now, $completion_date);
-    
-    $total_days = getWorkingDays($created_at, $calc_end_date);
-    
+
+    $total_days = getWorkingDaysExcludingFreeze($conn, $calc_user_id, $created_at, $calc_end_date);
+
     // Calculate current week (cap at total weeks)
     $days_since_start = $created_at->diff($now)->days;
     $current_week = min(floor($days_since_start / 7) + 1, $duration_weeks);
-    
+
     // Total weeks
     $total_weeks = $duration_weeks;
     
@@ -183,7 +176,7 @@ if ($action === 'intern_stats') {
         'attendance_percentage' => $attendance_percentage,
         'present_days' => $present_days,
         'working_days_passed' => $total_days,
-        'total_working_days' => $total_working_days = getWorkingDays($created_at, $completion_date),
+        'total_working_days' => $total_working_days = getWorkingDaysExcludingFreeze($conn, $calc_user_id, $created_at, $completion_date),
         'internship_progress_percentage' => $total_working_days > 0 ? round(($total_days / $total_working_days) * 100) : 0,
         'current_week' => $current_week,
         'total_weeks' => $total_weeks
@@ -844,34 +837,21 @@ if ($action === 'supervisor_intern_attendance') {
     $today->setTime(0, 0, 0);
 
     while ($row = $result->fetch_assoc()) {
-        // Skip intern if their internship duration is already completed
-        $start_date = new DateTime($row['created_at']);
-        $start_date->setTime(0, 0, 0);
+        // Skip intern if their internship duration is already completed (accounts for freeze days)
+        $end_date = getInternshipCompletionDate($conn, $row['id']);
         $current_date = new DateTime();
         $current_date->setTime(0, 0, 0);
 
-        $duration_weeks = 12;
-        if (!empty($row['internship_duration'])) {
-            if ($row['internship_duration'] === '4 weeks') $duration_weeks = 4;
-            elseif ($row['internship_duration'] === '8 weeks') $duration_weeks = 8;
-            elseif ($row['internship_duration'] === '12 weeks') $duration_weeks = 12;
-        } else {
-            $duration_weeks = ($row['internship_type'] == 0) ? 4 : 12;
-        }
-
-        $end_date = clone $start_date;
-        $end_date->modify("+$duration_weeks weeks");
-
-        if ($current_date > $end_date) {
+        if ($end_date && $current_date > $end_date) {
             continue; // Skip this intern
         }
 
         $createdAt = new DateTime($row['created_at']);
         $createdAt->setTime(0, 0, 0);
-        
-        // Calculate total working days up to today
-        $total_working_days = getWorkingDays($createdAt, $today);
-        
+
+        // Calculate total working days up to today, excluding frozen days
+        $total_working_days = getWorkingDaysExcludingFreeze($conn, $row['id'], $createdAt, $today);
+
         $row['total_days'] = $total_working_days;
         $row['attendance_percentage'] = $total_working_days > 0 
             ? round(($row['present_days'] / $total_working_days) * 100) 

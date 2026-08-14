@@ -2,8 +2,25 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+require_once __DIR__ . '/../include/internship_helper.php';
 
 date_default_timezone_set('Asia/Karachi');
+
+// Permanent log of every approved freeze period, used to extend internship duration
+// and exclude frozen days from attendance calculations. Self-creates on first use.
+$conn->query("CREATE TABLE IF NOT EXISTS `freeze_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `days` INT NOT NULL,
+  `reason` TEXT DEFAULT NULL,
+  `approved_by` INT DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_freeze_logs_user` (`user_id`),
+  CONSTRAINT `fk_freeze_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_freeze_logs_approver` FOREIGN KEY (`approved_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -33,26 +50,10 @@ if ($data['action'] === 'request_freeze') {
     $today = new DateTime();
     $today->setTime(0, 0, 0);
 
-    // Check if internship is already complete
-    $stmt = $conn->prepare("SELECT created_at, internship_type, internship_duration FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $stmt->bind_result($user_created_at, $internship_type, $internship_duration);
-    $stmt->fetch();
-    $stmt->close();
+    // Check if internship is already complete (accounts for any previously approved freeze days)
+    $internship_end_date = getInternshipCompletionDate($conn, $user_id);
 
-    $duration_weeks = 12;
-    if (!empty($internship_duration)) {
-        if ($internship_duration === '4 weeks') $duration_weeks = 4;
-        elseif ($internship_duration === '8 weeks') $duration_weeks = 8;
-        elseif ($internship_duration === '12 weeks') $duration_weeks = 12;
-    } else {
-        $duration_weeks = ($internship_type == 0) ? 4 : 12;
-    }
-    $internship_end_date = new DateTime($user_created_at);
-    $internship_end_date->modify("+{$duration_weeks} weeks");
-
-    if ($today >= $internship_end_date) {
+    if ($internship_end_date && $today >= $internship_end_date) {
         echo json_encode(["success" => false, "message" => "Cannot request freeze - your internship has already been completed"]);
         exit;
     }
@@ -190,10 +191,10 @@ if ($data['action'] === 'approve_freeze') {
 
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         // Find freeze duration and extend active tasks' due dates
-        $date_stmt = $conn->prepare("SELECT freeze_start_date, freeze_end_date FROM users WHERE id = ?");
+        $date_stmt = $conn->prepare("SELECT freeze_start_date, freeze_end_date, freeze_reason FROM users WHERE id = ?");
         $date_stmt->bind_param("i", $intern_id);
         $date_stmt->execute();
-        $date_stmt->bind_result($start_date, $end_date);
+        $date_stmt->bind_result($start_date, $end_date, $freeze_reason_val);
         $date_stmt->fetch();
         $date_stmt->close();
 
@@ -203,13 +204,23 @@ if ($data['action'] === 'approve_freeze') {
             $days = $start->diff($end)->days + 1;
 
             $task_stmt = $conn->prepare("
-                UPDATE tasks 
-                SET due_date = DATE_ADD(due_date, INTERVAL ? DAY) 
+                UPDATE tasks
+                SET due_date = DATE_ADD(due_date, INTERVAL ? DAY)
                 WHERE assign_to = ? AND status IN ('inprogress', 'needs_improvement')
             ");
             $task_stmt->bind_param("ii", $days, $intern_id);
             $task_stmt->execute();
             $task_stmt->close();
+
+            // Permanently log this freeze period so internship duration and attendance
+            // calculations can account for it, even after the freeze is auto-resumed.
+            $log_stmt = $conn->prepare("
+                INSERT INTO freeze_logs (user_id, start_date, end_date, days, reason, approved_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $log_stmt->bind_param("issisi", $intern_id, $start_date, $end_date, $days, $freeze_reason_val, $approver_id);
+            $log_stmt->execute();
+            $log_stmt->close();
         }
 
         // Get intern details for notification
@@ -562,20 +573,12 @@ if ($data['action'] === 'get_freeze_status') {
     $result = $stmt->get_result();
 
     if ($row = $result->fetch_assoc()) {
-        // Check if internship is complete
-        $duration_weeks = 12;
-        if (!empty($row['internship_duration'])) {
-            if ($row['internship_duration'] === '4 weeks') $duration_weeks = 4;
-            elseif ($row['internship_duration'] === '8 weeks') $duration_weeks = 8;
-            elseif ($row['internship_duration'] === '12 weeks') $duration_weeks = 12;
-        } else {
-            $duration_weeks = ($row['internship_type'] == 0) ? 4 : 12;
-        }
-        $internship_end_date = new DateTime($row['created_at']);
-        $internship_end_date->modify("+{$duration_weeks} weeks");
+        // Check if internship is complete (accounts for any previously approved freeze days)
+        $internship_end_date = getInternshipCompletionDate($conn, $user_id);
         $today = new DateTime();
 
-        $row['is_internship_complete'] = ($today >= $internship_end_date);
+        $row['is_internship_complete'] = $internship_end_date ? ($today >= $internship_end_date) : false;
+        $row['freeze_days_total'] = getUserFreezeDays($conn, $user_id);
 
         echo json_encode(["success" => true, "data" => $row]);
     } else {

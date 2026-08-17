@@ -164,16 +164,12 @@ function buildRegistrationEmailHtml($candidateName, $emailMessage, $waLink, $int
                     </a>
                 </div>
 
-                <div style=\"text-align: center; margin: 20px 0 24px 0;\">
-                    <p style=\"font-size: 13px; color: #94A3B8; margin-bottom: 10px;\">Or connect with us directly on WhatsApp:</p>
+                <div style=\"text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #E2E8F0;\">
+                    <p style=\"font-size: 13px; color: #94A3B8; margin-bottom: 10px;\">Have questions? Connect with us directly on WhatsApp:</p>
                     <a href=\"" . $waLink . "\" target=\"_blank\" style=\"background-color: #25D366; color: #FFFFFF; padding: 10px 24px; border-radius: 12px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);\">
                         <img src=\"cid:whatsapp_logo_cid\" alt=\"WhatsApp\" style=\"width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; display: inline-block;\">
                         <span style=\"vertical-align: middle; display: inline-block;\">Message on WhatsApp</span>
                     </a>
-                </div>
-
-                <div style=\"margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0; text-align: center;\">
-                    <p style=\"margin: 0; font-size: 13px; color: #64748B;\">If you have any questions, please feel free to reach out to us on WhatsApp.</p>
                 </div>
             </div>
             <div class=\"email-footer\" style=\"background-color: #1E293B; padding: 28px 24px; text-align: center; font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0;\">

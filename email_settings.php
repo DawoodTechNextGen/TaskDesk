@@ -129,7 +129,12 @@ include_once "./include/headerLinks.php";
                 const json = await res.json();
                 if (json.success) {
                     document.getElementById('emailSubject').value = json.email_subject || '';
-                    quill.root.innerHTML = json.email_body || '';
+                    // dangerouslyPasteHTML (not root.innerHTML) so Quill parses <ul>/<ol>/<li>
+                    // into its internal list format - a direct innerHTML assignment renders
+                    // them visually at first but Quill silently drops list items later since
+                    // it doesn't recognize the markup as its own.
+                    quill.setContents([]);
+                    quill.clipboard.dangerouslyPasteHTML(json.email_body || '');
                     document.getElementById('interestedLink').value = json.interested_link || '';
                 } else {
                     showToast('error', json.message || 'Failed to load settings');

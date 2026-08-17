@@ -1008,7 +1008,7 @@ switch ($action) {
             }
 
             $responseToken = ensureResponseToken($conn, $id);
-            $interestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=interested';
+            $interestedLink = buildInterestedLink($emailSettings['link'], $responseToken);
             $notInterestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=not_interested';
 
             $htmlContent = buildRegistrationEmailHtml($candidate_name, $emailMessage, $waLink, $interestedLink, $notInterestedLink);

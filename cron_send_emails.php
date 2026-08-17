@@ -42,11 +42,11 @@ function cronSendRegistrationEmails() {
         $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
 
         $responseToken = ensureResponseToken($conn, $candidate_id);
-        $interestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=interested';
+        $emailSettings = getRegistrationEmailSettings($conn, $internshipType);
+        $interestedLink = buildInterestedLink($emailSettings['link'], $responseToken);
         $notInterestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=not_interested';
 
         // Construct HTML email body matching company design, using the settings for this candidate's internship type
-        $emailSettings = getRegistrationEmailSettings($conn, $internshipType);
         $htmlContent = buildRegistrationEmailHtml($candidate_name, $emailSettings['body'], $waLink, $interestedLink, $notInterestedLink);
 
         $subject = $emailSettings['subject'];

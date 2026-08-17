@@ -106,6 +106,17 @@ function ensureResponseToken($conn, $registrationId) {
     return $token;
 }
 
+// The "Yes, I am Interested" button links straight to the configured payment/registration
+// page whenever one is set, instead of routing through our own registration_response.php.
+// That keeps the button working even if this app's own BASE_URL/server is unreachable -
+// only the "Not Interested" button needs our server, since it has to update the DB status.
+function buildInterestedLink($interestedLinkSetting, $responseToken) {
+    if (!empty($interestedLinkSetting)) {
+        return $interestedLinkSetting;
+    }
+    return rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=interested';
+}
+
 // Builds the CTA email HTML shared by cron_send_emails.php and controller/registrations.php.
 // $emailMessage is trusted HTML authored by an admin via the Quill editor on email_settings.php
 // (bold, bullet/numbered lists, links) - not escaped, so it renders as real formatting in the email.

@@ -6,6 +6,7 @@ ini_set('display_errors', 0);
 include '../include/connection.php';
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
+require_once '../include/registration_helper.php';
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -991,85 +992,29 @@ switch ($action) {
                 echo json_encode(['success' => false, 'message' => 'Candidate email not found']);
                 exit;
             }
-            if (empty($emailMessage)) {
-                $emailMessage = "Thank you for applying for the DawoodTech NextGen Internship Program.\n\nTo proceed with your application, please reply on WhatsApp with the word \"Interested\".\n\nWe will then share the next steps and internship details.\n\nBest Regards,\nDawoodTech NextGen Team";
-            }
 
             $candidate_name = $resFetch['name'];
             $candidate_email = $resFetch['email'];
 
-            // Design email HTML content matching the logo scheme with modern tech look and WhatsApp CTA
-            $current_year = date('Y');
-            $formattedMessage = nl2br(htmlspecialchars($emailMessage));
-            $logoUrl = rtrim(BASE_URL, '/') . '/assets/images/logo.png';
             $waNumber = COMPANY_WHATSAPP;
             $internshipType = (int)($resFetch['internship_type'] ?? 0);
             $internTypeLabel = ($internshipType === 1) ? 'Learning Base Interns' : 'Task Base Interns';
             $waMessage = 'Interested in ' . $internTypeLabel;
             $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
-            
-            $htmlContent = "
-            <style>
-                @media screen and (max-width: 600px) {
-                    .email-container {
-                        padding: 20px 10px !important;
-                    }
-                    .email-card {
-                        border-radius: 12px !important;
-                    }
-                    .email-header {
-                        padding: 20px 20px !important;
-                    }
-                    .email-body {
-                        padding: 30px 20px !important;
-                    }
-                    .email-logo {
-                        max-height: 40px !important;
-                    }
-                    .email-footer {
-                        padding: 24px 20px !important;
-                    }
-                }
-            </style>
-            <div class=\"email-container\" style=\"background-color: #F8FAFC; padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100%;\">
-                <div class=\"email-card\" style=\"max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #E2E8F0;\">
-                    <!-- White Header with Logo and Blue bottom border -->
-                    <div class=\"email-header\" style=\"background-color: #FFFFFF; padding: 28px 32px; text-align: center; border-bottom: 4px solid #2563EB;\">
-                        <img class=\"email-logo\" src=\"cid:logo_cid\" alt=\"DawoodTech NextGen\" style=\"max-height: 52px; width: auto; max-width: 100%; height: auto; display: inline-block;\">
-                    </div>
-                    <!-- Body Content -->
-                    <div class=\"email-body\" style=\"padding: 40px 32px; color: #0F172A; line-height: 1.6; font-size: 16px;\">
-                        <div style=\"margin-bottom: 24px;\">
-                            <span style=\"background-color: #E0E7FF; color: #2563EB; padding: 6px 14px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: inline-block;\">NextGen Career Portal</span>
-                        </div>
-                        <p style=\"margin-top: 0; font-weight: 700; font-size: 20px; color: #1E293B; letter-spacing: -0.3px;\">Dear " . htmlspecialchars($candidate_name) . ",</p>
-                        <div style=\"margin: 24px 0; color: #334155; border-left: 4px solid #2563EB; padding-left: 18px;\">
-                            " . $formattedMessage . "
-                        </div>
-                        
-                        <!-- Interactive WhatsApp Button -->
-                        <div style=\"text-align: center; margin: 36px 0 24px 0;\">
-                            <p style=\"font-size: 14px; color: #64748B; margin-bottom: 12px; font-weight: 500;\">Are you interested? Let's connect directly on WhatsApp:</p>
-                            <a href=\"" . $waLink . "\" target=\"_blank\" style=\"background-color: #25D366; color: #FFFFFF; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); text-align: center; vertical-align: middle;\">
-                                <img src=\"cid:whatsapp_logo_cid\" alt=\"WhatsApp\" style=\"width: 18px; height: 18px; vertical-align: middle; margin-right: 8px; display: inline-block;\">
-                                <span style=\"vertical-align: middle; display: inline-block;\">Message on WhatsApp</span>
-                            </a>
-                        </div>
 
-                        <div style=\"margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0; text-align: center;\">
-                            <p style=\"margin: 0; font-size: 13px; color: #64748B;\">If you have any questions, please feel free to reach out to us on WhatsApp.</p>
-                        </div>
-                    </div>
-                    <!-- Footer with Dark Slate matching the logo text -->
-                    <div class=\"email-footer\" style=\"background-color: #1E293B; padding: 28px 24px; text-align: center; font-size: 12px; color: #94A3B8; border-top: 1px solid #E2E8F0;\">
-                        <p style=\"margin: 0 0 8px 0; font-weight: 600; color: #FFFFFF; font-size: 13px;\">DawoodTech NextGen</p>
-                        <p style=\"margin: 0; font-size: 11px;\">&copy; " . $current_year . " DawoodTech. All rights reserved.</p>
-                    </div>
-                </div>
-            </div>";
+            $emailSettings = getRegistrationEmailSettings($conn, $internshipType);
+            if (empty($emailMessage)) {
+                $emailMessage = $emailSettings['body'];
+            }
+
+            $responseToken = ensureResponseToken($conn, $id);
+            $interestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=interested';
+            $notInterestedLink = rtrim(BASE_URL, '/') . '/registration_response.php?token=' . urlencode($responseToken) . '&action=not_interested';
+
+            $htmlContent = buildRegistrationEmailHtml($candidate_name, $emailMessage, $waLink, $interestedLink, $notInterestedLink);
 
             // Send notification email using PHPMailer with fallback
-            $subject = 'Application Update - DawoodTech NextGen';
+            $subject = $emailSettings['subject'];
             $emailSent = sendEmailPHPMailer($candidate_email, $candidate_name, $subject, $htmlContent, null, '', 'primary');
             if (!$emailSent) {
                 $emailSent = sendEmailPHPMailer($candidate_email, $candidate_name, $subject, $htmlContent, null, '', 'gmail');
@@ -1137,102 +1082,8 @@ switch ($action) {
 
     case 'reject_candidate':
         $id = (int)$_POST['id'];
-
-        // 1. Fetch candidate info for notification
-        $stmt_fetch = $conn->prepare("
-            SELECT r.name, r.email, r.remarks, t.name as technology 
-            FROM registrations r
-            LEFT JOIN technologies t ON t.id = r.technology_id
-            WHERE r.id = ?
-        ");
-        $stmt_fetch->bind_param('i', $id);
-        $stmt_fetch->execute();
-        $candidate = $stmt_fetch->get_result()->fetch_assoc();
-        $stmt_fetch->close();
-
-        if (!$candidate) {
-            echo json_encode(['success' => false, 'message' => 'Candidate not found']);
-            break;
-        }
-
-        // 2. Perform rejection
-        $sql = "UPDATE registrations 
-            SET status = 'rejected'
-            WHERE id = ?";
-
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('i', $id);
-
-        if ($stmt->execute()) {
-            // 3. Prepare Rejection Message
-            $tech_name = $candidate['technology'] ?? 'Jr Developer';
-            $remarks = trim($candidate['remarks'] ?? '');
-            
-         if (!empty($remarks)) {
-    $rejection_message = "
-        <p>
-            After careful review of your application, we regret to inform you that we will not be moving forward with your candidature at this time.
-        </p>
-        <p>
-            <strong>Feedback:</strong><br>
-            " . nl2br(htmlspecialchars($remarks)) . "
-        </p>
-        <p>
-            Please note that this decision was made after evaluating multiple applications, and it does not reflect negatively on your overall potential.
-        </p>
-    ";
-} else {
-    $rejection_message = "
-        <p>
-            After careful review of your application, we regret to inform you that we will not be moving forward with your candidature at this time.
-        </p>
-        <p>
-            Due to a high volume of applications, we are unable to provide individual feedback on this occasion.
-        </p>
-    ";
-}
-
-$subject = "Application Status Update - DawoodTech NextGen";
-
-$html_content = "
-    <div style='font-family: Arial, sans-serif; line-height: 1.7; color: #333;'>
-        <p>Dear " . htmlspecialchars($candidate['name']) . ",</p>
-
-        <p>
-            Thank you for your interest in the <strong>" . htmlspecialchars($tech_name) . " Internship</strong> at DawoodTech NextGen and for the time you invested in your application.
-        </p>
-
-        $rejection_message
-
-        <p>
-            We sincerely appreciate your interest in DawoodTech NextGen and encourage you to apply again in the future should a suitable opportunity arise.
-        </p>
-
-        <p style='color: #666; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 12px; margin-top: 24px;'>
-            <strong>Note:</strong> This is an automated message. Replies to this email will not be monitored.
-        </p>
-
-        <p>
-            Kind regards,<br>
-            <strong>Hiring Team</strong><br>
-            DawoodTech NextGen
-        </p>
-    </div>
-";
-
-
-            sendNotificationFallback([
-                'email' => $candidate['email'],
-                'name' => $candidate['name'],
-                'subject' => $subject,
-                'html_content' => $html_content
-            ]);
-
-            echo json_encode(['success' => true, 'message' => 'Candidate rejected and notified via email']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to reject candidate']);
-        }
-        $stmt->close();
+        $rejectResult = rejectRegistrationAndNotify($conn, $id);
+        echo json_encode($rejectResult);
         break;
 
     default:

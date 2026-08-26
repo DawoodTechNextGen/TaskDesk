@@ -130,16 +130,16 @@ if ($action === 'intern_stats') {
 
     $duration_weeks = getInternshipTotalWeeks($user_res['internship_duration'] ?? '', $user_res['internship_type'] ?? null);
 
-    // Calculate completion date (extended by any approved freeze days)
-    $completion_date = getInternshipCompletionDate($conn, $calc_user_id);
+    // Freeze-aware attendance summary (shared with admin/supervisor views so a completed
+    // intern's numbers can't drift between this page and theirs).
+    $attendance_summary = getInternAttendanceSummary($conn, $calc_user_id, $created_at);
+    $completion_date = $attendance_summary['completion_date'];
+    $total_days = $attendance_summary['total_days'];
+    $present_days = $attendance_summary['present_days'];
+    $attendance_percentage = $attendance_summary['attendance_percentage'];
 
     $now = new DateTime();
     $now->setTime(0, 0, 0); // Normalize to start of today
-
-    // End date for calculation is earlier of today or completion date
-    $calc_end_date = min($now, $completion_date);
-
-    $total_days = getWorkingDaysExcludingFreeze($conn, $calc_user_id, $created_at, $calc_end_date);
 
     // Calculate current week (cap at total weeks)
     $days_since_start = $created_at->diff($now)->days;
@@ -147,25 +147,9 @@ if ($action === 'intern_stats') {
 
     // Total weeks
     $total_weeks = $duration_weeks;
-    
-    // Cap current week at total weeks if needed, or let it exceed to show overtime? 
+
+    // Cap current week at total weeks if needed, or let it exceed to show overtime?
     // Usually "Week 5 of 4" is informative. Let's keep it real.
-
-    // Count present days (>= 3 hours OR task completed)
-    $stmt = $conn->prepare("
-        SELECT COUNT(DISTINCT date) as present_days FROM (
-            SELECT DATE(date) as date FROM attendance WHERE user_id = ? AND total_work_seconds >= 10800
-            UNION
-            SELECT DATE(completed_at) as date FROM tasks WHERE assign_to = ? AND status = 'complete'
-        ) as combined_attendance
-    ");
-    $stmt->bind_param("ii", $calc_user_id, $calc_user_id);
-    $stmt->execute();
-    $attendance_result = $stmt->get_result()->fetch_assoc();
-    $present_days = $attendance_result['present_days'];
-
-    $attendance_percentage = $total_days > 0 ?
-        round(($present_days / $total_days) * 100) : 0;
 
     echo json_encode([
         'success' => true,
@@ -837,25 +821,21 @@ if ($action === 'supervisor_intern_attendance') {
     $today->setTime(0, 0, 0);
 
     while ($row = $result->fetch_assoc()) {
-        // Skip intern if their internship duration is already completed (accounts for freeze days)
-        $end_date = getInternshipCompletionDate($conn, $row['id']);
-        $current_date = new DateTime();
-        $current_date->setTime(0, 0, 0);
-
-        if ($end_date && $current_date > $end_date) {
-            continue; // Skip this intern
-        }
-
         $createdAt = new DateTime($row['created_at']);
         $createdAt->setTime(0, 0, 0);
 
-        // Calculate total working days up to today, excluding frozen days
-        $total_working_days = getWorkingDaysExcludingFreeze($conn, $row['id'], $createdAt, $today);
+        // Freeze-aware attendance summary, shared with the intern's own dashboard so the
+        // numbers here can't drift from what the intern sees.
+        $attendance_summary = getInternAttendanceSummary($conn, $row['id'], $createdAt);
 
-        $row['total_days'] = $total_working_days;
-        $row['attendance_percentage'] = $total_working_days > 0 
-            ? round(($row['present_days'] / $total_working_days) * 100) 
-            : 0;
+        // Skip intern if their internship duration is already completed (accounts for freeze days)
+        if ($attendance_summary['is_completed']) {
+            continue; // Skip this intern
+        }
+
+        $row['total_days'] = $attendance_summary['total_days'];
+        $row['present_days'] = $attendance_summary['present_days'];
+        $row['attendance_percentage'] = $attendance_summary['attendance_percentage'];
         $interns[] = $row;
     }
     

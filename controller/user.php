@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../include/connection.php';
+require_once __DIR__ . '/../include/internship_helper.php';
 header('Content-Type: application/json');
 
 
@@ -64,6 +65,7 @@ switch ($action) {
             u.plain_password,
             u.internship_type,
             u.internship_duration,
+            u.created_at,
             t.name AS tech_name,
             s.id AS supervisor_id,
             s.name AS supervisor_name,
@@ -76,23 +78,6 @@ switch ($action) {
                 WHERE assign_to = u.id
             ) AS completion_rate,
             TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
-            (
-                SELECT ROUND((COUNT(DISTINCT ca.date) / (TIMESTAMPDIFF(DAY, u.created_at, NOW()) + 1)) * 100)
-                FROM (
-                    SELECT DATE(date) as date, user_id FROM attendance WHERE total_work_seconds >= 10800
-                    UNION
-                    SELECT DATE(completed_at) as date, assign_to as user_id FROM tasks WHERE status = 'complete'
-                ) as ca
-                WHERE ca.user_id = u.id
-                  AND ca.date >= DATE(u.created_at)
-                  AND ca.date <= CURDATE()
-            ) as attendance_rate,
-            DATEDIFF(DATE_ADD(u.created_at, INTERVAL (CASE 
-                WHEN u.internship_duration = '4 weeks' THEN 4
-                WHEN u.internship_duration = '8 weeks' THEN 8
-                WHEN u.internship_duration = '12 weeks' THEN 12
-                ELSE IF(u.internship_type = 0, 4, 12)
-            END) WEEK), NOW()) as days_left,
             c.approve_status,
             (
                 SELECT COALESCE(MAX(week_number), 0)
@@ -111,12 +96,6 @@ switch ($action) {
         WHERE u.user_role = 2
           AND u.freeze_status = 'active'
           AND u.status = 1
-          AND DATE_ADD(u.created_at, INTERVAL (CASE 
-                WHEN u.internship_duration = '4 weeks' THEN 4
-                WHEN u.internship_duration = '8 weeks' THEN 8
-                WHEN u.internship_duration = '12 weeks' THEN 12
-                ELSE IF(u.internship_type = 0, 4, 12)
-            END) WEEK) > NOW()
     ";
 
         // Apply supervisor condition ONLY if role == 3
@@ -132,7 +111,32 @@ switch ($action) {
 
         $stmt->execute();
         $result = $stmt->get_result();
-        $data = $result->fetch_all(MYSQLI_ASSOC);
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+        // Attendance % and completion date are computed with the same freeze-aware
+        // helpers the intern's own dashboard uses, so the two sides never disagree.
+        $now = new DateTime();
+        $now->setTime(0, 0, 0);
+        $data = [];
+        foreach ($rows as $row) {
+            $created_at = new DateTime($row['created_at']);
+            $created_at->setTime(0, 0, 0);
+
+            $attendance = getInternAttendanceSummary($conn, $row['id'], $created_at);
+
+            // Internship already finished (accounting for approved freeze extensions) -
+            // belongs in the Completed Interns list instead.
+            if ($attendance['is_completed']) {
+                continue;
+            }
+
+            $row['attendance_rate'] = $attendance['attendance_percentage'];
+            $row['days_left'] = $attendance['completion_date']
+                ? (int)$now->diff($attendance['completion_date'])->format('%r%a')
+                : null;
+            unset($row['created_at']);
+            $data[] = $row;
+        }
 
         echo json_encode([
             'success' => true,
@@ -179,15 +183,9 @@ switch ($action) {
 
         $sql = "
         SELECT
-            u.id, u.name, u.email, u.tech_id, u.internship_type, u.internship_duration, t.name AS tech_name,
+            u.id, u.name, u.email, u.tech_id, u.internship_type, u.internship_duration, u.created_at, t.name AS tech_name,
             s.id AS supervisor_id, s.name AS supervisor_name,
             DATE(u.created_at) AS joining_date,
-            DATE_ADD(u.created_at, INTERVAL (CASE 
-                WHEN u.internship_duration = '4 weeks' THEN 4
-                WHEN u.internship_duration = '8 weeks' THEN 8
-                WHEN u.internship_duration = '12 weeks' THEN 12
-                ELSE IF(u.internship_type = 0, 4, 12)
-            END) WEEK) AS completion_date,
             (
                 SELECT ROUND(
                     (COUNT(CASE WHEN status = 'complete' THEN 1 END) / COUNT(*)) * 100
@@ -196,33 +194,6 @@ switch ($action) {
                 WHERE assign_to = u.id
             ) AS completion_rate,
             TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
-            DATEDIFF(DATE_ADD(u.created_at, INTERVAL (CASE 
-                WHEN u.internship_duration = '4 weeks' THEN 4
-                WHEN u.internship_duration = '8 weeks' THEN 8
-                WHEN u.internship_duration = '12 weeks' THEN 12
-                ELSE IF(u.internship_type = 0, 4, 12)
-            END) WEEK), NOW()) as days_left,
-            (
-                SELECT ROUND((COUNT(DISTINCT ca.date) / (TIMESTAMPDIFF(DAY, u.created_at, DATE_ADD(u.created_at, INTERVAL (CASE 
-                    WHEN u.internship_duration = '4 weeks' THEN 4
-                    WHEN u.internship_duration = '8 weeks' THEN 8
-                    WHEN u.internship_duration = '12 weeks' THEN 12
-                    ELSE IF(u.internship_type = 0, 4, 12)
-                END) WEEK)) + 1)) * 100)
-                FROM (
-                    SELECT DATE(date) as date, user_id FROM attendance WHERE total_work_seconds >= 10800
-                    UNION
-                    SELECT DATE(completed_at) as date, assign_to as user_id FROM tasks WHERE status = 'complete'
-                ) as ca
-                WHERE ca.user_id = u.id
-                  AND ca.date >= DATE(u.created_at)
-                  AND ca.date <= DATE_ADD(u.created_at, INTERVAL (CASE 
-                        WHEN u.internship_duration = '4 weeks' THEN 4
-                        WHEN u.internship_duration = '8 weeks' THEN 8
-                        WHEN u.internship_duration = '12 weeks' THEN 12
-                        ELSE IF(u.internship_type = 0, 4, 12)
-                    END) WEEK)
-            ) as attendance_rate,
             c.approve_status
         FROM users u
         LEFT JOIN technologies t ON u.tech_id = t.id
@@ -230,12 +201,6 @@ switch ($action) {
         LEFT JOIN certificate c ON c.intern_id = u.id
         WHERE u.user_role = 2
           AND u.status = 1
-          AND DATE_ADD(u.created_at, INTERVAL (CASE 
-                WHEN u.internship_duration = '4 weeks' THEN 4
-                WHEN u.internship_duration = '8 weeks' THEN 8
-                WHEN u.internship_duration = '12 weeks' THEN 12
-                ELSE IF(u.internship_type = 0, 4, 12)
-            END) WEEK) <= NOW()
         ";
 
         if ($user_role == 3) {
@@ -249,7 +214,31 @@ switch ($action) {
 
         $stmt->execute();
         $result = $stmt->get_result();
-        $data = $result->fetch_all(MYSQLI_ASSOC);
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+        // Attendance %, completion date and the completed/not-completed cutoff are all
+        // computed with the same freeze-aware helpers the intern's own dashboard uses,
+        // so this list never disagrees with what the intern sees on their side.
+        $now = new DateTime();
+        $now->setTime(0, 0, 0);
+        $data = [];
+        foreach ($rows as $row) {
+            $created_at = new DateTime($row['created_at']);
+            $created_at->setTime(0, 0, 0);
+
+            $attendance = getInternAttendanceSummary($conn, $row['id'], $created_at);
+
+            // Not actually completed yet once approved freeze days extend the end date.
+            if (!$attendance['is_completed']) {
+                continue;
+            }
+
+            $row['completion_date'] = $attendance['completion_date']->format('Y-m-d H:i:s');
+            $row['days_left'] = (int)$now->diff($attendance['completion_date'])->format('%r%a');
+            $row['attendance_rate'] = $attendance['attendance_percentage'];
+            unset($row['created_at']);
+            $data[] = $row;
+        }
 
         echo json_encode(['success' => true, 'data' => $data]);
         break;

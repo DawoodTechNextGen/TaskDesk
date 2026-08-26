@@ -157,3 +157,41 @@ if (!function_exists('getWorkingDaysExcludingFreeze')) {
         return max(0, $workingDays);
     }
 }
+
+if (!function_exists('getInternAttendanceSummary')) {
+    // Single source of truth for an intern's attendance %, shared by the intern's own
+    // dashboard and every admin/supervisor view, so a completed intern's freeze-adjusted
+    // completion date and working-day count never disagree between the two sides.
+    function getInternAttendanceSummary($conn, $user_id, $created_at) {
+        $completion_date = getInternshipCompletionDate($conn, $user_id);
+
+        $now = new DateTime();
+        $now->setTime(0, 0, 0);
+
+        $calc_end_date = $completion_date ? min($now, $completion_date) : $now;
+        $total_days = getWorkingDaysExcludingFreeze($conn, $user_id, $created_at, $calc_end_date);
+
+        $stmt = $conn->prepare("
+            SELECT COUNT(DISTINCT date) as present_days FROM (
+                SELECT DATE(date) as date FROM attendance WHERE user_id = ? AND total_work_seconds >= 10800
+                UNION
+                SELECT DATE(completed_at) as date FROM tasks WHERE assign_to = ? AND status = 'complete'
+            ) as combined_attendance
+        ");
+        $present_days = 0;
+        if ($stmt) {
+            $stmt->bind_param("ii", $user_id, $user_id);
+            $stmt->execute();
+            $present_days = (int)($stmt->get_result()->fetch_assoc()['present_days'] ?? 0);
+            $stmt->close();
+        }
+
+        return [
+            'completion_date' => $completion_date,
+            'is_completed' => $completion_date ? ($now > $completion_date) : false,
+            'present_days' => $present_days,
+            'total_days' => $total_days,
+            'attendance_percentage' => $total_days > 0 ? round(($present_days / $total_days) * 100) : 0,
+        ];
+    }
+}

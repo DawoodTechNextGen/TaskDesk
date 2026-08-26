@@ -118,80 +118,171 @@ if (!function_exists('getInternshipCompletionDate')) {
     }
 }
 
+if (!function_exists('countWeekdaysBetween')) {
+    // Mon-Fri day count between two DateTime bounds (inclusive)
+    function countWeekdaysBetween($startDate, $endDate) {
+        if ($startDate > $endDate) return 0;
+        $count = 0;
+        $current = clone $startDate;
+        while ($current <= $endDate) {
+            if ((int)$current->format('N') < 6) { // Excludes Sat(6) and Sun(7)
+                $count++;
+            }
+            $current->modify('+1 day');
+        }
+        return $count;
+    }
+}
+
+if (!function_exists('subtractFreezeWeekdays')) {
+    // Subtract, from an already-computed weekday count over [$startDate, $endDate], the
+    // weekdays that fall inside any of the given freeze periods (rows with start_date/end_date).
+    function subtractFreezeWeekdays($workingDays, array $freezePeriods, $startDate, $endDate) {
+        $startStr = $startDate->format('Y-m-d');
+        $endStr = $endDate->format('Y-m-d');
+        foreach ($freezePeriods as $period) {
+            if ($period['start_date'] > $endStr || $period['end_date'] < $startStr) continue;
+            $fStart = new DateTime(max($period['start_date'], $startStr));
+            $fEnd = new DateTime(min($period['end_date'], $endStr));
+            $workingDays -= countWeekdaysBetween($fStart, $fEnd);
+        }
+        return max(0, $workingDays);
+    }
+}
+
 if (!function_exists('getWorkingDaysExcludingFreeze')) {
     // Weekday count between two dates, excluding any days that fall inside an approved freeze period for this user
     function getWorkingDaysExcludingFreeze($conn, $user_id, $startDate, $endDate) {
         if ($startDate > $endDate) return 0;
 
-        $workingDays = 0;
-        $current = clone $startDate;
-        while ($current <= $endDate) {
-            if ((int)$current->format('N') < 6) { // Excludes Sat(6) and Sun(7)
-                $workingDays++;
-            }
-            $current->modify('+1 day');
-        }
+        $workingDays = countWeekdaysBetween($startDate, $endDate);
 
         $startStr = $startDate->format('Y-m-d');
         $endStr = $endDate->format('Y-m-d');
 
+        $freezePeriods = [];
         $stmt = $conn->prepare("SELECT start_date, end_date FROM freeze_logs WHERE user_id = ? AND start_date <= ? AND end_date >= ?");
         if ($stmt) {
             $stmt->bind_param("iss", $user_id, $endStr, $startStr);
             $stmt->execute();
+            $freezePeriods = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+        }
+
+        return subtractFreezeWeekdays($workingDays, $freezePeriods, $startDate, $endDate);
+    }
+}
+
+if (!function_exists('getInternAttendanceSummaries')) {
+    // Batch version of getInternAttendanceSummary(): computes freeze-aware attendance stats
+    // for many interns using a fixed number of queries (not one round-trip per intern), so
+    // admin/supervisor list views don't pay an N+1 cost as the intern count grows.
+    // $users: array of ['id'=>int, 'created_at'=>DateTime (midnight), 'internship_type'=>?, 'internship_duration'=>?]
+    // Returns: [user_id => summary array] (same shape as getInternAttendanceSummary())
+    function getInternAttendanceSummaries($conn, array $users) {
+        if (empty($users)) return [];
+
+        $ids = array_values(array_unique(array_map(fn($u) => (int)$u['id'], $users)));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $freezeDaysByUser = [];
+        $freezePeriodsByUser = [];
+        $stmt = $conn->prepare("SELECT user_id, start_date, end_date, days FROM freeze_logs WHERE user_id IN ($placeholders)");
+        if ($stmt) {
+            $stmt->execute($ids);
             $res = $stmt->get_result();
             while ($row = $res->fetch_assoc()) {
-                $fStart = new DateTime(max($row['start_date'], $startStr));
-                $fEnd = new DateTime(min($row['end_date'], $endStr));
-                $cur = clone $fStart;
-                while ($cur <= $fEnd) {
-                    if ((int)$cur->format('N') < 6) {
-                        $workingDays--;
-                    }
-                    $cur->modify('+1 day');
-                }
+                $uid = (int)$row['user_id'];
+                $freezeDaysByUser[$uid] = ($freezeDaysByUser[$uid] ?? 0) + (int)$row['days'];
+                $freezePeriodsByUser[$uid][] = $row;
             }
             $stmt->close();
         }
 
-        return max(0, $workingDays);
-    }
-}
-
-if (!function_exists('getInternAttendanceSummary')) {
-    // Single source of truth for an intern's attendance %, shared by the intern's own
-    // dashboard and every admin/supervisor view, so a completed intern's freeze-adjusted
-    // completion date and working-day count never disagree between the two sides.
-    function getInternAttendanceSummary($conn, $user_id, $created_at) {
-        $completion_date = getInternshipCompletionDate($conn, $user_id);
+        $presentDaysByUser = [];
+        $stmt = $conn->prepare("
+            SELECT user_id, COUNT(DISTINCT date) as present_days FROM (
+                SELECT user_id, DATE(date) as date FROM attendance WHERE total_work_seconds >= 10800 AND user_id IN ($placeholders)
+                UNION
+                SELECT assign_to as user_id, DATE(completed_at) as date FROM tasks WHERE status = 'complete' AND assign_to IN ($placeholders)
+            ) as combined_attendance
+            GROUP BY user_id
+        ");
+        if ($stmt) {
+            $stmt->execute(array_merge($ids, $ids));
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $presentDaysByUser[(int)$row['user_id']] = (int)$row['present_days'];
+            }
+            $stmt->close();
+        }
 
         $now = new DateTime();
         $now->setTime(0, 0, 0);
 
-        $calc_end_date = $completion_date ? min($now, $completion_date) : $now;
-        $total_days = getWorkingDaysExcludingFreeze($conn, $user_id, $created_at, $calc_end_date);
+        $summaries = [];
+        foreach ($users as $u) {
+            $uid = (int)$u['id'];
+            $created_at = $u['created_at'];
 
-        $stmt = $conn->prepare("
-            SELECT COUNT(DISTINCT date) as present_days FROM (
-                SELECT DATE(date) as date FROM attendance WHERE user_id = ? AND total_work_seconds >= 10800
-                UNION
-                SELECT DATE(completed_at) as date FROM tasks WHERE assign_to = ? AND status = 'complete'
-            ) as combined_attendance
-        ");
-        $present_days = 0;
-        if ($stmt) {
-            $stmt->bind_param("ii", $user_id, $user_id);
-            $stmt->execute();
-            $present_days = (int)($stmt->get_result()->fetch_assoc()['present_days'] ?? 0);
-            $stmt->close();
+            $weeks = getInternshipTotalWeeks($u['internship_duration'] ?? '', $u['internship_type'] ?? null);
+            $freeze_days = $freezeDaysByUser[$uid] ?? 0;
+
+            $completion_date = clone $created_at;
+            $completion_date->modify("+{$weeks} weeks");
+            if ($freeze_days > 0) {
+                $completion_date->modify("+{$freeze_days} days");
+            }
+
+            $calc_end_date = min($now, $completion_date);
+            $total_days = $created_at <= $calc_end_date
+                ? subtractFreezeWeekdays(
+                    countWeekdaysBetween($created_at, $calc_end_date),
+                    $freezePeriodsByUser[$uid] ?? [],
+                    $created_at,
+                    $calc_end_date
+                )
+                : 0;
+
+            $present_days = $presentDaysByUser[$uid] ?? 0;
+
+            $summaries[$uid] = [
+                'completion_date' => $completion_date,
+                'is_completed' => $now > $completion_date,
+                'present_days' => $present_days,
+                'total_days' => $total_days,
+                'attendance_percentage' => $total_days > 0 ? round(($present_days / $total_days) * 100) : 0,
+            ];
         }
 
-        return [
-            'completion_date' => $completion_date,
-            'is_completed' => $completion_date ? ($now > $completion_date) : false,
-            'present_days' => $present_days,
-            'total_days' => $total_days,
-            'attendance_percentage' => $total_days > 0 ? round(($present_days / $total_days) * 100) : 0,
-        ];
+        return $summaries;
+    }
+}
+
+if (!function_exists('getInternAttendanceSummary')) {
+    // Single-intern convenience wrapper around getInternAttendanceSummaries(), shared by the
+    // intern's own dashboard and every admin/supervisor view, so a completed intern's
+    // freeze-adjusted completion date and working-day count never disagree between the two sides.
+    function getInternAttendanceSummary($conn, $user_id, $created_at, $internship_type = null, $internship_duration = null) {
+        if ($internship_type === null && $internship_duration === null) {
+            $stmt = $conn->prepare("SELECT internship_type, internship_duration FROM users WHERE id = ?");
+            if ($stmt) {
+                $stmt->bind_param("i", $user_id);
+                $stmt->execute();
+                $u = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $internship_type = $u['internship_type'] ?? null;
+                $internship_duration = $u['internship_duration'] ?? null;
+            }
+        }
+
+        $summaries = getInternAttendanceSummaries($conn, [[
+            'id' => $user_id,
+            'created_at' => $created_at,
+            'internship_type' => $internship_type,
+            'internship_duration' => $internship_duration,
+        ]]);
+
+        return $summaries[(int)$user_id];
     }
 }

@@ -132,7 +132,7 @@ if ($action === 'intern_stats') {
 
     // Freeze-aware attendance summary (shared with admin/supervisor views so a completed
     // intern's numbers can't drift between this page and theirs).
-    $attendance_summary = getInternAttendanceSummary($conn, $calc_user_id, $created_at);
+    $attendance_summary = getInternAttendanceSummary($conn, $calc_user_id, $created_at, $user_res['internship_type'] ?? null, $user_res['internship_duration'] ?? null);
     $completion_date = $attendance_summary['completion_date'];
     $total_days = $attendance_summary['total_days'];
     $present_days = $attendance_summary['present_days'];
@@ -815,18 +815,28 @@ if ($action === 'supervisor_intern_attendance') {
     }
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    $interns = [];
-    $today = new DateTime();
-    $today->setTime(0, 0, 0);
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
 
-    while ($row = $result->fetch_assoc()) {
+    $summaryInputs = [];
+    foreach ($rows as $row) {
         $createdAt = new DateTime($row['created_at']);
         $createdAt->setTime(0, 0, 0);
+        $summaryInputs[] = [
+            'id' => $row['id'],
+            'created_at' => $createdAt,
+            'internship_type' => $row['internship_type'],
+            'internship_duration' => $row['internship_duration'],
+        ];
+    }
 
-        // Freeze-aware attendance summary, shared with the intern's own dashboard so the
-        // numbers here can't drift from what the intern sees.
-        $attendance_summary = getInternAttendanceSummary($conn, $row['id'], $createdAt);
+    // Freeze-aware attendance summaries, shared with the intern's own dashboard so the
+    // numbers here can't drift from what the intern sees. Computed in one batch instead of
+    // one round-trip of queries per intern.
+    $attendanceSummaries = getInternAttendanceSummaries($conn, $summaryInputs);
+
+    $interns = [];
+    foreach ($rows as $row) {
+        $attendance_summary = $attendanceSummaries[(int)$row['id']];
 
         // Skip intern if their internship duration is already completed (accounts for freeze days)
         if ($attendance_summary['is_completed']) {

@@ -115,14 +115,25 @@ switch ($action) {
 
         // Attendance % and completion date are computed with the same freeze-aware
         // helpers the intern's own dashboard uses, so the two sides never disagree.
+        // Computed in one batch instead of one round-trip of queries per intern.
         $now = new DateTime();
         $now->setTime(0, 0, 0);
-        $data = [];
+        $summaryInputs = [];
         foreach ($rows as $row) {
             $created_at = new DateTime($row['created_at']);
             $created_at->setTime(0, 0, 0);
+            $summaryInputs[] = [
+                'id' => $row['id'],
+                'created_at' => $created_at,
+                'internship_type' => $row['internship_type'],
+                'internship_duration' => $row['internship_duration'],
+            ];
+        }
+        $attendanceSummaries = getInternAttendanceSummaries($conn, $summaryInputs);
 
-            $attendance = getInternAttendanceSummary($conn, $row['id'], $created_at);
+        $data = [];
+        foreach ($rows as $row) {
+            $attendance = $attendanceSummaries[(int)$row['id']];
 
             // Internship already finished (accounting for approved freeze extensions) -
             // belongs in the Completed Interns list instead.
@@ -219,14 +230,25 @@ switch ($action) {
         // Attendance %, completion date and the completed/not-completed cutoff are all
         // computed with the same freeze-aware helpers the intern's own dashboard uses,
         // so this list never disagrees with what the intern sees on their side.
+        // Computed in one batch instead of one round-trip of queries per intern.
         $now = new DateTime();
         $now->setTime(0, 0, 0);
-        $data = [];
+        $summaryInputs = [];
         foreach ($rows as $row) {
             $created_at = new DateTime($row['created_at']);
             $created_at->setTime(0, 0, 0);
+            $summaryInputs[] = [
+                'id' => $row['id'],
+                'created_at' => $created_at,
+                'internship_type' => $row['internship_type'],
+                'internship_duration' => $row['internship_duration'],
+            ];
+        }
+        $attendanceSummaries = getInternAttendanceSummaries($conn, $summaryInputs);
 
-            $attendance = getInternAttendanceSummary($conn, $row['id'], $created_at);
+        $data = [];
+        foreach ($rows as $row) {
+            $attendance = $attendanceSummaries[(int)$row['id']];
 
             // Not actually completed yet once approved freeze days extend the end date.
             if (!$attendance['is_completed']) {

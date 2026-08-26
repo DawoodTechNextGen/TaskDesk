@@ -30,7 +30,11 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Internship Completed</h2>
                     </div>
-                    <div class="overflow-x-auto p-4">
+                    <div class="overflow-x-auto p-4 relative min-h-[220px]">
+                        <div id="completedTable-loading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                            <div class="loader-spinner-lg mb-3"></div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Loading completed interns...</p>
+                        </div>
                         <table id="completedTable" class="min-w-full">
                             <thead class="bg-green-200 dark:bg-green-600">
                                 <tr>
@@ -189,6 +193,15 @@ include_once "./include/headerLinks.php"; ?>
             }
             @keyframes spin { to { transform: rotate(360deg); } }
             .btn-disabled { opacity: 0.7; cursor: not-allowed !important; pointer-events: none; }
+            .loader-spinner-lg {
+                display: inline-block;
+                width: 40px;
+                height: 40px;
+                border: 4px solid rgba(16, 185, 129, .2);
+                border-radius: 50%;
+                border-top-color: #10b981;
+                animation: spin 1s linear infinite;
+            }
         `;
         document.head.appendChild(style);
 
@@ -203,6 +216,8 @@ include_once "./include/headerLinks.php"; ?>
         });
 
         async function loadCompletedInterns() {
+            const loadingEl = document.getElementById('completedTable-loading');
+            loadingEl?.classList.remove('hidden');
             try {
                 const res = await fetch('controller/user.php?action=get_completed_internees');
                 const json = await res.json();
@@ -288,6 +303,8 @@ include_once "./include/headerLinks.php"; ?>
             } catch (err) {
                 console.error("Failed to load completed interns:", err);
                 showToast('error', 'Failed to load completed interns');
+            } finally {
+                loadingEl?.classList.add('hidden');
             }
         }
 

@@ -44,7 +44,11 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Interns</h2>
                     </div>
-                    <div class="overflow-x-auto p-4">
+                    <div class="overflow-x-auto p-4 relative min-h-[220px]">
+                        <div id="interneesTable-loading" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                            <div class="loader-spinner-lg mb-3"></div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Loading interns...</p>
+                        </div>
                         <table id="interneesTable" class="min-w-full">
                             <thead class="bg-indigo-200 dark:bg-indigo-600">
                                 <tr>
@@ -348,7 +352,17 @@ include_once "./include/headerLinks.php"; ?>
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
+
+        .loader-spinner-lg {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, .2);
+            border-radius: 50%;
+            border-top-color: #6366f1;
+            animation: spin 1s linear infinite;
+        }
+
         .btn-disabled {
             opacity: 0.7;
             cursor: not-allowed !important;
@@ -406,6 +420,8 @@ include_once "./include/headerLinks.php"; ?>
         let interneesData = [];
 
         async function loadInternees() {
+            const loadingEl = document.getElementById('interneesTable-loading');
+            loadingEl?.classList.remove('hidden');
             try {
                 const res = await fetch('controller/user.php?action=get_internees');
                 const json = await res.json();
@@ -567,6 +583,8 @@ include_once "./include/headerLinks.php"; ?>
             } catch (err) {
                 console.error("Failed to load internees:", err);
                 showToast('error', 'Failed to load internees. Please refresh the page.');
+            } finally {
+                loadingEl?.classList.add('hidden');
             }
         }
 

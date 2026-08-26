@@ -450,7 +450,7 @@
                              </li>
                              <li>
                                 <a href="salaries.php" onclick="window.location=this.href"
-                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'salaries.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
                                     <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
                                         <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -458,6 +458,31 @@
                                         </svg>
                                     </div>
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Salaries</span>
+                                </a>
+                             </li>
+                             <li>
+                                <a href="receipt.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'receipt.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Receipts</span>
+                                </a>
+                             </li>
+                             <li>
+                                <a href="https://dawoodtechnextgen.com/TMS/" target="_blank" rel="noopener noreferrer"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link sidebar-link-border">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 10L12 4L21 10L12 16L3 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            <path d="M6.5 12V17C6.5 18.6569 9.13401 20 12.5 20C15.866 20 18.5 18.6569 18.5 17V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            <path d="M21 10V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">TMS</span>
                                 </a>
                              </li>
                              <li>

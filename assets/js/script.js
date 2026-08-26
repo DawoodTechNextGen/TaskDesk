@@ -152,6 +152,9 @@ document.addEventListener('click', (e) => {
 
 sidebarLinks.forEach(link => {
     link.addEventListener('click', function (e) {
+        if (this.target === '_blank') {
+            return;
+        }
         e.preventDefault();
         sidebarLinks.forEach(l => l.classList.remove('active-sidebar-link'));
         this.classList.add('active-sidebar-link');

@@ -1,10 +1,11 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] != 3 && $_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4)) {
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] != 3 && $_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != 5)) {
     header('location: login.php');
     exit;
 }
 include_once './include/connection.php';
+requirePageModule(MODULE_INTERNS);
 ?>
 <!DOCTYPE html>
 <html lang="en">

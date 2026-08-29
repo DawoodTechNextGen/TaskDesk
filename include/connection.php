@@ -48,6 +48,25 @@ class Database {
 $database = new Database();
 $conn = $database->getConnection();
 
+// module_permissions stores per-module read/write access for Collaborator (role 5)
+// accounts (see include/permissions.php). Created lazily here so it exists
+// regardless of which page runs first on a given environment.
+$conn->query("CREATE TABLE IF NOT EXISTS `module_permissions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `module` VARCHAR(50) NOT NULL,
+  `access` ENUM('read','write') NOT NULL DEFAULT 'read',
+  UNIQUE KEY `user_module` (`user_id`, `module`),
+  CONSTRAINT `fk_module_permissions_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+// Refreshed on every request (not just at login) so an Admin editing a
+// Collaborator's permissions takes effect on that Collaborator's very next page
+// load instead of requiring them to log out and back in.
+if (isset($_SESSION['user_id']) && isset($_SESSION['user_role']) && (int)$_SESSION['user_role'] === ROLE_COLLABORATOR) {
+    $_SESSION['module_permissions'] = getModulePermissionsForUser($conn, (int)$_SESSION['user_id']);
+}
+
 if (!function_exists('logActivity')) {
     function logActivity($action, $details) {
         global $conn;

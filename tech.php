@@ -4,6 +4,11 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
+// Admin-only page.
+if ((int)$_SESSION['user_role'] !== 1) {
+    header('Location: index.php');
+    exit;
+}
 include_once './include/connection.php';
 ?>
 <!DOCTYPE html>

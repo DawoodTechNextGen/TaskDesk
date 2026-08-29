@@ -28,6 +28,9 @@ function loadEnvironmentVariables($filePath = '.env') {
     }
 }
 
+// Roles and permission helpers are needed everywhere config.php reaches.
+require_once __DIR__ . '/permissions.php';
+
 // Load environment variables
 try {
     loadEnvironmentVariables(__DIR__ . '/../.env');

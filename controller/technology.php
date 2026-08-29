@@ -1,5 +1,11 @@
 <?php
+session_start();
 include '../include/connection.php';
+
+// Collaborators have read-only access to the system.
+enforceReadOnlyAccess([
+    'get',
+]);
 header('Content-Type: application/json');
 
 $action = $_REQUEST['action'] ?? '';

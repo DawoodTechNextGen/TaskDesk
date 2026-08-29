@@ -2,6 +2,13 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+
+// Freeze requests are part of the Interns module for Collaborators.
+enforceModuleAccess(MODULE_INTERNS, [
+    'approve_freeze',
+    'reject_freeze',
+    'request_freeze',
+]);
 require_once __DIR__ . '/../include/internship_helper.php';
 
 date_default_timezone_set('Asia/Karachi');
@@ -102,7 +109,7 @@ if ($data['action'] === 'get_freeze_requests') {
     $user_role = $_SESSION['user_role'];
 
     // Admin sees all, supervisor sees only their interns
-    if ($user_role == 1 || $user_role == 4) { // Admin or Manager
+    if ($user_role == 1 || $user_role == 4 || $user_role == ROLE_COLLABORATOR) { // Admin, Manager or Collaborator
         $stmt = $conn->prepare("
             SELECT u.id, u.name, u.email, u.freeze_start_date, u.freeze_end_date, 
                    u.freeze_reason, u.freeze_requested_at, t.name as technology
@@ -159,7 +166,7 @@ if ($data['action'] === 'approve_freeze') {
             exit;
         }
         $stmt->close();
-    } elseif ($user_role != 1 && $user_role != 4) { // Not admin or manager
+    } elseif ($user_role != 1 && $user_role != 4 && $user_role != ROLE_COLLABORATOR) { // Not admin, manager or Collaborator
         echo json_encode(["success" => false, "message" => "Unauthorized"]);
         exit;
     }
@@ -376,7 +383,7 @@ if ($data['action'] === 'reject_freeze') {
             exit;
         }
         $stmt->close();
-    } elseif ($user_role != 1 && $user_role != 4) { // Not admin or manager
+    } elseif ($user_role != 1 && $user_role != 4 && $user_role != ROLE_COLLABORATOR) { // Not admin, manager or Collaborator
         echo json_encode(["success" => false, "message" => "Unauthorized"]);
         exit;
     }

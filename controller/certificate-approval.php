@@ -3,6 +3,7 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 
+
 if ($_POST['action'] === 'get_cert_id') {
     $intern_id = (int)$_POST['id'];
     

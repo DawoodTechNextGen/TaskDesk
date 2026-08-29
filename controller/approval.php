@@ -8,7 +8,12 @@ if (!$data || !isset($data['action'])) {
     echo json_encode(["success" => false, "message" => "Invalid request"]);
     exit;
 }
+
+// Setting up a task's approval chain is a Tasks-module write. 'approve'/'decline'/
+// 'getApprovals' below act only on rows matching the caller's own email, so they
+// aren't gated here - a Collaborator can't reach anyone else's approval through them.
 if ($data['action'] === 'create') {
+    enforceModuleAccess(MODULE_TASKS, ['create']);
     $task_id = (int)$data['task_id'];
     $approval_status = $conn->real_escape_string(trim($data['approval_status']));
     $emails = $data['emails'];

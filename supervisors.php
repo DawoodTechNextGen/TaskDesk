@@ -4,6 +4,11 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
+// This page lists account credentials, so it stays with Admin and Manager only.
+if (!in_array((int)$_SESSION['user_role'], [1, 4], true)) {
+    header('Location: index.php');
+    exit;
+}
 include_once './include/connection.php';
 ?>
 <!DOCTYPE html>

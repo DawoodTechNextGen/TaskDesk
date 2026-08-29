@@ -33,6 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_role'] = $user['user_role'];
             $_SESSION['tech'] = isset($tech) && isset($tech['name']) ? $tech['name'] : null;
             $_SESSION['approval_status'] = isset($tech) && isset($tech['approve_status']) ? $tech['approve_status'] : null;
+            // module_permissions (for Collaborators) is (re)loaded on every request
+            // by include/connection.php once $_SESSION['user_role'] is set, so the
+            // very next page load after this redirect already has it.
             header('Location:' . BASE_URL . 'index.php');
             exit;
         } else {

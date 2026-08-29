@@ -1,11 +1,16 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4, 5])) {
     header('location:' . BASE_URL . 'login.php');
     exit;
 }
 include_once './include/connection.php';
+// Creating a task is a write, so it needs write (not just read) access to Tasks.
+if ((int)$_SESSION['user_role'] === ROLE_COLLABORATOR && !canWriteModule(MODULE_TASKS)) {
+    header('location: index.php');
+    exit;
+}
 $user_id = $_SESSION['user_id'];
 ?>
 <!DOCTYPE html>

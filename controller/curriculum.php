@@ -1,6 +1,14 @@
 <?php
 session_start();
 include '../include/connection.php';
+
+// Curriculum module: Collaborators can be granted no access, read, or read+write.
+enforceModuleAccess(MODULE_CURRICULUM, [
+    'save',
+    'delete',
+    'start_curriculum',
+    'import_json',
+]);
 include '../include/notification_helper.php';
 include '../include/internship_helper.php';
 header('Content-Type: application/json');
@@ -36,7 +44,7 @@ switch ($action) {
         break;
 
     case 'save':
-        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != ROLE_COLLABORATOR) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized to edit curriculum']);
             exit;
         }
@@ -87,7 +95,7 @@ switch ($action) {
         break;
 
     case 'delete':
-        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != ROLE_COLLABORATOR) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized to edit curriculum']);
             exit;
         }
@@ -238,7 +246,7 @@ switch ($action) {
         break;
 
     case 'import_json':
-        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+        if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != ROLE_COLLABORATOR) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
             exit;
         }

@@ -5,6 +5,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 include_once './include/connection.php';
+requirePageModule(MODULE_INTERNS);
 ?>
 <!DOCTYPE html>
 <html lang="en">

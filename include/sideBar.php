@@ -90,7 +90,7 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('reports'))) { ?>
                             <li>
                                 <a href="reports.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
@@ -104,7 +104,7 @@
                                 </a>
                             </li>
                         <?php } ?>
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || ($_SESSION['user_role'] == 5 && canViewModule('tasks'))) { ?>
                             <li>
                                 <?php
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);
@@ -145,6 +145,7 @@
                                     </svg>
                                 </button>
                                 <ul id="tasks-submenu" class="<?php echo $isTasksActive ? '' : 'hidden' ?> py-2 space-y-2">
+                                    <?php if ($_SESSION['user_role'] != 5 || canWriteModule('tasks')) { ?>
                                     <li>
                                         <a href="tasks_create.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks_create.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
                                             <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
@@ -161,6 +162,7 @@
                                             <span class="sidebar-item">Create New</span>
                                         </a>
                                     </li>
+                                    <?php } ?>
                                     <li>
                                         <a href="tasks.php?status=inprogress" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'tasks.php' && $currentStatus == 'inprogress') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
                                             <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
@@ -197,8 +199,8 @@
                                             <span class="sidebar-item flex-1 flex justify-between items-center">
                                                 <span>Review</span>
                                                 <?php
-                                                $rev_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM tasks WHERE status = 'pending_review'" . ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 ? " AND created_by = ?" : ""));
-                                                if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+                                                $rev_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM tasks WHERE status = 'pending_review'" . ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != 5 ? " AND created_by = ?" : ""));
+                                                if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != 5) {
                                                     $rev_stmt->bind_param("i", $_SESSION['user_id']);
                                                 }
                                                 if ($rev_stmt->execute()) {
@@ -249,7 +251,7 @@
                             </li>
                         <?php } ?>
 
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('registrations'))) { ?>
                             <li>
                                 <?php
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);
@@ -388,7 +390,7 @@
                             </li>
                         <?php } ?>
                         
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('curriculum'))) { ?>
                             <li>
                                 <a href="curriculum.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -449,6 +451,20 @@
                                 </a>
                              </li>
                              <li>
+                                <a href="user_management.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                     <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'user_management.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 15C8.13401 15 5 18.134 5 22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                            <path d="M15.5 19.5L17 21L21 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">User Management</span>
+                                </a>
+                             </li>
+                             <li>
                                 <a href="salaries.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'salaries.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
@@ -497,21 +513,10 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Audit Logs</span>
                                 </a>
                              </li>
-                             <li>
-                                <a href="email_settings.php" onclick="window.location=this.href"
-                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
-                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'email_settings.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
-                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
-                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M3 8L10.8906 13.2604C11.5624 13.7083 12.4376 13.7083 13.1094 13.2604L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                        </svg>
-                                    </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Email Settings</span>
-                                </a>
-                             </li>
                         <?php
                         } ?>
-                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3) { ?>
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || ($_SESSION['user_role'] == 5 && (canViewModule('interns') || canViewModule('attendance')))) { ?>
+                        <?php if ($_SESSION['user_role'] != 5 || canViewModule('interns')) { ?>
                             <li>
                                 <a href="internees.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -562,7 +567,8 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Completed Interns</span>
                                 </a>
                             </li>
-                            <?php if ($_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 1) { ?>
+                        <?php } ?>
+                            <?php if ($_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 1 || ($_SESSION['user_role'] == 5 && canViewModule('attendance'))) { ?>
                                 <li>
                                     <a href="attendance_supervisor.php" onclick="window.location=this.href"
                                         class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -575,6 +581,8 @@
                                         <span class="sidebar-item text-gray-700 dark:text-gray-200">Intern Attendance</span>
                                     </a>
                                 </li>
+                            <?php } ?>
+                            <?php if ($_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 1 || ($_SESSION['user_role'] == 5 && canViewModule('interns'))) { ?>
                                 <li>
                                     <a href="freeze_management.php" onclick="window.location=this.href"
                                         class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 
@@ -735,7 +743,7 @@
                         <p id="sidebar-name" class="font-medium text-gray-800 dark:text-white text-sm"><?= $_SESSION['user_name']; ?></p>
                         <p class="text-xs text-gray-500 dark:text-gray-400"> <?php
                                                                                 echo $_SESSION['tech'] . " " . (
-                                                                                    $_SESSION['user_role'] == '1' ? 'Admin' : ($_SESSION['user_role'] == '2' ? 'Intern' : ($_SESSION['user_role'] == '3' ? 'Supervisor' : 'Manager'))
+                                                                                    roleLabel($_SESSION['user_role'])
                                                                                 );
                                                                                 ?>
                         </p>

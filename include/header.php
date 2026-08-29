@@ -2,7 +2,10 @@
      class="header-half fixed z-1 border-b border-gray-200 dark:border-gray-700 bg-white/10 dark:bg-gray-800/10 backdrop-blur-md ">
      <div class="flex items-center justify-between px-6 py-4">
          <div class="flex items-center space-x-4">
-             <h1 class="text-xl font-semibold text-gray-800 dark:text-white"><?= ($_SESSION['user_role'] == 1) ? 'Admin Dashboard' : (($_SESSION['user_role'] == 2) ? 'Intern Dashboard' : 'Supervisor Dashboard') ?></h1>
+             <h1 class="text-xl font-semibold text-gray-800 dark:text-white"><?= roleLabel($_SESSION['user_role']) ?> Dashboard</h1>
+                 <?php if (isReadOnlyRole()): ?>
+                     <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Collaborator access</span>
+                 <?php endif; ?>
          </div>
          <div class="flex items-center align-middle space-x-4">
              <button id="dark-mode-toggle"

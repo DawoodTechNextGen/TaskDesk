@@ -2,6 +2,19 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+
+// Tasks module: Collaborators can be granted no access, read, or read+write.
+enforceModuleAccess(MODULE_TASKS, [
+    'create',
+    'update',
+    'delete',
+    'approved',
+    'rejected',
+    'needs_improvement',
+    'reactivate_task',
+    'review_task',
+    'complete_task',
+]);
 include_once "../include/notification_helper.php";
 include_once "../include/internship_helper.php";
 
@@ -111,7 +124,7 @@ if ($data['action'] === 'get') {
             LEFT JOIN technologies tech ON u.tech_id = tech.id";
     
     // Admins and Managers see all tasks, others see only their own creations
-    if ($user_role != 1 && $user_role != 4) {
+    if ($user_role != 1 && $user_role != 4 && $user_role != ROLE_COLLABORATOR) {
         $sql .= " WHERE t.created_by = ?";
     } else {
         $sql .= " WHERE 1=1";
@@ -129,7 +142,7 @@ if ($data['action'] === 'get') {
 
     $stmt = $conn->prepare($sql);
     
-    if ($user_role != 1 && $user_role != 4) {
+    if ($user_role != 1 && $user_role != 4 && $user_role != ROLE_COLLABORATOR) {
         if ($status && $status !== 'expired' && $status !== 'inprogress') {
             $stmt->bind_param("ss", $user_id, $status);
         } else {
@@ -213,8 +226,8 @@ if ($data['action'] === 'update') {
     $types .= "i";
     $params[] = $id;
 
-    // Restrict to creator unless Admin or Manager
-    if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) {
+    // Restrict to creator unless Admin, Manager, or a Collaborator with Tasks write
+    if ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != ROLE_COLLABORATOR) {
         $sql .= " AND created_by = ?";
         $types .= "i";
         $params[] = $_SESSION['user_id'];
@@ -413,7 +426,7 @@ if ($data['action'] === 'delete') {
     $task = $result->fetch_assoc();
     $check_stmt->close();
 
-    if ($user_role != 1 && $user_role != 4 && $user_role != 3 && $task['created_by'] != $user_id) {
+    if ($user_role != 1 && $user_role != 4 && $user_role != 3 && $user_role != ROLE_COLLABORATOR && $task['created_by'] != $user_id) {
         echo json_encode(["success" => false, "message" => "Unauthorized to delete this task"]);
         exit;
     }
@@ -501,7 +514,7 @@ if ($data['action'] === 'review_task') {
     $not_creator = $check_stmt->get_result()->num_rows === 0;
     $check_stmt->close();
 
-    if ($not_creator && $_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4) { 
+    if ($not_creator && $_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != ROLE_COLLABORATOR) {
         echo json_encode(["success" => false, "message" => "Unauthorized"]);
         exit;
     }

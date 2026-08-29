@@ -12,6 +12,13 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'];
 
+// Collaborators are read-only observers, so the whole page renders as the Admin
+// dashboard for them. Every write control on it is hidden by the read-only layer.
+$is_collaborator = ((int)$user_role === ROLE_COLLABORATOR);
+if ($is_collaborator) {
+    $user_role = ROLE_ADMIN;
+}
+
 if ($user_role == 1) {
     // Admin data
     $total_users = $conn->query("SELECT COUNT(id) as total FROM users WHERE status = 1 AND user_role != 1")->fetch_assoc()['total'];

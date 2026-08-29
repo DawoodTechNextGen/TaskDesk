@@ -5,13 +5,14 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Only admin access
-if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4)) {
+// Admin and Manager only, plus read-only Collaborators
+if (!isset($_SESSION['user_role']) || ($_SESSION['user_role'] != 1 && $_SESSION['user_role'] != 4 && $_SESSION['user_role'] != 5)) {
     header('Location: index.php');
     exit;
 }
 
 include_once './include/connection.php';
+requirePageModule(MODULE_REGISTRATIONS);
 ?>
 
 <!DOCTYPE html>

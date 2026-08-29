@@ -1,10 +1,11 @@
 <?php
 session_start();
 include_once './include/config.php';
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], [1, 3, 4, 5])) {
     header('location:' . BASE_URL . 'login.php');
 }
 include_once './include/connection.php';
+requirePageModule(MODULE_REPORTS);
 ?>
 <!DOCTYPE html>
 <html lang="en">

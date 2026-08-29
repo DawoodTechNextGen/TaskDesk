@@ -3,6 +3,7 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 
+
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!$data || !isset($data['action'])) {

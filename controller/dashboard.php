@@ -8,6 +8,11 @@ $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'];
 
+// Collaborators are read-only observers, so they see the same dashboard data an Admin does.
+if ((int)$user_role === ROLE_COLLABORATOR) {
+    $user_role = ROLE_ADMIN;
+}
+
 function getWorkingDays($startDate, $endDate) {
     if ($startDate > $endDate) return 0;
     $workingDays = 0;
@@ -783,7 +788,9 @@ if ($action === 'manager_registration_counts') {
 }
 
 if ($action === 'supervisor_intern_attendance') {
-    $sql = "SELECT 
+    // This is the data behind attendance_supervisor.php, i.e. the Attendance module.
+    requireModuleView(MODULE_ATTENDANCE);
+    $sql = "SELECT
                 u.id, 
                 u.name, 
                 u.email,

@@ -12,6 +12,13 @@ $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['user_role'];
 
+// Reports module: Collaborators need at least read access; reports has no write
+// actions of its own, so they always see the same reports an Admin does.
+requireModuleView(MODULE_REPORTS);
+if ((int)$user_role === ROLE_COLLABORATOR) {
+    $user_role = ROLE_ADMIN;
+}
+
 // Helper to get last 6 months labels
 function getLast6MonthsLabels() {
     $months = [];

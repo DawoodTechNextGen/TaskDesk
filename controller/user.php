@@ -7,6 +7,16 @@ header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? $_REQUEST['action'] ?? '';
 
+// Managers, Supervisors and Collaborator accounts are always Admin-only - no module
+// permission ever grants a Collaborator access to these (they include plain_password).
+if (currentUserRole() === ROLE_COLLABORATOR && in_array($action, ['get_managers', 'get_supervisors', 'get_collaborators'], true)) {
+    denyJson('Unauthorized');
+}
+
+// Everything else here - the intern lists, and create/update/delete/refund when they
+// target an intern - falls under the Interns module for Collaborators.
+enforceModuleAccess(MODULE_INTERNS, ['create', 'update', 'delete', 'refund']);
+
 switch ($action) {
     // Get all Managers
     case 'get_managers':
@@ -47,6 +57,25 @@ switch ($action) {
         $stmt->execute();
         $result = $stmt->get_result();
         $data = $result->fetch_all(MYSQLI_ASSOC);
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    // Read-only collaborator accounts. Only an Admin can see or manage them.
+    case 'get_collaborators':
+        requireAdminAction();
+        $stmt = $conn->prepare("
+            SELECT u.id, u.name, u.email, u.plain_password, u.status, DATE(u.created_at) AS created_on
+            FROM users u
+            WHERE u.user_role = " . ROLE_COLLABORATOR . "
+            ORDER BY u.name ASC
+        ");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_all(MYSQLI_ASSOC);
+        foreach ($data as &$row) {
+            $row['permissions'] = getModulePermissionsForUser($conn, (int)$row['id']);
+        }
+        unset($row);
         echo json_encode(['success' => true, 'data' => $data]);
         break;
 
@@ -273,9 +302,25 @@ switch ($action) {
         $email = trim($_POST['email']);
         $supervisor_id = $_POST['supervisor_id'] ?? 0;
         $commission_rate = isset($_POST['commission_rate']) ? (int)$_POST['commission_rate'] : 1000;
-        if (empty($name) || !in_array($role, ['3', '2', '4'])) {
+        if (empty($name) || !in_array($role, [ROLE_INTERN, ROLE_SUPERVISOR, ROLE_MANAGER, ROLE_COLLABORATOR], true)) {
             echo json_encode(['success' => false, 'message' => 'Invalid data']);
             exit;
+        }
+
+        // A collaborator account's module permissions are Admin-managed, so only an
+        // Admin is allowed to hand one out.
+        if ($role === ROLE_COLLABORATOR) {
+            requireAdminAction();
+            $tech_id = 0;
+            $supervisor_id = 0;
+            $commission_rate = 0;
+        }
+
+        // Even with Interns write access granted, a Collaborator can only ever
+        // create Intern accounts - Managers, Supervisors and other Collaborators
+        // stay Admin-only.
+        if (currentUserRole() === ROLE_COLLABORATOR && $role !== ROLE_INTERN) {
+            requireAdminAction();
         }
 
         // Generate a secure password if not provided
@@ -305,14 +350,23 @@ switch ($action) {
                 }
             }
 
-            $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
+            // Per-module read/write access, chosen on the User Management form.
+            if ($role === ROLE_COLLABORATOR) {
+                saveModulePermissionsForUser($conn, $new_id, $_POST['permissions'] ?? []);
+            }
+
+            $user_role_label = roleLabel($role);
             logActivity('Create User', "Created $user_role_label: $name ($email)");
             echo json_encode([
                 'success' => true,
-                'message' => ($role == 2) ? 'Internee created successfully!' : (($role == 3) ? 'Supervisor created successfully!' : 'Manager created successfully!')
+                'message' => (($role == ROLE_INTERN) ? 'Internee' : $user_role_label) . ' created successfully!'
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to create user']);
+            $duplicate = ($conn->errno === 1062);
+            echo json_encode([
+                'success' => false,
+                'message' => $duplicate ? 'That email is already registered' : 'Failed to create user'
+            ]);
         }
         break;
 
@@ -330,7 +384,7 @@ switch ($action) {
         $acting_user_id = $_SESSION['user_id'];
         $acting_user_role = $_SESSION['user_role'];
 
-        if ($id <= 0 || empty($name) || !in_array($role, ['3', '2', '4'])) {
+        if ($id <= 0 || empty($name) || !in_array($role, [ROLE_INTERN, ROLE_SUPERVISOR, ROLE_MANAGER, ROLE_COLLABORATOR], true)) {
             echo json_encode(['success' => false, 'message' => 'Invalid data']);
             exit;
         }
@@ -339,6 +393,27 @@ switch ($action) {
         if ($acting_user_role == 3) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized: Supervisors are not allowed to edit intern details']);
             exit;
+        }
+
+        $target_role = getUserRoleById($conn, $id);
+
+        // Collaborator accounts (and their module permissions) are Admin-managed, so
+        // both granting that role and editing someone who already has it stay
+        // Admin-only. Admin accounts themselves are never editable from here either.
+        if ($role === ROLE_COLLABORATOR || $target_role === ROLE_COLLABORATOR || $target_role === ROLE_ADMIN) {
+            requireAdminAction();
+        }
+
+        // Even with Interns write access granted, a Collaborator can only ever edit
+        // an existing Intern, and can't turn them into anything else.
+        if (currentUserRole() === ROLE_COLLABORATOR && ($role !== ROLE_INTERN || $target_role !== ROLE_INTERN)) {
+            requireAdminAction();
+        }
+
+        if ($role === ROLE_COLLABORATOR) {
+            $tech_id = 0;
+            $supervisor_id = 0;
+            $commission_rate = 0;
         }
 
         $success = false;
@@ -371,7 +446,12 @@ switch ($action) {
                 }
             }
 
-            $user_role_label = ($role == 2) ? 'Intern' : (($role == 3) ? 'Supervisor' : 'Manager');
+            // Per-module read/write access, chosen on the User Management form.
+            if ($role === ROLE_COLLABORATOR) {
+                saveModulePermissionsForUser($conn, $id, $_POST['permissions'] ?? []);
+            }
+
+            $user_role_label = roleLabel($role);
             logActivity('Update User', "Updated details for $user_role_label ID $id: $name ($email)");
         }
 
@@ -383,6 +463,19 @@ switch ($action) {
 
     case 'delete':
         $id = (int)($_POST['id'] ?? 0);
+
+        $target_role = getUserRoleById($conn, $id);
+        if ($target_role === ROLE_ADMIN) {
+            echo json_encode(['success' => false, 'message' => 'Admin accounts cannot be deleted']);
+            exit;
+        }
+        // Collaborators are created by an Admin, so only an Admin can remove one -
+        // and even with Interns write access granted, a Collaborator can only ever
+        // delete an Intern, never a Manager, Supervisor or another Collaborator.
+        if ($target_role === ROLE_COLLABORATOR || (currentUserRole() === ROLE_COLLABORATOR && $target_role !== ROLE_INTERN)) {
+            requireAdminAction();
+        }
+
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->bind_param('i', $id);
         $success = $stmt->execute();
@@ -488,6 +581,17 @@ switch ($action) {
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
 }
+// Role currently stored for a user, or 0 when the row is gone.
+function getUserRoleById($conn, $id)
+{
+    $stmt = $conn->prepare("SELECT user_role FROM users WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int)($row['user_role'] ?? 0);
+}
+
 function generateStrictPassword($length = 12)
 {
     $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';

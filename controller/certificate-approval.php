@@ -262,4 +262,36 @@ if ($_POST['action'] === 'approve') {
     $stmt->close();
 }
 
+if ($_POST['action'] === 'toggle_verified') {
+    // Only Admin (1) and Manager (4) can update verification status
+    if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized: Only Admins and Managers can update verification status.']);
+        exit;
+    }
+
+    $intern_id = (int)$_POST['id'];
+    $verified = !empty($_POST['verified']) ? 1 : 0;
+
+    $stmt = $conn->prepare("UPDATE certificate SET verified = ? WHERE intern_id = ?");
+    $stmt->bind_param("ii", $verified, $intern_id);
+
+    if ($stmt->execute()) {
+        $log_user_stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+        $log_user_stmt->bind_param("i", $intern_id);
+        $log_user_stmt->execute();
+        $log_user_res = $log_user_stmt->get_result()->fetch_assoc();
+        $internName = $log_user_res['name'] ?? 'ID ' . $intern_id;
+        $log_user_stmt->close();
+        logActivity('Update Certificate Verification', ($verified ? "Marked" : "Unmarked") . " certificate as QR verified for intern $internName (ID $intern_id)");
+
+        echo json_encode([
+            'success' => true,
+            'message' => $verified ? 'Certificate marked as Verified.' : 'Certificate marked as Not Verified.'
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update verification status']);
+    }
+    $stmt->close();
+}
+
 $conn->close();

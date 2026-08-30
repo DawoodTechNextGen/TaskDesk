@@ -46,6 +46,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Joining Date</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Completion Date</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Certificate Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">QR Verified</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -226,10 +227,24 @@ include_once "./include/headerLinks.php"; ?>
                 if (json.success) {
                     table.clear();
                     json.data.forEach(u => {
-                        const certStatus = u.approve_status == 1 
+                        const certStatus = u.approve_status == 1
                             ? '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>'
                             : '<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>';
-                        
+
+                        let verifiedStatus;
+                        if (u.approve_status != 1) {
+                            verifiedStatus = '<span class="px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">N/A</span>';
+                        } else if (userRole == 3) {
+                            // Supervisors can view but not change verification status
+                            verifiedStatus = u.verified == 1
+                                ? '<span class="px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">✓ Verified</span>'
+                                : '<span class="px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Not Verified</span>';
+                        } else {
+                            verifiedStatus = u.verified == 1
+                                ? `<button class="toggle-verified px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 hover:opacity-80 transition" data-id="${u.id}" data-verified="1" title="Click to mark as Not Verified">✓ Verified</button>`
+                                : `<button class="toggle-verified px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 hover:opacity-80 transition" data-id="${u.id}" data-verified="0" title="Click to mark as Verified">Not Verified</button>`;
+                        }
+
                         let actionsHTML = '<div class="flex items-center space-x-2">';
                         
                         // View Button
@@ -296,6 +311,7 @@ include_once "./include/headerLinks.php"; ?>
                             formatDate(u.joining_date),
                             formatDate(u.completion_date),
                             certStatus,
+                            verifiedStatus,
                             actionsHTML
                         ]);
                     });
@@ -435,6 +451,39 @@ Are you sure you still want to approve their certificate?`;
             }
         }
 
+        async function toggleVerified(btn) {
+            const internId = btn.dataset.id;
+            const currentlyVerified = btn.dataset.verified == '1';
+            const nextVerified = !currentlyVerified;
+
+            if (!confirm(`Mark this certificate as ${nextVerified ? 'Verified' : 'Not Verified'}?`)) return;
+
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('btn-disabled');
+
+            try {
+                const res = await fetch('controller/certificate-approval.php', {
+                    method: 'POST',
+                    body: new URLSearchParams({
+                        action: 'toggle_verified',
+                        id: internId,
+                        verified: nextVerified ? '1' : '0'
+                    })
+                });
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+                if (json.success) await loadCompletedInterns();
+            } catch (error) {
+                showToast('error', 'Network error. Please try again.');
+                console.error('Toggle verified error:', error);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-disabled');
+                btn.disabled = false;
+            }
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
             const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number);
@@ -461,6 +510,9 @@ Are you sure you still want to approve their certificate?`;
 
                 const approveBtn = e.target.closest('.approve-certificate');
                 if (approveBtn) approveCertificate(approveBtn);
+
+                const verifyBtn = e.target.closest('.toggle-verified');
+                if (verifyBtn) toggleVerified(verifyBtn);
 
                 const closeBtn = e.target.closest('.close-modal');
                 if (closeBtn) closeBtn.closest('.modal').classList.add('hidden');

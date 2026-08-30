@@ -234,7 +234,7 @@ switch ($action) {
                 WHERE assign_to = u.id
             ) AS completion_rate,
             TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
-            c.approve_status
+            c.approve_status, c.verified
         FROM users u
         LEFT JOIN technologies t ON u.tech_id = t.id
         LEFT JOIN users s ON u.supervisor_id = s.id

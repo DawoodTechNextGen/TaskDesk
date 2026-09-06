@@ -3,6 +3,7 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 require_once __DIR__ . '/../include/internship_helper.php';
+require_once __DIR__ . '/../include/bootcamp_helper.php';
 
 $action = $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
@@ -781,9 +782,14 @@ if ($action === 'manager_registration_counts') {
         $counts['total'] += $row['count'];
     }
 
+    // Bootcamp enrollments live in their own table and are not part of the
+    // internship totals above - they are reported alongside them as their own card.
+    $bootcamp = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE)->fetch_assoc();
+
     echo json_encode([
         'success' => true,
-        'counts' => $counts
+        'counts' => $counts,
+        'bootcamp_enrollments' => $bootcamp['total']
     ]);
 }
 

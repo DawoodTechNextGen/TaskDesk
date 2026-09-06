@@ -6,6 +6,7 @@ if (!isset($_SESSION['user_id'])) {
 } else {
     include_once './include/connection.php';
     include_once './include/internship_helper.php';
+    include_once './include/bootcamp_helper.php';
 }
 
 // Get dynamic data based on user role
@@ -27,6 +28,9 @@ if ($user_role == 1) {
     $total_tech = $conn->query("SELECT COUNT(id) as total FROM technologies")->fetch_assoc()['total'];
     // Count of new registrations (status = 'new')
     $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
+    // Bootcamp enrollments are a separate data source from the internship
+    // registrations above - see bootcamp_registrations.php.
+    $bootcamp_enrollments = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE)->fetch_assoc()['total'];
 
     // Additional admin stats
     $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)")->fetch_assoc()['total'];
@@ -237,7 +241,7 @@ include_once "./include/headerLinks.php"; ?>
                     <div class="mb-8">
 
                         <!-- Admin Stats Cards - Modern Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                             <!-- Total Users -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
                                 <div class="relative">
@@ -328,6 +332,26 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
+                            <!-- Bootcamp Enrollments -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="bootcamp_registrations.php" class="block">
+                                    <div class="relative">
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">Bootcamp Enrollments</p>
+                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $bootcamp_enrollments ?></h3>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">All time enrollments</p>
+                                    </div>
+                                </a>
+                                <div class="absolute top-4 right-4">
+                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0112 21.5a12.083 12.083 0 01-6.16-10.922L12 14z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -1066,7 +1090,7 @@ include_once "./include/headerLinks.php"; ?>
                     <!-- ==================== MANAGER DASHBOARD ==================== -->
                     <div class="mb-8">
                         <!-- Manager Stats Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                             <!-- Monthly Earnings -->
                             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-100 dark:border-gray-700">
                                 <div class="flex items-center justify-between">
@@ -1162,6 +1186,26 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
+                            <!-- Bootcamp Enrollments -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="bootcamp_registrations.php" class="block">
+                                    <div class="relative">
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">Bootcamp Enrollments</p>
+                                        <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="bootcampEnrollments">0</h3>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">All time enrollments</p>
+                                    </div>
+                                </a>
+                                <div class="absolute top-4 right-4">
+                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0112 21.5a12.083 12.083 0 01-6.16-10.922L12 14z" />
                                         </svg>
                                     </div>
                                 </div>

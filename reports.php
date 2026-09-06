@@ -243,8 +243,8 @@ include_once "./include/headerLinks.php";
                                             return `${context.label}: ${val} (${ratio}%)`;
                                         }
                                         
-                                        // Handle New Registrations with percentage change
-                                        if (key === 'registrations' && chartInfo.percentages) {
+                                        // Handle New Internship/Bootcamp Registration with percentage change
+                                        if ((key === 'registrations' || key === 'bootcamp_registrations') && chartInfo.percentages) {
                                             const percentage = chartInfo.percentages[context.dataIndex];
                                             let percentText = '';
                                             if (context.dataIndex > 0) { // Skip first month
@@ -267,28 +267,28 @@ include_once "./include/headerLinks.php";
                                             return `${label}${val}${percentText}`;
                                         }
                                         
-                                        // Handle Hiring Performance with enhanced precision
-                                        if (key === 'hiring_performance') {
+                                        // Handle Hiring Performance / Enrolled Performance with enhanced precision
+                                        if (key === 'hiring_performance' || key === 'enrolled_performance') {
                                             const dataset = context.dataset;
                                             const dataIndex = context.dataIndex;
-                                            
-                                            if (dataset.label === 'Interns Hired') {
-                                                // Show hired count with percentage change and total registrations
+
+                                            if (dataset.label === 'Interns Hired' || dataset.label === 'Bootcamp Enrolled') {
+                                                // Show hired/enrolled count with percentage change and total registrations
                                                 const totalReg = dataset.registrations[dataIndex];
                                                 const percentage = dataset.percentages[dataIndex];
                                                 let result = `${label}${val} (out of ${totalReg} registrations)`;
-                                                
+
                                                 if (dataIndex > 0) {
                                                     const arrow = percentage >= 0 ? '↑' : '↓';
                                                     const color = percentage >= 0 ? '🟢' : '🔴';
                                                     result += `\n${color} ${arrow} ${Math.abs(percentage)}% MoM`;
                                                 }
                                                 return result;
-                                            } else if (dataset.label === 'Hiring Ratio (%)') {
+                                            } else if (dataset.label === 'Hiring Ratio (%)' || dataset.label === 'Enrollment Ratio (%)') {
                                                 // Show ratio with point change
                                                 const change = dataset.changes[dataIndex];
                                                 let result = `${label}${val}%`;
-                                                
+
                                                 if (dataIndex > 0) {
                                                     const arrow = change >= 0 ? '↑' : '↓';
                                                     const color = change >= 0 ? '🟢' : '🔴';

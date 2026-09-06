@@ -2,6 +2,7 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+require_once __DIR__ . '/../include/bootcamp_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -74,71 +75,67 @@ if ($action === 'get_report_data') {
         }
         $data['charts']['registrations'] = [
             'type' => 'line',
-            'label' => 'New Registrations',
+            'label' => 'New Internship Registration',
             'data' => $reg_counts,
             'percentages' => $reg_percentages, // Add percentage data
             'backgroundColor' => 'rgba(59, 130, 246, 0.2)',
             'borderColor' => 'rgb(59, 130, 246)'
         ];
 
-        // 2. Technology Distribution (Registrations)
-        $tech_labels = [];
-        $tech_counts = [];
+        // 2. Monthly Bootcamp Registration Trends (Last 6 Months) - separate
+        // table/database from internship registrations above (see
+        // include/bootcamp_helper.php), same shape as the chart above.
         $stmt = $conn->query("
-            SELECT t.name, COUNT(r.id) as count 
-            FROM registrations r 
-            JOIN technologies t ON r.technology_id = t.id 
-            GROUP BY t.id 
-            ORDER BY count DESC 
-            LIMIT 5
-        ");
-        while ($row = $stmt->fetch_assoc()) {
-            $tech_labels[] = $row['name'];
-            $tech_counts[] = (int)$row['count'];
-        }
-        $data['charts']['tech_distribution'] = [
-            'type' => 'pie',
-            'labels' => $tech_labels,
-            'data' => $tech_counts
-        ];
-
-        // 3. Overall Task Status (Admin/Manager sees all)
-        $all_statuses = ['inprogress', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
-        $status_data = array_fill_keys($all_statuses, 0);
-        
-        $stmt = $conn->query("SELECT status, COUNT(*) as count FROM tasks GROUP BY status");
-        $total_tasks = 0;
-        while ($row = $stmt->fetch_assoc()) {
-            if (isset($status_data[$row['status']])) {
-                $status_data[$row['status']] = (int)$row['count'];
-                $total_tasks += $row['count'];
-            }
-        }
-        
-        $status_labels = [];
-        $status_counts = [];
-        $status_ratios = [];
-        foreach ($status_data as $status => $count) {
-            $status_labels[] = ucfirst(str_replace('_', ' ', $status));
-            $status_counts[] = $count;
-            $status_ratios[] = $total_tasks > 0 ? round(($count / $total_tasks) * 100, 1) : 0;
-        }
-
-        $data['charts']['task_status'] = [
-            'type' => 'doughnut',
-            'labels' => $status_labels,
-            'data' => $status_counts,
-            'ratios' => $status_ratios // Send ratios for tooltips
-        ];
-
-        // 4. Hiring Trends & Ratios (Last 6 Months)
-        $hired_results = [];
-        $stmt = $conn->query("
-            SELECT 
+            SELECT
                 DATE_FORMAT(created_at, '%b %Y') as month,
                 COUNT(*) as count,
                 DATE_FORMAT(created_at, '%Y-%m') as sort_key
-            FROM registrations 
+            FROM " . BOOTCAMP_TABLE . "
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY month, sort_key
+            ORDER BY sort_key ASC
+        ");
+        $bootcamp_results = [];
+        while ($row = $stmt->fetch_assoc()) {
+            $bootcamp_results[$row['month']] = (int)$row['count'];
+        }
+        $bootcamp_reg_counts = [];
+        $bootcamp_reg_percentages = [];
+        foreach ($labels as $index => $lbl) {
+            $current = $bootcamp_results[$lbl] ?? 0;
+            $bootcamp_reg_counts[] = $current;
+
+            if ($index > 0) {
+                $previous = $bootcamp_reg_counts[$index - 1];
+                if ($previous > 0) {
+                    $change = round((($current - $previous) / $previous) * 100, 1);
+                } else {
+                    $change = $current > 0 ? 100 : 0;
+                }
+                $bootcamp_reg_percentages[] = $change;
+            } else {
+                $bootcamp_reg_percentages[] = 0;
+            }
+        }
+        $data['charts']['bootcamp_registrations'] = [
+            'type' => 'line',
+            'label' => 'New Bootcamp Registration',
+            'data' => $bootcamp_reg_counts,
+            'percentages' => $bootcamp_reg_percentages,
+            'backgroundColor' => 'rgba(139, 92, 246, 0.2)',
+            'borderColor' => 'rgb(139, 92, 246)'
+        ];
+
+        // 3. Hiring Trends & Ratios (Last 6 Months) - placed right below the
+        // Registration row so the two conversion charts (Hiring / Enrolled) land
+        // together on the very next row.
+        $hired_results = [];
+        $stmt = $conn->query("
+            SELECT
+                DATE_FORMAT(created_at, '%b %Y') as month,
+                COUNT(*) as count,
+                DATE_FORMAT(created_at, '%Y-%m') as sort_key
+            FROM registrations
             WHERE status = 'hire' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY month, sort_key
             ORDER BY sort_key ASC
@@ -157,7 +154,7 @@ if ($action === 'get_report_data') {
             $hired_counts[] = $hired;
             $current_ratio = $total_reg > 0 ? round(($hired / $total_reg) * 100, 1) : 0;
             $hiring_ratios[] = $current_ratio;
-            
+
             // Calculate MoM percentage change for hired count
             if ($index > 0) {
                 $prev_hired = $hired_counts[$index - 1];
@@ -166,7 +163,7 @@ if ($action === 'get_report_data') {
                 } else {
                     $hired_percentages[] = $hired > 0 ? 100 : 0;
                 }
-                
+
                 // Calculate change in hiring ratio
                 $prev_ratio = $hiring_ratios[$index - 1];
                 $ratio_changes[] = round($current_ratio - $prev_ratio, 1); // Absolute difference
@@ -203,15 +200,173 @@ if ($action === 'get_report_data') {
             ]
         ];
 
-        // --- NEW: Global versions of Supervisor charts for Admin/Manager ---
-        
-        // 5. Global Team Task Completion (Last 6 Months)
+        // 4. Enrolled Trends & Ratios (Last 6 Months) - Bootcamp's equivalent of
+        // Hiring Performance above: how many bootcamp registrations reached
+        // `enrolled` and what share of that month's bootcamp registrations that is.
+        $enrolled_results = [];
         $stmt = $conn->query("
-            SELECT 
+            SELECT
+                DATE_FORMAT(created_at, '%b %Y') as month,
+                COUNT(*) as count,
+                DATE_FORMAT(created_at, '%Y-%m') as sort_key
+            FROM " . BOOTCAMP_TABLE . "
+            WHERE status = 'enrolled' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY month, sort_key
+            ORDER BY sort_key ASC
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $enrolled_results[$row['month']] = (int)$row['count'];
+        }
+
+        $enrolled_counts = [];
+        $enrolled_ratios = [];
+        $enrolled_percentages = []; // MoM change in enrolled count
+        $enrolled_ratio_changes = []; // MoM change in enrollment ratio
+        foreach ($labels as $index => $lbl) {
+            $enrolled = $enrolled_results[$lbl] ?? 0;
+            $total_bootcamp_reg = $bootcamp_reg_counts[$index];
+            $enrolled_counts[] = $enrolled;
+            $current_ratio = $total_bootcamp_reg > 0 ? round(($enrolled / $total_bootcamp_reg) * 100, 1) : 0;
+            $enrolled_ratios[] = $current_ratio;
+
+            if ($index > 0) {
+                $prev_enrolled = $enrolled_counts[$index - 1];
+                if ($prev_enrolled > 0) {
+                    $enrolled_percentages[] = round((($enrolled - $prev_enrolled) / $prev_enrolled) * 100, 1);
+                } else {
+                    $enrolled_percentages[] = $enrolled > 0 ? 100 : 0;
+                }
+
+                $prev_ratio = $enrolled_ratios[$index - 1];
+                $enrolled_ratio_changes[] = round($current_ratio - $prev_ratio, 1);
+            } else {
+                $enrolled_percentages[] = 0;
+                $enrolled_ratio_changes[] = 0;
+            }
+        }
+
+        $data['charts']['enrolled_performance'] = [
+            'type' => 'mixed', // Custom type to indicate dual-axis
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'type' => 'bar',
+                    'label' => 'Bootcamp Enrolled',
+                    'data' => $enrolled_counts,
+                    'percentages' => $enrolled_percentages,
+                    'registrations' => $bootcamp_reg_counts, // Total bootcamp registrations for context
+                    'backgroundColor' => 'rgba(139, 92, 246, 0.6)',
+                    'borderColor' => 'rgb(139, 92, 246)',
+                    'yAxisID' => 'y'
+                ],
+                [
+                    'type' => 'line',
+                    'label' => 'Enrollment Ratio (%)',
+                    'data' => $enrolled_ratios,
+                    'changes' => $enrolled_ratio_changes,
+                    'backgroundColor' => 'rgba(245, 158, 11, 0.2)',
+                    'borderColor' => 'rgb(245, 158, 11)',
+                    'tension' => 0.4,
+                    'yAxisID' => 'y1'
+                ]
+            ]
+        ];
+
+        // Shared palette for the two city charts below (bar charts need colors
+        // passed in explicitly - tech_distribution's pie further down gets its
+        // colors from the JS side instead).
+        $city_chart_colors = [
+            '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+            '#EC4899', '#06B6D4', '#6366F1', '#84CC16', '#F97316'
+        ];
+
+        // 5. Top Cities - Internship Registrations. Placed right after the two
+        // registration-trend charts (and before tech_distribution) so it lands
+        // on the same row as the Bootcamp cities chart below it in the 2-column
+        // report grid.
+        $intern_city_labels = [];
+        $intern_city_counts = [];
+        $stmt = $conn->query("
+            SELECT city, COUNT(*) as count
+            FROM registrations
+            WHERE city IS NOT NULL AND city <> ''
+            GROUP BY city
+            ORDER BY count DESC
+            LIMIT 8
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $intern_city_labels[] = $row['city'];
+            $intern_city_counts[] = (int)$row['count'];
+        }
+        $data['charts']['internship_cities'] = [
+            'type' => 'bar',
+            'label' => 'Internship Applicants',
+            'labels' => $intern_city_labels,
+            'data' => $intern_city_counts,
+            'backgroundColor' => array_slice($city_chart_colors, 0, count($intern_city_labels))
+        ];
+
+        // 6. Top Cities - Bootcamp Enrollments (separate table/database - see
+        // include/bootcamp_helper.php)
+        $bootcamp_city_labels = [];
+        $bootcamp_city_counts = [];
+        $stmt = $conn->query("
+            SELECT city, COUNT(*) as count
+            FROM " . BOOTCAMP_TABLE . "
+            WHERE city IS NOT NULL AND city <> ''
+            GROUP BY city
+            ORDER BY count DESC
+            LIMIT 8
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $bootcamp_city_labels[] = $row['city'];
+            $bootcamp_city_counts[] = (int)$row['count'];
+        }
+        $data['charts']['bootcamp_cities'] = [
+            'type' => 'bar',
+            'label' => 'Bootcamp Applicants',
+            'labels' => $bootcamp_city_labels,
+            'data' => $bootcamp_city_counts,
+            'backgroundColor' => array_slice($city_chart_colors, 0, count($bootcamp_city_labels))
+        ];
+
+        // 7. Overall Task Status (Admin/Manager sees all)
+        $all_statuses = ['inprogress', 'complete', 'pending_review', 'approved', 'rejected', 'needs_improvement', 'expired'];
+        $status_data = array_fill_keys($all_statuses, 0);
+        
+        $stmt = $conn->query("SELECT status, COUNT(*) as count FROM tasks GROUP BY status");
+        $total_tasks = 0;
+        while ($row = $stmt->fetch_assoc()) {
+            if (isset($status_data[$row['status']])) {
+                $status_data[$row['status']] = (int)$row['count'];
+                $total_tasks += $row['count'];
+            }
+        }
+        
+        $status_labels = [];
+        $status_counts = [];
+        $status_ratios = [];
+        foreach ($status_data as $status => $count) {
+            $status_labels[] = ucfirst(str_replace('_', ' ', $status));
+            $status_counts[] = $count;
+            $status_ratios[] = $total_tasks > 0 ? round(($count / $total_tasks) * 100, 1) : 0;
+        }
+
+        $data['charts']['task_status'] = [
+            'type' => 'doughnut',
+            'labels' => $status_labels,
+            'data' => $status_counts,
+            'ratios' => $status_ratios // Send ratios for tooltips
+        ];
+
+        // 8. Global Team Task Completion (Last 6 Months) - placed right after
+        // Task Status so the two task-related charts land in the same row.
+        $stmt = $conn->query("
+            SELECT
                 DATE_FORMAT(completed_at, '%b %Y') as month,
                 COUNT(*) as count,
                 DATE_FORMAT(completed_at, '%Y-%m') as sort_key
-            FROM tasks 
+            FROM tasks
             WHERE status = 'complete'
             AND completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY month, sort_key
@@ -242,7 +397,30 @@ if ($action === 'get_report_data') {
             'borderColor' => 'rgb(16, 185, 129)'
         ];
 
-        // 6. Global Attendance Summary
+        // 9. Technology Distribution (Registrations)
+        $tech_labels = [];
+        $tech_counts = [];
+        $stmt = $conn->query("
+            SELECT t.name, COUNT(r.id) as count
+            FROM registrations r
+            JOIN technologies t ON r.technology_id = t.id
+            GROUP BY t.id
+            ORDER BY count DESC
+            LIMIT 5
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $tech_labels[] = $row['name'];
+            $tech_counts[] = (int)$row['count'];
+        }
+        $data['charts']['tech_distribution'] = [
+            'type' => 'pie',
+            'labels' => $tech_labels,
+            'data' => $tech_counts
+        ];
+
+        // --- NEW: Global versions of Supervisor charts for Admin/Manager ---
+
+        // 10. Global Attendance Summary
         $stmt = $conn->query("
             SELECT 
                 SUM(CASE WHEN total_work_seconds >= 10800 THEN 1 ELSE 0 END) as present,
@@ -264,7 +442,7 @@ if ($action === 'get_report_data') {
             ]
         ];
 
-        // 7. Global Task Approval Rate
+        // 11. Global Task Approval Rate
         $approval_data = array_fill_keys(['approved', 'rejected', 'needs_improvement', 'pending_review'], 0);
         $stmt = $conn->query("
             SELECT status, COUNT(*) as count 

@@ -29,8 +29,9 @@ if ($user_role == 1) {
     // Count of new registrations (status = 'new')
     $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
     // Bootcamp enrollments are a separate data source from the internship
-    // registrations above - see bootcamp_registrations.php.
-    $bootcamp_enrollments = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE)->fetch_assoc()['total'];
+    // registrations above - see bootcamp_registrations.php. Count of new
+    // enrollments (status = 'new'), matching how $new_registrations is counted.
+    $bootcamp_enrollments = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE . " WHERE status = 'new'")->fetch_assoc()['total'];
 
     // Additional admin stats
     $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)")->fetch_assoc()['total'];
@@ -338,13 +339,13 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
                             </div>
 
-                            <!-- Bootcamp Enrollments -->
+                            <!-- New Bootcamp Enrollments -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
-                                <a href="bootcamp_registrations.php" class="block">
+                                <a href="bootcamp_registrations.php?status=new" class="block">
                                     <div class="relative">
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">Bootcamp Enrollments</p>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">New Bootcamp Enrollments</p>
                                         <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $bootcamp_enrollments ?></h3>
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">All time enrollments</p>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">Recent entries</p>
                                     </div>
                                 </a>
                                 <div class="absolute top-4 right-4">
@@ -1192,13 +1193,13 @@ include_once "./include/headerLinks.php"; ?>
                                 <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
                             </div>
 
-                            <!-- Bootcamp Enrollments -->
+                            <!-- New Bootcamp Enrollments -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
-                                <a href="bootcamp_registrations.php" class="block">
+                                <a href="bootcamp_registrations.php?status=new" class="block">
                                     <div class="relative">
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">Bootcamp Enrollments</p>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">New Bootcamp Enrollments</p>
                                         <h3 class="text-3xl font-bold mb-2 text-black dark:text-white" id="bootcampEnrollments">0</h3>
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">All time enrollments</p>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">Recent entries</p>
                                     </div>
                                 </a>
                                 <div class="absolute top-4 right-4">

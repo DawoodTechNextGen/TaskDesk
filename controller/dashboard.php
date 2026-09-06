@@ -783,8 +783,9 @@ if ($action === 'manager_registration_counts') {
     }
 
     // Bootcamp enrollments live in their own table and are not part of the
-    // internship totals above - they are reported alongside them as their own card.
-    $bootcamp = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE)->fetch_assoc();
+    // internship totals above - they are reported alongside them as their own
+    // card. Only "new" ones are counted here, matching the dashboard card.
+    $bootcamp = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE . " WHERE status = 'new'")->fetch_assoc();
 
     echo json_encode([
         'success' => true,

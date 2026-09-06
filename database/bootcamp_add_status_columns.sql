@@ -1,9 +1,9 @@
 -- Run this once on the LIVE bootcamp database (BOOTCAMP_DB in include/config.php,
--- e.g. `task_desk`) to add the two columns the reworked Bootcamp Enrollments
--- module needs. The table and its existing rows are untouched - this only adds
--- columns with safe defaults.
+-- `dawoodte_task_desk` in production) to add the two columns the reworked
+-- Bootcamp Enrollments module needs. The table and its existing rows are
+-- untouched - this only adds columns with safe defaults.
 --
---   mysql -u <db_user> -p <bootcamp_db_name> < database/bootcamp_add_status_columns.sql
+--   mysql -u <db_user> -p dawoodte_task_desk < database/bootcamp_add_status_columns.sql
 --
 -- Safe to skip: include/bootcamp_helper.php adds these automatically the first
 -- time any Bootcamp page or controller action runs. Run this only if you'd

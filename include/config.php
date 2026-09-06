@@ -50,7 +50,7 @@ define('DB_NAME', getenv('DB_NAME') ?: 'task_management');
 // The public Bootcamp sign-up form writes to its own database on the same MySQL
 // server, so the bootcamp listing reads across to it on the existing connection.
 // Set BOOTCAMP_DB to DB_NAME if the two ever end up in one database.
-define('BOOTCAMP_DB', getenv('BOOTCAMP_DB') ?: 'task_desk');
+define('BOOTCAMP_DB', getenv('BOOTCAMP_DB') ?: 'dawoodte_task_desk');
 // Smtp
 define('MAIL_HOST', getenv('MAIL_HOST'));
 define('MAIL_PORT', getenv('MAIL_PORT'));

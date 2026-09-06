@@ -8,7 +8,7 @@
 -- include/bootcamp_helper.php, so running this file manually is optional
 -- (useful for pre-provisioning on a live server, or for reference).
 --
---   mysql -u root -p task_desk < database/bootcamp_registrations.sql
+--   mysql -u root -p dawoodte_task_desk < database/bootcamp_registrations.sql
 --
 -- NOTE: this table lives in the Bootcamp sign-up form's own database, not the
 -- TaskDesk one. That database name is BOOTCAMP_DB in include/config.php.

@@ -25,6 +25,10 @@ define('MODULE_CURRICULUM', 'curriculum');
 define('MODULE_INTERNS', 'interns');
 define('MODULE_ATTENDANCE', 'attendance');
 define('MODULE_REPORTS', 'reports');
+// Bootcamp enrollments are a separate data source from the internship
+// registrations above, so they get their own module rather than riding on
+// MODULE_REGISTRATIONS.
+define('MODULE_BOOTCAMP', 'bootcamp');
 
 // Single source of truth for the permission checkboxes in User Management and
 // for validating module names coming back from that form.
@@ -38,6 +42,7 @@ if (!function_exists('collaboratorModules')) {
             MODULE_INTERNS       => 'Interns (Active / Frozen / Completed / Freeze requests)',
             MODULE_ATTENDANCE    => 'Intern Attendance',
             MODULE_REPORTS       => 'Reports',
+            MODULE_BOOTCAMP      => 'Bootcamp Enrollments',
         ];
     }
 }
@@ -64,6 +69,7 @@ if (!function_exists('currentPageModule')) {
             'freeze_management.php'      => MODULE_INTERNS,
             'attendance_supervisor.php'  => MODULE_ATTENDANCE,
             'reports.php'                => MODULE_REPORTS,
+            'bootcamp_registrations.php' => MODULE_BOOTCAMP,
         ];
         $file = basename($_SERVER['SCRIPT_NAME'] ?? '');
         return $map[$file] ?? null;

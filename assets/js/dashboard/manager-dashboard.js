@@ -381,6 +381,8 @@ function loadManagerOverviewStats() {
                 document.getElementById("newRegistrationsCount").textContent = data.counts.new;
                 document.getElementById("contactedCount").textContent = data.counts.contact;
                 document.getElementById("rejectedCount").textContent = data.counts.rejected;
+
+                document.getElementById("bootcampEnrollments").textContent = data.bootcamp_enrollments;
             }
         });
 }

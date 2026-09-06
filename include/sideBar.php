@@ -1,10 +1,12 @@
     <style>
-        #registrations-arrow {
+        #registrations-arrow,
+        #bootcamp-arrow {
             color: #4B5563;
             /* Tailwind gray-700 hex */
         }
 
         .dark #registrations-arrow,
+        .dark #bootcamp-arrow,
         .dark #tasks-arrow {
             color: #E5E7EB;
             /* Tailwind gray-200 hex */
@@ -273,7 +275,7 @@
                                                 </g>
                                             </svg>
                                         </div>
-                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Internship</span>
                                     </div>
                                     <svg
                                         id="registrations-arrow"
@@ -363,6 +365,91 @@
                                 </ul>
                             </li>
                         <?php } ?>
+
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('bootcamp'))) { ?>
+                            <li>
+                                <?php
+                                $currentPage = basename($_SERVER['SCRIPT_NAME']);
+                                // All four stages are the one listing page filtered by ?status=,
+                                // so the active sub-item is decided by that parameter.
+                                $isBootcampActive = ($currentPage == 'bootcamp_registrations.php');
+                                $bootcampStage = $isBootcampActive ? ($_GET['status'] ?? '') : '';
+                                ?>
+                                <button type="button" onclick="document.getElementById('bootcamp-submenu').classList.toggle('hidden'); document.getElementById('bootcamp-arrow').classList.toggle('rotate-180');"
+                                    class="w-full flex items-center justify-between p-2 rounded-lg sidebar-link <?php echo $isBootcampActive ? 'active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 3L2 8l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                <path d="M6 10.5V16c0 1.657 2.686 3 6 3s6-1.343 6-3v-5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                <path d="M22 8v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            </svg>
+                                        </div>
+                                        <span class="sidebar-item text-gray-700 dark:text-gray-200">Bootcamp</span>
+                                    </div>
+                                    <svg
+                                        id="bootcamp-arrow"
+                                        class="w-4 h-4 transition-transform duration-200 <?php echo $isBootcampActive ? 'rotate-180' : '' ?>"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <ul id="bootcamp-submenu" class="<?php echo $isBootcampActive ? '' : 'hidden' ?> py-2 space-y-2">
+                                    <li>
+                                        <a href="bootcamp_registrations.php?status=new" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'new') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M12 6L12 8M12 8L12 10M12 8H9.99998M12 8L14 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M8 14H9M16 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M9 18H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M3 14V10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157C20.4816 3.82476 20.7706 4.69989 20.8985 6M21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3.51839 20.1752 3.22937 19.3001 3.10149 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">New</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="bootcamp_registrations.php?status=contact" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'contact') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M4.00655 7.93309C3.93421 9.84122 4.41713 13.0817 7.6677 16.3323C8.45191 17.1165 9.23553 17.7396 10 18.2327M5.53781 4.93723C6.93076 3.54428 9.15317 3.73144 10.0376 5.31617L10.6866 6.4791C11.2723 7.52858 11.0372 8.90532 10.1147 9.8278C10.1147 9.8278 10.1147 9.8278 10.1147 9.8278C10.1146 9.82792 8.99588 10.9468 11.0245 12.9755C13.0525 15.0035 14.1714 13.8861 14.1722 13.8853C14.1722 13.8853 14.1722 13.8853 14.1722 13.8853C15.0947 12.9628 16.4714 12.7277 17.5209 13.3134L18.6838 13.9624C20.2686 14.8468 20.4557 17.0692 19.0628 18.4622C18.2258 19.2992 17.2004 19.9505 16.0669 19.9934C15.2529 20.0243 14.1963 19.9541 13 19.6111" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Contact</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="bootcamp_registrations.php?status=enrolled" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'enrolled') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Enrolled</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="bootcamp_registrations.php?status=rejected" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'rejected') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M20.5001 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M9.5 11L10 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M14.5 11L14 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+                                                    <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Rejected</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        <?php } ?>
+
                         <?php if ($_SESSION['user_role'] == 1) { ?>
                             <li>
                                 <a href="tech.php" onclick="window.location=this.href"

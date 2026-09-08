@@ -304,3 +304,87 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
         return null;
     }
 }
+
+/**
+ * Generates an Assessment Result Report PDF, attached to the result email sent
+ * when a candidate's attempt finalizes (controller/candidate_assessment.php).
+ *
+ * @param string $name Candidate name
+ * @param string $assessmentTitle Assessment title
+ * @param string $technology Technology/field name
+ * @param string $status 'pass' or 'fail'
+ * @param float $percentage Score percentage
+ * @param string $completedAt Datetime the attempt finished (Y-m-d H:i:s)
+ * @return string|null PDF content as string
+ */
+function generateAssessmentResultHelper($name, $assessmentTitle, $technology, $status, $percentage, $completedAt) {
+    try {
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $dompdf = new Dompdf($options);
+
+        $pass = $status === 'pass';
+        $statusLabel = $pass ? 'PASSED' : 'NOT CLEARED';
+        $statusColor = $pass ? '#16a34a' : '#dc2626';
+
+        $logoUri = '';
+        $logoPath = __DIR__ . '/../assets/images/logo.png';
+        if (file_exists($logoPath)) {
+            $logoUri = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <style>
+                @page { margin: 0; padding: 0; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 50px; color: #1e293b; }
+                .header { text-align: center; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+                .header img { max-height: 55px; margin-bottom: 10px; }
+                .header h1 { font-size: 20px; margin: 0; color: #1e293b; }
+                .row { margin-bottom: 14px; font-size: 13px; }
+                .label { color: #64748b; display: inline-block; width: 160px; }
+                .value { font-weight: bold; }
+                .result-box { text-align: center; background: #f3f4f6; border-radius: 10px; padding: 24px; margin: 30px 0; }
+                .result-status { font-size: 30px; font-weight: bold; color: ' . $statusColor . '; letter-spacing: 1px; }
+                .result-score { font-size: 14px; color: #64748b; margin-top: 6px; }
+                .footer { margin-top: 50px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                ' . ($logoUri ? '<img src="' . $logoUri . '" />' : '') . '
+                <h1>Assessment Result Report</h1>
+            </div>
+            <div class="row"><span class="label">Candidate Name:</span><span class="value">' . htmlspecialchars($name) . '</span></div>
+            <div class="row"><span class="label">Assessment:</span><span class="value">' . htmlspecialchars($assessmentTitle) . '</span></div>
+            <div class="row"><span class="label">Field / Technology:</span><span class="value">' . htmlspecialchars($technology) . '</span></div>
+            <div class="row"><span class="label">Completed On:</span><span class="value">' . htmlspecialchars(date('j F Y, h:i A', strtotime($completedAt))) . '</span></div>
+
+            <div class="result-box">
+                <div class="result-status">' . $statusLabel . '</div>
+                <div class="result-score">Score: ' . htmlspecialchars((string)$percentage) . '%</div>
+            </div>
+
+            <p style="font-size: 13px;">Our HR department will contact you soon regarding the next steps.</p>
+
+            <div class="footer">
+                DawoodTech NextGen &middot; This is a system-generated report.
+            </div>
+        </body>
+        </html>';
+
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $dompdf->output();
+    } catch (Exception $e) {
+        error_log("Assessment Result PDF Helper Error: " . $e->getMessage());
+        return null;
+    }
+}

@@ -258,7 +258,7 @@
                                 <?php
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);
                                 // List of all registration-related pages to keep parent active
-                                $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_interview.php', 'registrations_rejected.php'];
+                                $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_assessment.php', 'registrations_interview.php', 'registrations_rejected.php'];
                                 $isRegistrationsActive = in_array($currentPage, $registrationPages);
                                 ?>
                                 <button type="button" onclick="document.getElementById('registrations-submenu').classList.toggle('hidden'); document.getElementById('registrations-arrow').classList.toggle('rotate-180');"
@@ -319,6 +319,21 @@
                                             </div>
                                             <span
                                                 class="sidebar-item text-gray-700 dark:text-gray-200">Contact</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="registrations_assessment.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_assessment.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                                                    <g id="SVGRepo_iconCarrier">
+                                                        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                        <path d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z" stroke="currentColor" stroke-width="1.5"></path>
+                                                    </g>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Assessment</span>
                                         </a>
                                     </li>
                                     <li>
@@ -490,6 +505,23 @@
                                         </svg>
                                     </div>
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Curriculum</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+
+                        <?php // Question-bank builder: full control is Admin-only, per spec. ?>
+                        <?php if ($_SESSION['user_role'] == 1) { ?>
+                            <li>
+                                <a href="assessments.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                 <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'assessments.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M3 10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157C21 4.34315 21 6.22876 21 10V14C21 17.7712 21 19.6569 19.8284 20.8284C18.6569 22 16.7712 22 13 22H11C7.22876 22 5.34315 22 4.17157 20.8284C3 19.6569 3 17.7712 3 14V10Z" stroke="currentColor" stroke-width="1.5"/>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Assessments</span>
                                 </a>
                             </li>
                         <?php } ?>

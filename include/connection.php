@@ -67,6 +67,24 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_role']) && (int)$_SESSI
     $_SESSION['module_permissions'] = getModulePermissionsForUser($conn, (int)$_SESSION['user_id']);
 }
 
+// An Assessment candidate account (see controller/registrations.php's
+// send_assessment action) may only ever reach its own assessment - never the
+// dashboard, sidebar, or any other module/controller. Checked here because
+// this file is included by every page and every controller after
+// session_start(), so this is the one place that has to enforce it.
+if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_CANDIDATE) {
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $file = basename($scriptName);
+    $allowedForCandidate = ['my_assessment.php', 'candidate_assessment.php', 'logout.php', 'auth.php'];
+    if (!in_array($file, $allowedForCandidate, true)) {
+        if (strpos($scriptName, '/controller/') !== false) {
+            denyJson('Access restricted to your assessment.');
+        }
+        header('Location: ' . BASE_URL . 'my_assessment.php');
+        exit;
+    }
+}
+
 if (!function_exists('logActivity')) {
     function logActivity($action, $details) {
         global $conn;

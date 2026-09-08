@@ -10,6 +10,10 @@ define('ROLE_MANAGER', 4);
 // Per-module read/write observer - see `module_permissions` below for what that
 // actually means. Only an Admin can create, edit or delete one.
 define('ROLE_COLLABORATOR', 5);
+// Created only when an Admin/Manager sends a candidate an Assessment from the
+// registrations pipeline (see controller/registrations.php's send_assessment
+// action). Locked to my_assessment.php only - see the guard in connection.php.
+define('ROLE_CANDIDATE', 6);
 
 /* =========================
    Collaborator module permissions
@@ -158,6 +162,8 @@ if (!function_exists('roleLabel')) {
                 return 'Manager';
             case ROLE_COLLABORATOR:
                 return 'Collaborator';
+            case ROLE_CANDIDATE:
+                return 'Assessment Candidate';
             default:
                 return 'Unknown';
         }

@@ -247,6 +247,34 @@ include_once "./include/headerLinks.php";
                 </div>
             </div>
 
+            <!-- Send Assessment Modal -->
+            <div id="sendAssessmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Send Assessment</h3>
+                        <button type="button" id="sendAssessmentCancelBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">This creates a login for the candidate and emails/WhatsApps them the credentials. They'll see only the assessment after logging in.</p>
+                    <form id="sendAssessmentForm" class="space-y-4">
+                        <input type="hidden" id="sendAssessmentId" name="id">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assessment <span class="text-red-500">*</span></label>
+                            <select id="sendAssessmentAssessmentId" name="assessment_id" class="w-full px-3 py-2.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200" required>
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" id="cancelSendAssessmentBtn" class="px-4 py-2.5 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+                            <button type="submit" class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Send Assessment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Edit Internship Type Modal -->
             <div id="editTypeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
                 <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
@@ -1610,8 +1638,9 @@ include_once "./include/headerLinks.php";
                     orderable: false,
                     render: function(data, type, row) {
                         return `
-                        <div class="flex items-center space-x-1">
+                        <div class="flex items-center flex-wrap gap-1">
                             <button class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs schedule-btn" data-id="${row.id}">Schedule</button>
+                            <button class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs send-assessment-btn" data-id="${row.id}" data-technology-id="${row.technology_id || ''}">Send Assessment</button>
                             <button class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs hire-btn" data-id="${row.id}">Hire</button>
                             <button class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs reject-table-btn" data-id="${row.id}">Reject</button>
                         </div>`;
@@ -1681,6 +1710,54 @@ include_once "./include/headerLinks.php";
         });
 
         $('#hireCancelBtn, #cancelHireBtn').on('click', () => $('#hireModal').addClass('hidden'));
+
+        // Send Assessment Functionality
+        $(document).on('click', '.send-assessment-btn', async function() {
+            const id = $(this).data('id');
+            const techId = $(this).data('technology-id');
+            $('#sendAssessmentId').val(id);
+            $('#sendAssessmentAssessmentId').html('<option value="">Loading...</option>');
+            $('#sendAssessmentModal').removeClass('hidden');
+
+            try {
+                const res = await fetch(`controller/assessments.php?action=active_by_technology&technology_id=${techId || ''}`);
+                const json = await res.json();
+                if (json.success && json.data.length) {
+                    $('#sendAssessmentAssessmentId').html(json.data.map(a =>
+                        `<option value="${a.id}">${a.title} (${a.difficulty}, ${a.duration_minutes} min, ${a.question_count} Qs)</option>`
+                    ).join(''));
+                } else {
+                    $('#sendAssessmentAssessmentId').html('<option value="">No active assessment found for this technology</option>');
+                }
+            } catch (e) {
+                $('#sendAssessmentAssessmentId').html('<option value="">Failed to load assessments</option>');
+            }
+        });
+        $('#sendAssessmentCancelBtn, #cancelSendAssessmentBtn').on('click', () => $('#sendAssessmentModal').addClass('hidden'));
+        $('#sendAssessmentForm').on('submit', async function(e) {
+            e.preventDefault();
+            const assessmentId = $('#sendAssessmentAssessmentId').val();
+            if (!assessmentId) {
+                showToast('error', 'Please select an assessment');
+                return;
+            }
+            LoaderManager.showGlobal();
+            try {
+                const formData = new FormData(this);
+                formData.append('action', 'send_assessment');
+                const res = await fetch('controller/registrations.php', { method: 'POST', body: formData });
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+                if (json.success) {
+                    $('#sendAssessmentModal').addClass('hidden');
+                    table.ajax.reload();
+                }
+            } catch (err) {
+                showToast('error', err.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
+        });
 
         // Edit Internship Type Functionality
         function openEditTypeModal(row) {

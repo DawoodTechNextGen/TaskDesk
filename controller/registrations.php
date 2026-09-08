@@ -752,22 +752,25 @@ switch ($action) {
         exit;
 
     // ===============================
-    // FULL ASSESSMENT REPORT FOR ONE CANDIDATE (in-app "View Report" -
-    // same question-by-question breakdown + proctoring snapshots that go
-    // out in the emailed PDF, rendered here instead of only in an inbox).
+    // FULL ASSESSMENT REPORT FOR ONE CANDIDATE (in-app "View Report" - the
+    // same question-by-question PDF, with proctoring snapshots, that's
+    // emailed out, streamed inline so it opens in a new tab. A PDF renders
+    // the same regardless of the app's light/dark theme.)
     // ===============================
-    case 'get_assessment_detail':
+    case 'view_assessment_report':
         $registrationId = (int)($_GET['id'] ?? 0);
         if ($registrationId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid candidate.']);
+            http_response_code(400);
+            echo 'Invalid candidate.';
             exit;
         }
 
         $caStmt = $conn->prepare("
-            SELECT ca.*, a.title assessment_title, r.name candidate_name
+            SELECT ca.*, a.title assessment_title, r.name candidate_name, t.name technology_name
             FROM candidate_assessments ca
             JOIN assessments a ON a.id = ca.assessment_id
             JOIN registrations r ON r.id = ca.registration_id
+            LEFT JOIN technologies t ON t.id = a.technology_id
             WHERE ca.registration_id = ?
             ORDER BY ca.id DESC LIMIT 1
         ");
@@ -777,7 +780,8 @@ switch ($action) {
         $caStmt->close();
 
         if (!$ca) {
-            echo json_encode(['success' => false, 'message' => 'No assessment attempt found for this candidate.']);
+            http_response_code(404);
+            echo 'No assessment attempt found for this candidate.';
             exit;
         }
 
@@ -792,43 +796,43 @@ switch ($action) {
         ");
         $qStmt->bind_param('ii', $ca['id'], $ca['assessment_id']);
         $qStmt->execute();
-        $questions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $questionRows = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $qStmt->close();
 
         $optStmt = $conn->prepare("SELECT id, option_text, is_correct FROM assessment_options WHERE question_id = ? ORDER BY order_index ASC, id ASC");
-        foreach ($questions as &$q) {
+        $questions = [];
+        foreach ($questionRows as $q) {
             $optStmt->bind_param('i', $q['question_id']);
             $optStmt->execute();
             $q['options'] = $optStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $questions[] = $q;
         }
-        unset($q);
         $optStmt->close();
 
-        $capStmt = $conn->prepare("SELECT file_path, captured_at FROM candidate_assessment_captures WHERE candidate_assessment_id = ? ORDER BY captured_at ASC");
-        $capStmt->bind_param('i', $ca['id']);
-        $capStmt->execute();
-        $captures = $capStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $capStmt->close();
-        foreach ($captures as &$cap) {
-            $cap['url'] = rtrim(BASE_URL, '/') . '/' . $cap['file_path'];
-        }
-        unset($cap);
+        $captures = getAssessmentCapturesForReport($conn, $ca['id']);
 
-        echo json_encode([
-            'success' => true,
-            'candidate_name' => $ca['candidate_name'],
-            'assessment_title' => $ca['assessment_title'],
-            'status' => $ca['status'],
-            'percentage' => $ca['percentage'],
-            'score' => $ca['score'],
-            'total_marks' => $ca['total_marks'],
-            'started_at' => $ca['started_at'],
-            'completed_at' => $ca['completed_at'],
-            'violation_count' => $ca['violation_count'],
-            'fail_reason' => $ca['fail_reason'],
-            'questions' => $questions,
-            'captures' => $captures
-        ]);
+        $pdfContent = generateDetailedAssessmentReportHelper(
+            $ca['candidate_name'],
+            $ca['assessment_title'],
+            $ca['technology_name'] ?? '',
+            $ca['status'],
+            $ca['percentage'] ?? 0,
+            $ca['completed_at'] ?? date('Y-m-d H:i:s'),
+            $questions,
+            $ca['started_at'] ?? null,
+            $captures
+        );
+
+        if (!$pdfContent) {
+            http_response_code(500);
+            echo 'Failed to generate report.';
+            exit;
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="Assessment_Report_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $ca['candidate_name']) . '.pdf"');
+        header('Content-Length: ' . strlen($pdfContent));
+        echo $pdfContent;
         exit;
 
     // ===============================

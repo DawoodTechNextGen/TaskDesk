@@ -13,6 +13,10 @@ package-lock.json
 /certificates/*.pdf
 !certificates/.gitkeep
 
+# Assessment proctoring captures (generated, and deleted on reject/hire anyway)
+/uploads/assessment_captures/**
+!uploads/assessment_captures/.gitkeep
+
 # IDE files
 .idea/
 .vscode/

@@ -6,6 +6,7 @@ ini_set('display_errors', 0);
 include '../include/connection.php';
 require_once '../include/notification_helper.php';
 require_once '../include/pdf_helper.php';
+require_once '../include/capture_helper.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id']) || (int)($_SESSION['user_role'] ?? 0) !== ROLE_CANDIDATE) {
@@ -82,6 +83,7 @@ function gradeAndFinish($conn, $ca, $reason)
     $fin->close();
 
     sendResultEmail($ca, $status, $percentage);
+    sendAdminResultEmail($conn, $ca, $status, $percentage);
 
     return ['status' => $status, 'percentage' => $percentage, 'fail_reason' => $reason];
 }
@@ -124,7 +126,7 @@ function sendResultEmail($ca, $status, $percentage)
         <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
     </div>";
 
-    $pdfContent = generateAssessmentResultHelper($name, $ca['title'], $technology, $status, $percentage, $completedAt);
+    $pdfContent = generateAssessmentResultHelper($name, $ca['title'], $technology, $status, $percentage, $completedAt, $ca['started_at'] ?? null);
 
     sendNotificationFallback([
         'email' => $email,
@@ -136,6 +138,112 @@ function sendResultEmail($ca, $status, $percentage)
         'pdf_content' => $pdfContent,
         'pdf_filename' => 'Assessment_Result_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $name) . '.pdf'
     ]);
+}
+
+// Emails a detailed, question-by-question PDF report (each question, the
+// candidate's selected answer, and whether it was correct) the moment an
+// attempt finalizes - to every Admin/Manager plus any User-Management
+// Collaborator with access to the Registrations module - so they can review
+// exact answers without opening the assessment builder.
+function sendAdminResultEmail($conn, $ca, $status, $percentage)
+{
+    $caId = (int)$ca['id'];
+    $name = $ca['candidate_name'];
+    $technology = $ca['technology_name'] ?? '';
+    $completedAt = date('Y-m-d H:i:s');
+
+    $qStmt = $conn->prepare("
+        SELECT q.id question_id, q.question_html, q.points,
+               caa.selected_option_id, caa.is_correct
+        FROM assessment_questions q
+        LEFT JOIN candidate_assessment_answers caa
+            ON caa.question_id = q.id AND caa.candidate_assessment_id = ?
+        WHERE q.assessment_id = ?
+        ORDER BY q.order_index ASC, q.id ASC
+    ");
+    $qStmt->bind_param('ii', $caId, $ca['assessment_id']);
+    $qStmt->execute();
+    $questionRows = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $qStmt->close();
+
+    if (!$questionRows) {
+        return;
+    }
+
+    $optStmt = $conn->prepare("SELECT id, option_text, is_correct FROM assessment_options WHERE question_id = ? ORDER BY order_index ASC, id ASC");
+    $questions = [];
+    foreach ($questionRows as $q) {
+        $optStmt->bind_param('i', $q['question_id']);
+        $optStmt->execute();
+        $q['options'] = $optStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $questions[] = $q;
+    }
+    $optStmt->close();
+
+    $captures = getAssessmentCapturesForReport($conn, $caId);
+
+    $pdfContent = generateDetailedAssessmentReportHelper($name, $ca['title'], $technology, $status, $percentage, $completedAt, $questions, $ca['started_at'] ?? null, $captures);
+    if (!$pdfContent) {
+        return;
+    }
+
+    // Same audience as the Assessment Pipeline page itself: Admin, Manager, and
+    // any User-Management Collaborator who was granted read/write access to the
+    // Registrations module (not every Collaborator - only ones with that access).
+    $recipientStmt = $conn->prepare("
+        SELECT DISTINCT u.name, u.email
+        FROM users u
+        LEFT JOIN module_permissions mp ON mp.user_id = u.id AND mp.module = ?
+        WHERE u.status = 1
+        AND u.email IS NOT NULL AND u.email <> ''
+        AND (
+            u.user_role IN (?, ?)
+            OR (u.user_role = ? AND mp.access IN ('read', 'write'))
+        )
+    ");
+    $module = MODULE_REGISTRATIONS;
+    $adminRole = ROLE_ADMIN;
+    $managerRole = ROLE_MANAGER;
+    $collaboratorRole = ROLE_COLLABORATOR;
+    $recipientStmt->bind_param('siii', $module, $adminRole, $managerRole, $collaboratorRole);
+    $recipientStmt->execute();
+    $recipients = $recipientStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $recipientStmt->close();
+
+    if (!$recipients) {
+        return;
+    }
+
+    $pass = $status === 'pass';
+    $statusLabel = $pass ? 'Passed' : 'Not Cleared';
+    $statusColor = $pass ? '#16a34a' : '#dc2626';
+
+    $htmlContent = "
+    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
+        <h2 style='color: #2563eb; text-align: center;'>Candidate Assessment Completed</h2>
+        <p><strong>" . htmlspecialchars($name) . "</strong> has completed the <strong>" . htmlspecialchars($ca['title']) . "</strong> assessment.</p>
+        <div style='background: #f3f4f6; padding: 18px; border-radius: 8px; margin: 20px 0; text-align: center;'>
+            <p style='font-size: 22px; font-weight: bold; color: {$statusColor}; margin: 0;'>{$statusLabel}</p>
+            <p style='font-size: 13px; color: #64748b; margin: 4px 0 0;'>Score: " . htmlspecialchars((string)$percentage) . "%</p>
+        </div>
+        <p>The full question-by-question breakdown (correct/incorrect answers for each question) is attached as a PDF.</p>
+    </div>";
+
+    $pdfFilename = 'Assessment_Detailed_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $name) . '.pdf';
+
+    foreach ($recipients as $recipient) {
+        if (empty($recipient['email'])) {
+            continue;
+        }
+        sendNotificationFallback([
+            'email' => $recipient['email'],
+            'name' => $recipient['name'],
+            'subject' => 'Candidate Assessment Completed - ' . $name . ' (' . $statusLabel . ')',
+            'html_content' => $htmlContent,
+            'pdf_content' => $pdfContent,
+            'pdf_filename' => $pdfFilename
+        ]);
+    }
 }
 
 switch ($action) {
@@ -294,6 +402,26 @@ switch ($action) {
         }
 
         echo json_encode(['success' => true, 'failed' => false, 'violation_count' => $violationCount]);
+        break;
+
+    // ===============================
+    // WEBCAM PROCTORING SNAPSHOT (periodic capture while in_progress)
+    // ===============================
+    case 'capture_snapshot':
+        $ca = getLatestCandidateAssessment($conn, $userId);
+        if (!$ca || $ca['status'] !== 'in_progress') {
+            echo json_encode(['success' => false, 'message' => 'No active attempt.']);
+            exit;
+        }
+
+        $image = $_POST['image'] ?? '';
+        if (empty($image)) {
+            echo json_encode(['success' => false, 'message' => 'No image provided.']);
+            exit;
+        }
+
+        $ok = saveAssessmentCapture($conn, $ca['id'], $ca['registration_id'], $image);
+        echo json_encode(['success' => $ok]);
         break;
 
     default:

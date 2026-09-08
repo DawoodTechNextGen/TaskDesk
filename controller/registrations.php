@@ -23,6 +23,7 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
 ]);
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
+require_once '../include/capture_helper.php';
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -714,6 +715,7 @@ switch ($action) {
 
         $dataSql = "
         SELECT r.id, r.name, r.email, r.mbl_number, r.technology_id, t.name technology, DATE(r.created_at) created_at,
+               r.internship_type,
                ca.id candidate_assessment_id, ca.status assessment_status, ca.percentage, ca.score,
                ca.total_marks, ca.violation_count, ca.fail_reason, ca.completed_at, ca.expires_at,
                a.id assessment_id, a.title assessment_title, a.passing_percentage
@@ -734,6 +736,9 @@ switch ($action) {
         $data = [];
         while ($row = $result->fetch_assoc()) {
             $row['assessment_status'] = $row['assessment_status'] ?? 'pending';
+            $row['internship_type_text'] = isset($row['internship_type'])
+                ? ($row['internship_type'] == 0 ? 'Task Base Intern' : 'Learning Base Intern')
+                : null;
             $data[] = $row;
         }
         $stmt->close();
@@ -743,6 +748,86 @@ switch ($action) {
             'recordsTotal' => $recordsFiltered,
             'recordsFiltered' => $recordsFiltered,
             'data' => $data
+        ]);
+        exit;
+
+    // ===============================
+    // FULL ASSESSMENT REPORT FOR ONE CANDIDATE (in-app "View Report" -
+    // same question-by-question breakdown + proctoring snapshots that go
+    // out in the emailed PDF, rendered here instead of only in an inbox).
+    // ===============================
+    case 'get_assessment_detail':
+        $registrationId = (int)($_GET['id'] ?? 0);
+        if ($registrationId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid candidate.']);
+            exit;
+        }
+
+        $caStmt = $conn->prepare("
+            SELECT ca.*, a.title assessment_title, r.name candidate_name
+            FROM candidate_assessments ca
+            JOIN assessments a ON a.id = ca.assessment_id
+            JOIN registrations r ON r.id = ca.registration_id
+            WHERE ca.registration_id = ?
+            ORDER BY ca.id DESC LIMIT 1
+        ");
+        $caStmt->bind_param('i', $registrationId);
+        $caStmt->execute();
+        $ca = $caStmt->get_result()->fetch_assoc();
+        $caStmt->close();
+
+        if (!$ca) {
+            echo json_encode(['success' => false, 'message' => 'No assessment attempt found for this candidate.']);
+            exit;
+        }
+
+        $qStmt = $conn->prepare("
+            SELECT q.id question_id, q.question_html, q.points,
+                   caa.selected_option_id, caa.is_correct
+            FROM assessment_questions q
+            LEFT JOIN candidate_assessment_answers caa
+                ON caa.question_id = q.id AND caa.candidate_assessment_id = ?
+            WHERE q.assessment_id = ?
+            ORDER BY q.order_index ASC, q.id ASC
+        ");
+        $qStmt->bind_param('ii', $ca['id'], $ca['assessment_id']);
+        $qStmt->execute();
+        $questions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $qStmt->close();
+
+        $optStmt = $conn->prepare("SELECT id, option_text, is_correct FROM assessment_options WHERE question_id = ? ORDER BY order_index ASC, id ASC");
+        foreach ($questions as &$q) {
+            $optStmt->bind_param('i', $q['question_id']);
+            $optStmt->execute();
+            $q['options'] = $optStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+        unset($q);
+        $optStmt->close();
+
+        $capStmt = $conn->prepare("SELECT file_path, captured_at FROM candidate_assessment_captures WHERE candidate_assessment_id = ? ORDER BY captured_at ASC");
+        $capStmt->bind_param('i', $ca['id']);
+        $capStmt->execute();
+        $captures = $capStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $capStmt->close();
+        foreach ($captures as &$cap) {
+            $cap['url'] = rtrim(BASE_URL, '/') . '/' . $cap['file_path'];
+        }
+        unset($cap);
+
+        echo json_encode([
+            'success' => true,
+            'candidate_name' => $ca['candidate_name'],
+            'assessment_title' => $ca['assessment_title'],
+            'status' => $ca['status'],
+            'percentage' => $ca['percentage'],
+            'score' => $ca['score'],
+            'total_marks' => $ca['total_marks'],
+            'started_at' => $ca['started_at'],
+            'completed_at' => $ca['completed_at'],
+            'violation_count' => $ca['violation_count'],
+            'fail_reason' => $ca['fail_reason'],
+            'questions' => $questions,
+            'captures' => $captures
         ]);
         exit;
 
@@ -1225,8 +1310,10 @@ switch ($action) {
             // Log hiring activity
             logActivity('Hire Intern', "Approved registration and hired intern: " . $registration['name'] . " (" . $registration['email'] . ") under User ID " . $tech_id);
 
+            deleteAssessmentCapturesForRegistrations($conn, [$id]);
+
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Hired successfully! Credentials and offer letter sent.',
                 'notification' => $notifRes
             ]);
@@ -1390,6 +1477,10 @@ switch ($action) {
 
             logActivity('Update Registration Status', "Updated registration status for $candidateName to: " . ucfirst($newStatus));
 
+            if ($newStatus === 'rejected' || $newStatus === 'hire') {
+                deleteAssessmentCapturesForRegistrations($conn, [$id]);
+            }
+
             if ($sendEmail) {
                 $successMsg = $emailSent 
                     ? 'Status updated to contact and email sent successfully' 
@@ -1409,13 +1500,17 @@ switch ($action) {
             exit;
         }
 
-        $sql = "UPDATE registrations 
-                SET status = 'rejected' 
-                WHERE status = 'contact' 
+        $idsResult = $conn->query("SELECT id FROM registrations WHERE status = 'contact' AND updated_at < DATE_SUB(NOW(), INTERVAL 15 DAY)");
+        $idsToReject = $idsResult ? array_column($idsResult->fetch_all(MYSQLI_ASSOC), 'id') : [];
+
+        $sql = "UPDATE registrations
+                SET status = 'rejected'
+                WHERE status = 'contact'
                 AND updated_at < DATE_SUB(NOW(), INTERVAL 15 DAY)";
 
         if ($conn->query($sql)) {
             $affected = $conn->affected_rows;
+            deleteAssessmentCapturesForRegistrations($conn, $idsToReject);
             echo json_encode([
                 'success' => true,
                 'message' => "Successfully rejected {$affected} candidates whose contact status was older than 15 days."
@@ -1494,6 +1589,8 @@ switch ($action) {
                 'subject' => $subject,
                 'html_content' => $html_content
             ]);
+
+            deleteAssessmentCapturesForRegistrations($conn, [$candidate['id']]);
         }
         $updateStmt->close();
 
@@ -1595,6 +1692,8 @@ $html_content = "
                 'subject' => $subject,
                 'html_content' => $html_content
             ]);
+
+            deleteAssessmentCapturesForRegistrations($conn, [$id]);
 
             echo json_encode(['success' => true, 'message' => 'Candidate rejected and notified via email']);
         } else {

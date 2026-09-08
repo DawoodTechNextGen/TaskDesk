@@ -102,6 +102,7 @@ include_once "./include/headerLinks.php";
                 <p>• The assessment runs in <strong>fullscreen</strong>. Switching tabs/apps or exiting fullscreen is treated as a rule violation.</p>
                 <p>• You will get <strong>one warning</strong> if you leave the assessment screen. A second time will <strong>fail your attempt immediately</strong>.</p>
                 <p>• Copying question/answer text is disabled.</p>
+                <p>• <strong>Camera access is required.</strong> Periodic snapshots are captured during the assessment for verification purposes.</p>
                 <p>• Make sure you're in a quiet place with a stable internet connection before starting.</p>
             </div>
             <button id="startBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-md">Start Assessment</button>
@@ -118,7 +119,12 @@ include_once "./include/headerLinks.php";
 
             <div id="examContent" class="hidden exam-locked-select">
                 <div id="timerBar" class="sticky z-30 bg-indigo-600 text-white rounded-xl px-5 py-3 mb-6 flex justify-between items-center shadow-md" style="top: 65px;">
-                    <span class="font-semibold" id="examTitleLabel"></span>
+                    <span class="font-semibold flex items-center gap-2">
+                        <span id="examTitleLabel"></span>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-normal bg-red-600/80 px-2 py-0.5 rounded-full" title="Periodic webcam snapshots are being captured">
+                            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> REC
+                        </span>
+                    </span>
                     <span class="font-mono text-lg font-bold" id="timerDisplay">--:--</span>
                 </div>
                 <div id="questionsContainer" class="space-y-6"></div>
@@ -215,6 +221,7 @@ include_once "./include/headerLinks.php";
             examLocked = true;
             examActive = false;
             clearInterval(timerInterval);
+            stopCameraCapture();
             exitFullscreenSafe();
             document.getElementById('warningOverlay').classList.add('hidden');
             showScreen('violationFailState');
@@ -249,8 +256,14 @@ include_once "./include/headerLinks.php";
             violationReported = false;
             document.getElementById('warningOverlay').classList.add('hidden');
         });
-        document.getElementById('resumeBtn').addEventListener('click', () => {
-            requestFullscreenSafe();
+        document.getElementById('resumeBtn').addEventListener('click', async () => {
+            requestFullscreenSafe(); // must be first: preserves the user-gesture for Fullscreen API
+            const cameraOk = await requestCameraAccess();
+            if (!cameraOk) {
+                exitFullscreenSafe();
+                showToast('error', 'Camera access is required to continue this assessment. Please allow camera permission and try again.');
+                return;
+            }
             document.getElementById('resumeGate').classList.add('hidden');
             document.getElementById('examContent').classList.remove('hidden');
             armExam();
@@ -319,6 +332,63 @@ include_once "./include/headerLinks.php";
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
+        // ---------------- Webcam Proctoring ----------------
+        // Camera access is mandatory: the exam does not start/resume without it.
+        // Snapshots are taken on a fixed interval for as long as examActive is true.
+        let cameraStream = null;
+        let cameraVideoEl = null;
+        let captureInterval = null;
+        const CAPTURE_INTERVAL_MS = 60000; // 60s
+
+        async function requestCameraAccess() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 320 }, height: { ideal: 240 } },
+                    audio: false
+                });
+                return true;
+            } catch (e) {
+                cameraStream = null;
+                return false;
+            }
+        }
+
+        function startCaptureLoop() {
+            if (!cameraStream) return;
+            cameraVideoEl = document.createElement('video');
+            cameraVideoEl.srcObject = cameraStream;
+            cameraVideoEl.muted = true;
+            cameraVideoEl.playsInline = true;
+            cameraVideoEl.play().catch(() => {});
+
+            const canvas = document.createElement('canvas');
+            const captureFrame = () => {
+                if (!examActive || !cameraVideoEl || !cameraVideoEl.videoWidth) return;
+                canvas.width = cameraVideoEl.videoWidth;
+                canvas.height = cameraVideoEl.videoHeight;
+                canvas.getContext('2d').drawImage(cameraVideoEl, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                api('capture_snapshot', { image: dataUrl }).catch(() => {});
+            };
+
+            cameraVideoEl.addEventListener('loadeddata', () => {
+                captureFrame();
+                clearInterval(captureInterval);
+                captureInterval = setInterval(captureFrame, CAPTURE_INTERVAL_MS);
+            }, { once: true });
+        }
+
+        function stopCameraCapture() {
+            clearInterval(captureInterval);
+            captureInterval = null;
+            if (cameraVideoEl) { cameraVideoEl.pause(); cameraVideoEl.srcObject = null; cameraVideoEl = null; }
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+        }
+
         // ---------------- Timer ----------------
         let remainingSeconds = 0;
         function startTimer() {
@@ -345,11 +415,13 @@ include_once "./include/headerLinks.php";
             examActive = true;
             violationReported = false;
             startTimer();
+            startCaptureLoop();
         }
 
         async function finishAttempt(auto) {
             examActive = false;
             clearInterval(timerInterval);
+            stopCameraCapture();
             exitFullscreenSafe();
             const result = await api('submit');
             if (result.success) {
@@ -381,9 +453,16 @@ include_once "./include/headerLinks.php";
         // ---------------- Boot ----------------
         document.getElementById('startBtn').addEventListener('click', async () => {
             requestFullscreenSafe(); // must be first: preserves the user-gesture for Fullscreen API
+            const cameraOk = await requestCameraAccess();
+            if (!cameraOk) {
+                exitFullscreenSafe();
+                showToast('error', 'Camera access is required to start this assessment. Please allow camera permission in your browser and try again.');
+                return;
+            }
             const result = await api('start');
             if (!result.success) {
                 showToast('error', result.message || 'Could not start assessment');
+                stopCameraCapture();
                 return;
             }
             enterInProgress(result, true);

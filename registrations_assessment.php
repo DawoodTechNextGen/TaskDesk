@@ -200,6 +200,20 @@ include_once "./include/headerLinks.php"; ?>
         </div>
     </div>
 
+    <!-- View Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Assessment Report</h3>
+                <button type="button" id="reportCloseBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="reportLoading" class="text-center text-gray-500 dark:text-gray-400 py-10">Loading report...</div>
+            <div id="reportContent" class="hidden"></div>
+        </div>
+    </div>
+
     <?php include_once "./include/footerLinks.php"; ?>
     <script>
         // Row "Actions" dropdown (Resend/Interview/Hire/Reject) - delegated since
@@ -236,6 +250,7 @@ include_once "./include/headerLinks.php"; ?>
                     <th>Name</th>
                     <th>Contact</th>
                     <th>Technology</th>
+                    <th>Type</th>
                     <th>Assessment</th>
                     <th>Result</th>
                     <th>Score</th>
@@ -266,6 +281,16 @@ include_once "./include/headerLinks.php"; ?>
                     { data: 'name' },
                     { data: 'mbl_number' },
                     { data: 'technology' },
+                    {
+                        data: 'internship_type_text',
+                        render: function(text, type, row) {
+                            if (!text) return '-';
+                            const cls = row.internship_type == 0
+                                ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300'
+                                : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+                            return `<span class="px-2 py-1 rounded-full text-xs font-semibold ${cls}">${text}</span>`;
+                        }
+                    },
                     { data: 'assessment_title', defaultContent: '-' },
                     {
                         data: 'assessment_status',
@@ -296,6 +321,7 @@ include_once "./include/headerLinks.php"; ?>
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 <div class="actions-dropdown-menu hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 overflow-hidden">
+                                    <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 view-report-btn" data-id="${row.id}">View Report</button>
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 resend-btn" data-id="${row.id}" data-assessment-id="${row.assessment_id || ''}">Resend</button>
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 schedule-btn" data-id="${row.id}">Interview</button>
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-950/40 hire-btn" data-id="${row.id}">Hire</button>
@@ -413,6 +439,97 @@ include_once "./include/headerLinks.php"; ?>
                     btn.prop('disabled', false).removeClass('opacity-60 cursor-not-allowed');
                 }
             });
+
+            // View Report - question-by-question breakdown + proctoring snapshots
+            $(document).on('click', '.view-report-btn', async function() {
+                const id = $(this).data('id');
+                $('#reportContent').addClass('hidden').empty();
+                $('#reportLoading').removeClass('hidden');
+                $('#reportModal').removeClass('hidden');
+
+                try {
+                    const res = await fetch(`controller/registrations.php?action=get_assessment_detail&id=${id}`);
+                    const json = await res.json();
+                    if (!json.success) {
+                        $('#reportLoading').text(json.message || 'Failed to load report.');
+                        return;
+                    }
+                    renderReport(json);
+                    $('#reportLoading').addClass('hidden');
+                    $('#reportContent').removeClass('hidden');
+                } catch (e) {
+                    $('#reportLoading').text('Failed to load report: ' + e.message);
+                }
+            });
+            $('#reportCloseBtn').on('click', () => $('#reportModal').addClass('hidden'));
+
+            function renderReport(d) {
+                const statusMap = {
+                    pending: ['Pending', 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'],
+                    in_progress: ['In Progress', 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'],
+                    pass: ['Pass', 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'],
+                    fail: ['Fail', 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300']
+                };
+                const [statusLabel, statusCls] = statusMap[d.status] || [d.status, ''];
+
+                let html = `
+                    <div class="grid grid-cols-2 gap-3 mb-5 text-sm bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4">
+                        <div><span class="font-semibold">Candidate:</span> ${escapeHTML(d.candidate_name)}</div>
+                        <div><span class="font-semibold">Assessment:</span> ${escapeHTML(d.assessment_title)}</div>
+                        <div><span class="font-semibold">Result:</span> <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusCls}">${statusLabel}</span></div>
+                        <div><span class="font-semibold">Score:</span> ${d.percentage !== null ? parseFloat(d.percentage).toFixed(0) + '%' : '-'} (${d.score ?? '-'} / ${d.total_marks ?? '-'})</div>
+                        <div><span class="font-semibold">Start Time:</span> ${escapeHTML(d.started_at) || '-'}</div>
+                        <div><span class="font-semibold">End Time:</span> ${escapeHTML(d.completed_at) || '-'}</div>
+                        <div><span class="font-semibold">Violations:</span> ${d.violation_count ?? 0}</div>
+                        <div><span class="font-semibold">Fail Reason:</span> ${escapeHTML(d.fail_reason) || '-'}</div>
+                    </div>
+                `;
+
+                if (d.captures && d.captures.length) {
+                    html += `<h4 class="font-bold text-gray-800 dark:text-white mb-2">Webcam Snapshots (${d.captures.length})</h4>
+                        <div class="flex flex-wrap gap-3 mb-6">
+                            ${d.captures.map(c => `
+                                <div class="text-center">
+                                    <img src="${c.url}" class="w-28 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600" loading="lazy">
+                                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">${escapeHTML(c.captured_at)}</div>
+                                </div>
+                            `).join('')}
+                        </div>`;
+                }
+
+                html += `<h4 class="font-bold text-gray-800 dark:text-white mb-3">Question-by-Question Breakdown</h4>
+                    <div class="space-y-4">`;
+
+                (d.questions || []).forEach((q, idx) => {
+                    const answered = q.selected_option_id !== null;
+                    const isCorrect = answered && parseInt(q.is_correct) === 1;
+                    const qStatus = !answered ? ['Unanswered', 'text-gray-500'] : (isCorrect ? ['Correct', 'text-green-600 dark:text-green-400'] : ['Wrong', 'text-red-600 dark:text-red-400']);
+
+                    html += `<div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-sm font-bold text-gray-800 dark:text-white">Q${idx + 1}. (${q.points} pts)</span>
+                            <span class="text-xs font-bold ${qStatus[1]}">${qStatus[0]}</span>
+                        </div>
+                        <div class="text-sm text-gray-700 dark:text-gray-200 mb-3">${q.question_html}</div>
+                        <div class="space-y-1.5">`;
+
+                    (q.options || []).forEach(opt => {
+                        const isSelected = answered && parseInt(opt.id) === parseInt(q.selected_option_id);
+                        const isRight = !!parseInt(opt.is_correct);
+                        let cls = 'text-gray-600 dark:text-gray-300';
+                        let marker = '';
+                        if (isSelected && isRight) { cls = 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 font-semibold'; marker = ' ✓ Selected · Correct'; }
+                        else if (isSelected && !isRight) { cls = 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 font-semibold'; marker = ' ✗ Selected · Incorrect'; }
+                        else if (!isSelected && isRight) { cls = 'bg-green-50/60 dark:bg-green-950/20 text-green-700 dark:text-green-400'; marker = ' ✓ Correct Answer'; }
+                        html += `<div class="px-3 py-1.5 rounded-lg text-xs ${cls}">${escapeHTML(opt.option_text)}${marker}</div>`;
+                    });
+
+                    html += `</div></div>`;
+                });
+
+                html += `</div>`;
+                $('#reportContent').html(html);
+            }
 
             // Resend
             $(document).on('click', '.resend-btn', async function() {

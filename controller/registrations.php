@@ -16,6 +16,7 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
     'update_status',
     'update_registration_status',
     'bulk_reject_old_contacts',
+    'bulk_reject_pending_assessments',
     'reject_candidate',
     'send_assessment',
     'resend_assessment',
@@ -1416,15 +1417,90 @@ switch ($action) {
         if ($conn->query($sql)) {
             $affected = $conn->affected_rows;
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => "Successfully rejected {$affected} candidates whose contact status was older than 15 days."
             ]);
         } else {
             echo json_encode([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Failed to perform bulk rejection: ' . $conn->error
             ]);
         }
+        break;
+
+    case 'bulk_reject_pending_assessments':
+        if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4, ROLE_COLLABORATOR], true)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized action.']);
+            exit;
+        }
+
+        // Latest assessment per registration, still not completed (pending/in_progress),
+        // sent 15+ days ago.
+        $selectSql = "SELECT r.id, r.name, r.email, t.name technology
+            FROM registrations r
+            LEFT JOIN technologies t ON t.id = r.technology_id
+            JOIN candidate_assessments ca ON ca.id = (
+                SELECT ca2.id FROM candidate_assessments ca2
+                WHERE ca2.registration_id = r.id ORDER BY ca2.id DESC LIMIT 1
+            )
+            WHERE r.status = 'assessment'
+            AND ca.status IN ('pending', 'in_progress')
+            AND ca.created_at < DATE_SUB(NOW(), INTERVAL 15 DAY)";
+
+        $candidates = $conn->query($selectSql);
+        if (!$candidates) {
+            echo json_encode(['success' => false, 'message' => 'Failed to fetch candidates: ' . $conn->error]);
+            break;
+        }
+
+        $updateStmt = $conn->prepare("UPDATE registrations SET status = 'rejected' WHERE id = ?");
+        $rejectedCount = 0;
+
+        while ($candidate = $candidates->fetch_assoc()) {
+            $updateStmt->bind_param('i', $candidate['id']);
+            if (!$updateStmt->execute()) {
+                continue;
+            }
+            $rejectedCount++;
+
+            $tech_name = $candidate['technology'] ?? 'Jr Developer';
+            $subject = "Application Status Update - DawoodTech NextGen";
+            $html_content = "
+                <div style='font-family: Arial, sans-serif; line-height: 1.7; color: #333;'>
+                    <p>Dear " . htmlspecialchars($candidate['name']) . ",</p>
+                    <p>
+                        Thank you for your interest in the <strong>" . htmlspecialchars($tech_name) . " Internship</strong> at DawoodTech NextGen.
+                    </p>
+                    <p>
+                        You have not completed your assessment within 15 days of it being sent to you. As a result, we regret to inform you that your application for the internship has been rejected.
+                    </p>
+                    <p>
+                        We sincerely appreciate your interest in DawoodTech NextGen and encourage you to apply again in the future should a suitable opportunity arise.
+                    </p>
+                    <p style='color: #666; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 12px; margin-top: 24px;'>
+                        <strong>Note:</strong> This is an automated message. Replies to this email will not be monitored.
+                    </p>
+                    <p>
+                        Kind regards,<br>
+                        <strong>Hiring Team</strong><br>
+                        DawoodTech NextGen
+                    </p>
+                </div>
+            ";
+
+            sendNotificationFallback([
+                'email' => $candidate['email'],
+                'name' => $candidate['name'],
+                'subject' => $subject,
+                'html_content' => $html_content
+            ]);
+        }
+        $updateStmt->close();
+
+        echo json_encode([
+            'success' => true,
+            'message' => "Successfully rejected {$rejectedCount} candidate(s) who did not complete their assessment within 15 days."
+        ]);
         break;
 
     case 'reject_candidate':

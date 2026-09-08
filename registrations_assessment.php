@@ -191,6 +191,18 @@ include_once "./include/headerLinks.php"; ?>
 
     <?php include_once "./include/footerLinks.php"; ?>
     <script>
+        // Row "Actions" dropdown (Resend/Interview/Hire/Reject) - delegated since
+        // DataTables re-renders rows, and only one menu open at a time.
+        $(document).on('click', '.actions-toggle-btn', function(e) {
+            e.stopPropagation();
+            const menu = $(this).siblings('.actions-dropdown-menu');
+            $('.actions-dropdown-menu').not(menu).addClass('hidden');
+            menu.toggleClass('hidden');
+        });
+        $(document).on('click', function() {
+            $('.actions-dropdown-menu').addClass('hidden');
+        });
+
         function showToast(type, msg) {
             const toast = document.createElement('div');
             toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
@@ -267,11 +279,17 @@ include_once "./include/headerLinks.php"; ?>
                         orderable: false,
                         render: function(data, type, row) {
                             return `
-                            <div class="flex items-center flex-wrap gap-1">
-                                <button class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs resend-btn" data-id="${row.id}" data-assessment-id="${row.assessment_id || ''}">Resend</button>
-                                <button class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs schedule-btn" data-id="${row.id}">Interview</button>
-                                <button class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs hire-btn" data-id="${row.id}">Hire</button>
-                                <button class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs reject-btn" data-id="${row.id}">Reject</button>
+                            <div class="relative inline-block text-left actions-dropdown-wrapper">
+                                <button type="button" class="actions-toggle-btn px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold inline-flex items-center gap-1">
+                                    Actions
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                <div class="actions-dropdown-menu hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 overflow-hidden">
+                                    <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 resend-btn" data-id="${row.id}" data-assessment-id="${row.assessment_id || ''}">Resend</button>
+                                    <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 schedule-btn" data-id="${row.id}">Interview</button>
+                                    <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-950/40 hire-btn" data-id="${row.id}">Hire</button>
+                                    <button class="w-full text-left px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 reject-btn" data-id="${row.id}">Reject</button>
+                                </div>
                             </div>`;
                         }
                     }

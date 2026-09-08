@@ -42,6 +42,17 @@ include_once "./include/headerLinks.php"; ?>
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Assessment Pipeline</h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="refreshTableBtn" type="button" title="Refresh" class="p-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg shadow-md transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </button>
+                        <button id="bulkRejectAssessmentBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Bulk Reject (> 15 Days)</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="mb-4 flex flex-wrap gap-2">
@@ -375,6 +386,32 @@ include_once "./include/headerLinks.php"; ?>
                 const json = await res.json();
                 showToast(json.success ? 'success' : 'error', json.message);
                 if (json.success) table.ajax.reload();
+            });
+
+            // Refresh table without reloading the page
+            $('#refreshTableBtn').on('click', function() {
+                const icon = $(this).find('svg');
+                icon.addClass('animate-spin');
+                table.ajax.reload(null, false);
+                setTimeout(() => icon.removeClass('animate-spin'), 500);
+            });
+
+            // Bulk Reject - candidates who haven't completed their assessment within 15 days
+            $('#bulkRejectAssessmentBtn').on('click', async function() {
+                if (!confirm("Reject all candidates who haven't completed their assessment within 15 days of it being sent? They will be notified by email.")) return;
+
+                const btn = $(this);
+                btn.prop('disabled', true).addClass('opacity-60 cursor-not-allowed');
+                try {
+                    const res = await fetch('controller/registrations.php', { method: 'POST', body: new URLSearchParams({ action: 'bulk_reject_pending_assessments' }) });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) table.ajax.reload();
+                } catch (e) {
+                    showToast('error', 'Request failed: ' + e.message);
+                } finally {
+                    btn.prop('disabled', false).removeClass('opacity-60 cursor-not-allowed');
+                }
             });
 
             // Resend

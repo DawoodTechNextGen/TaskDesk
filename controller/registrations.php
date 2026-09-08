@@ -17,6 +17,8 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
     'update_registration_status',
     'bulk_reject_old_contacts',
     'reject_candidate',
+    'send_assessment',
+    'resend_assessment',
 ]);
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
@@ -663,6 +665,282 @@ switch ($action) {
             'recordsFiltered' => count($data), // Simplified for now
             'data' => $data,
         ]);
+        break;
+
+    // ===============================
+    // GET ASSESSMENT PIPELINE LIST (WITH PASS/FAIL FILTER)
+    // ===============================
+    case 'assessment':
+        $start  = (int)($_GET['start'] ?? 0);
+        $length = (int)($_GET['length'] ?? 10);
+        $searchValue = trim($_GET['search']['value'] ?? '');
+        $resultFilter = $_GET['result'] ?? '';
+
+        $sqlBase = "FROM registrations r
+                LEFT JOIN technologies t ON t.id = r.technology_id
+                LEFT JOIN candidate_assessments ca ON ca.id = (
+                    SELECT ca2.id FROM candidate_assessments ca2
+                    WHERE ca2.registration_id = r.id ORDER BY ca2.id DESC LIMIT 1
+                )
+                LEFT JOIN assessments a ON a.id = ca.assessment_id";
+
+        $where = ["r.status = 'assessment'"];
+        $params = [];
+        $types = '';
+
+        if (in_array($resultFilter, ['pending', 'in_progress', 'pass', 'fail'], true)) {
+            $where[] = "ca.status = ?";
+            $params[] = $resultFilter;
+            $types .= 's';
+        }
+
+        if ($searchValue !== '') {
+            $where[] = "(r.name LIKE ? OR r.email LIKE ? OR r.mbl_number LIKE ? OR t.name LIKE ?)";
+            for ($i = 0; $i < 4; $i++) {
+                $params[] = "%{$searchValue}%";
+                $types .= 's';
+            }
+        }
+
+        $whereClause = ' WHERE ' . implode(' AND ', $where);
+
+        $countSql = "SELECT COUNT(*) total $sqlBase $whereClause";
+        $stmt = $conn->prepare($countSql);
+        if ($params) $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $recordsFiltered = $stmt->get_result()->fetch_assoc()['total'];
+        $stmt->close();
+
+        $dataSql = "
+        SELECT r.id, r.name, r.email, r.mbl_number, r.technology_id, t.name technology, DATE(r.created_at) created_at,
+               ca.id candidate_assessment_id, ca.status assessment_status, ca.percentage, ca.score,
+               ca.total_marks, ca.violation_count, ca.fail_reason, ca.completed_at, ca.expires_at,
+               a.id assessment_id, a.title assessment_title, a.passing_percentage
+        $sqlBase
+        $whereClause
+        ORDER BY ca.id DESC
+        LIMIT ?, ?
+        ";
+        $params[] = $start;
+        $params[] = $length;
+        $types .= 'ii';
+
+        $stmt = $conn->prepare($dataSql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['assessment_status'] = $row['assessment_status'] ?? 'pending';
+            $data[] = $row;
+        }
+        $stmt->close();
+
+        echo json_encode([
+            'draw' => (int)($_GET['draw'] ?? 0),
+            'recordsTotal' => $recordsFiltered,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data
+        ]);
+        exit;
+
+    // ===============================
+    // SEND ASSESSMENT TO A CONTACTED CANDIDATE
+    // ===============================
+    case 'send_assessment':
+        $id = (int)($_POST['id'] ?? 0);
+        $assessmentId = (int)($_POST['assessment_id'] ?? 0);
+
+        if ($id <= 0 || $assessmentId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Candidate and assessment are required']);
+            break;
+        }
+
+        $conn->begin_transaction();
+        try {
+            $regStmt = $conn->prepare("SELECT * FROM registrations WHERE id = ?");
+            $regStmt->bind_param('i', $id);
+            $regStmt->execute();
+            $registration = $regStmt->get_result()->fetch_assoc();
+            $regStmt->close();
+            if (!$registration) {
+                throw new Exception('Candidate not found');
+            }
+
+            $aStmt = $conn->prepare("SELECT a.*, t.name tech_name FROM assessments a LEFT JOIN technologies t ON t.id = a.technology_id WHERE a.id = ? AND a.status = 1");
+            $aStmt->bind_param('i', $assessmentId);
+            $aStmt->execute();
+            $assessment = $aStmt->get_result()->fetch_assoc();
+            $aStmt->close();
+            if (!$assessment) {
+                throw new Exception('Selected assessment was not found or is inactive');
+            }
+
+            $password = generateStrictPassword(12);
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $candidateRole = ROLE_CANDIDATE;
+            $status = 1;
+
+            $insertUser = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $insertUser->bind_param('ssssiii', $registration['name'], $registration['email'], $password, $hash, $candidateRole, $status, $registration['technology_id']);
+            if (!$insertUser->execute()) {
+                throw new Exception('Failed to create assessment login');
+            }
+            $candidateUserId = $conn->insert_id;
+            $insertUser->close();
+
+            $insertCa = $conn->prepare("INSERT INTO candidate_assessments (registration_id, assessment_id, user_id, status) VALUES (?, ?, ?, 'pending')");
+            $insertCa->bind_param('iii', $id, $assessmentId, $candidateUserId);
+            if (!$insertCa->execute()) {
+                throw new Exception('Failed to assign assessment');
+            }
+            $insertCa->close();
+
+            $newStatus = 'assessment';
+            $u = $conn->prepare("UPDATE registrations SET status = ? WHERE id = ?");
+            $u->bind_param('si', $newStatus, $id);
+            if (!$u->execute()) {
+                throw new Exception('Failed to update registration status');
+            }
+            $u->close();
+
+            $loginUrl = BASE_URL;
+            $whatsappMsg = "Assalam-o-Alaikum *" . $registration['name'] . "*,\n\n"
+                . "📝 *You've Been Invited to Take an Assessment - Dawood Tech NextGen*\n\n"
+                . "🎯 *Assessment:* " . $assessment['title'] . " (" . $assessment['tech_name'] . ")\n"
+                . "⏱️ *Time Limit:* " . $assessment['duration_minutes'] . " minutes\n\n"
+                . "🔐 *Your Login Credentials:*\n"
+                . "🌐 *Portal URL:* $loginUrl\n"
+                . "📧 *Email:* " . $registration['email'] . "\n"
+                . "🔑 *Password:* `$password`\n\n"
+                . "⚠️ Important: You get *ONE attempt only*, once you start the timer cannot be paused. "
+                . "Please find a quiet place with a stable internet connection before starting.\n\n"
+                . "Best of luck!\n\n"
+                . "HR Department\n*DawoodTech NextGen*";
+
+            $htmlEmail = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
+                <h2 style='color: #2563eb; text-align: center;'>Assessment Invitation 📝</h2>
+                <p>Dear <strong>" . htmlspecialchars($registration['name']) . "</strong>,</p>
+                <p>As part of your application for the <strong>" . htmlspecialchars($assessment['tech_name']) . "</strong> internship, please complete the following assessment:</p>
+                <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
+                    <p><strong>Assessment:</strong> " . htmlspecialchars($assessment['title']) . "</p>
+                    <p><strong>Time Limit:</strong> " . (int)$assessment['duration_minutes'] . " minutes</p>
+                    <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
+                    <p><strong>Email:</strong> " . htmlspecialchars($registration['email']) . "</p>
+                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>
+                </div>
+                <p style='color:#b91c1c;'><strong>Important:</strong> You get one attempt only and the timer cannot be paused once started. Please ensure a stable internet connection before you begin.</p>
+                <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
+            </div>";
+
+            $notifRes = sendNotificationFallback([
+                'email' => $registration['email'],
+                'name' => $registration['name'],
+                'mbl_number' => $registration['mbl_number'],
+                'subject' => 'Assessment Invitation - DawoodTech NextGen',
+                'html_content' => $htmlEmail,
+                'whatsapp_msg' => $whatsappMsg
+            ]);
+
+            $conn->commit();
+
+            logActivity('Send Assessment', "Sent '" . $assessment['title'] . "' assessment to " . $registration['name'] . " (" . $registration['email'] . ")");
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Assessment sent successfully! Credentials emailed to the candidate.',
+                'notification' => $notifRes
+            ]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // ===============================
+    // RESEND / RESET AN ASSESSMENT ATTEMPT
+    // ===============================
+    case 'resend_assessment':
+        $id = (int)($_POST['id'] ?? 0);
+        $assessmentId = (int)($_POST['assessment_id'] ?? 0);
+
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Candidate is required']);
+            break;
+        }
+
+        $conn->begin_transaction();
+        try {
+            $latestStmt = $conn->prepare("SELECT ca.*, u.email u_email, u.name u_name, r.mbl_number
+                FROM candidate_assessments ca
+                JOIN users u ON u.id = ca.user_id
+                JOIN registrations r ON r.id = ca.registration_id
+                WHERE ca.registration_id = ? ORDER BY ca.id DESC LIMIT 1");
+            $latestStmt->bind_param('i', $id);
+            $latestStmt->execute();
+            $latest = $latestStmt->get_result()->fetch_assoc();
+            $latestStmt->close();
+
+            if (!$latest) {
+                throw new Exception('No previous assessment found for this candidate. Use "Send Assessment" instead.');
+            }
+
+            $useAssessmentId = $assessmentId > 0 ? $assessmentId : (int)$latest['assessment_id'];
+
+            $aStmt = $conn->prepare("SELECT a.*, t.name tech_name FROM assessments a LEFT JOIN technologies t ON t.id = a.technology_id WHERE a.id = ? AND a.status = 1");
+            $aStmt->bind_param('i', $useAssessmentId);
+            $aStmt->execute();
+            $assessment = $aStmt->get_result()->fetch_assoc();
+            $aStmt->close();
+            if (!$assessment) {
+                throw new Exception('Selected assessment was not found or is inactive');
+            }
+
+            // Reset credentials for the resend so the old (possibly leaked) password stops working
+            $password = generateStrictPassword(12);
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $upUser = $conn->prepare("UPDATE users SET plain_password = ?, password = ? WHERE id = ?");
+            $upUser->bind_param('ssi', $password, $hash, $latest['user_id']);
+            $upUser->execute();
+            $upUser->close();
+
+            $insertCa = $conn->prepare("INSERT INTO candidate_assessments (registration_id, assessment_id, user_id, status) VALUES (?, ?, ?, 'pending')");
+            $insertCa->bind_param('iii', $id, $useAssessmentId, $latest['user_id']);
+            if (!$insertCa->execute()) {
+                throw new Exception('Failed to create a new attempt');
+            }
+            $insertCa->close();
+
+            $loginUrl = BASE_URL;
+            $whatsappMsg = "Assalam-o-Alaikum *" . $latest['u_name'] . "*,\n\n"
+                . "📝 *A New Assessment Attempt Has Been Set Up For You - Dawood Tech NextGen*\n\n"
+                . "🎯 *Assessment:* " . $assessment['title'] . " (" . $assessment['tech_name'] . ")\n"
+                . "⏱️ *Time Limit:* " . $assessment['duration_minutes'] . " minutes\n\n"
+                . "🔐 *Your Login Credentials (updated):*\n"
+                . "🌐 *Portal URL:* $loginUrl\n"
+                . "📧 *Email:* " . $latest['u_email'] . "\n"
+                . "🔑 *Password:* `$password`\n\n"
+                . "⚠️ You get *ONE attempt only* this time as well. Best of luck!\n\nHR Department\n*DawoodTech NextGen*";
+
+            $notifRes = sendNotificationFallback([
+                'email' => $latest['u_email'],
+                'name' => $latest['u_name'],
+                'mbl_number' => $latest['mbl_number'],
+                'subject' => 'New Assessment Attempt - DawoodTech NextGen',
+                'html_content' => "<p>Dear " . htmlspecialchars($latest['u_name']) . ",</p><p>A new attempt for <strong>" . htmlspecialchars($assessment['title']) . "</strong> has been set up for you.</p><p>Email: " . htmlspecialchars($latest['u_email']) . "<br>Password: <code>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>",
+                'whatsapp_msg' => $whatsappMsg
+            ]);
+
+            $conn->commit();
+            logActivity('Resend Assessment', "Created a new assessment attempt for registration ID $id");
+
+            echo json_encode(['success' => true, 'message' => 'New attempt created and credentials resent.', 'notification' => $notifRes]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
         break;
 
     case 'update_interview_notes':

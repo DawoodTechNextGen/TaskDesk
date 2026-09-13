@@ -25,7 +25,6 @@ if ($user_role == 1) {
     $total_users = $conn->query("SELECT COUNT(id) as total FROM users WHERE status = 1 AND user_role != 1")->fetch_assoc()['total'];
     $active_interns = $conn->query("SELECT COUNT(id) as total FROM users WHERE user_role = 2 AND status = 1")->fetch_assoc()['total'];
     $total_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks")->fetch_assoc()['total'];
-    $total_tech = $conn->query("SELECT COUNT(id) as total FROM technologies")->fetch_assoc()['total'];
     // Count of new registrations (status = 'new')
     $new_registrations = $conn->query("SELECT COUNT(id) as total FROM registrations WHERE status = 'new'")->fetch_assoc()['total'];
     // Bootcamp enrollments are a separate data source from the internship
@@ -248,6 +247,45 @@ include_once "./include/headerLinks.php"; ?>
 
                         <!-- Admin Stats Cards - Modern Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                            <!-- New Registrations -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="registrations.php?status=new" class="block">
+                                    <div class="relative">
+                                        <p class="text-teal-500 dark:text-teal-100 text-sm font-medium mb-2">New Registrations</p>
+                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $new_registrations ?></h3>
+                                        <p class="text-teal-500 dark:text-teal-100 text-sm">Recent entries</p>
+                                    </div>
+                                </a>
+                                <div class="absolute top-4 right-4">
+                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
+                            <!-- New Bootcamp Enrollments -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="bootcamp_registrations.php?status=new" class="block">
+                                    <div class="relative">
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">New Bootcamp Enrollments</p>
+                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $bootcamp_enrollments ?></h3>
+                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">Recent entries</p>
+                                    </div>
+                                </a>
+                                <div class="absolute top-4 right-4">
+                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0112 21.5a12.083 12.083 0 01-6.16-10.922L12 14z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
                             <!-- Total Users -->
                             <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
                                 <div class="relative">
@@ -302,62 +340,6 @@ include_once "./include/headerLinks.php"; ?>
                                     <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
-                            </div>
-
-                            <!-- Technologies -->
-                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
-                                <div class="relative">
-                                    <p class="text-orange-500 dark:text-orange-100 text-sm font-medium mb-2">Technologies</p>
-                                    <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $total_tech ?></h3>
-                                    <p class="text-orange-500 dark:text-orange-100 text-sm">Available stacks</p>
-                                </div>
-                                <div class="absolute top-4 right-4">
-                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
-                            </div>
-
-                            <!-- New Registrations -->
-                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
-                                <a href="registrations.php?status=new" class="block">
-                                    <div class="relative">
-                                        <p class="text-teal-500 dark:text-teal-100 text-sm font-medium mb-2">New Registrations</p>
-                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $new_registrations ?></h3>
-                                        <p class="text-teal-500 dark:text-teal-100 text-sm">Recent entries</p>
-                                    </div>
-                                </a>
-                                <div class="absolute top-4 right-4">
-                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
-                            </div>
-
-                            <!-- New Bootcamp Enrollments -->
-                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
-                                <a href="bootcamp_registrations.php?status=new" class="block">
-                                    <div class="relative">
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm font-medium mb-2">New Bootcamp Enrollments</p>
-                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $bootcamp_enrollments ?></h3>
-                                        <p class="text-indigo-500 dark:text-indigo-100 text-sm">Recent entries</p>
-                                    </div>
-                                </a>
-                                <div class="absolute top-4 right-4">
-                                    <div class="bg-gray-400 dark:bg-white/20 p-3 rounded-xl">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422A12.083 12.083 0 0112 21.5a12.083 12.083 0 01-6.16-10.922L12 14z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -519,11 +501,19 @@ include_once "./include/headerLinks.php"; ?>
                                                             <span class="text-sm font-medium text-gray-800 dark:text-white"><?= htmlspecialchars($user['name']) ?></span>
                                                         </div>
                                                     </td>
+                                                    <?php
+                                                    $roleBadgeClasses = [
+                                                        ROLE_ADMIN => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                                                        ROLE_INTERN => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                                                        ROLE_SUPERVISOR => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                                        ROLE_MANAGER => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+                                                        ROLE_COLLABORATOR => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+                                                        ROLE_CANDIDATE => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                                                    ];
+                                                    ?>
                                                     <td class="py-4">
-                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                                    <?= $user['user_role'] == 1 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : ($user['user_role'] == 2 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                                                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300') ?>">
-                                                            <?= $user['user_role'] == 1 ? 'Admin' : ($user['user_role'] == 2 ? 'Intern' : 'Supervisor') ?>
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $roleBadgeClasses[(int)$user['user_role']] ?? $roleBadgeClasses[ROLE_SUPERVISOR] ?>">
+                                                            <?= roleLabel($user['user_role']) ?>
                                                         </span>
                                                     </td>
                                                     <td class="py-4 text-sm text-gray-600 dark:text-gray-300"><?= $user['tech_name'] ?? 'N/A' ?></td>

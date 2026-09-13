@@ -465,6 +465,26 @@
                             </li>
                         <?php } ?>
 
+                        <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('hackathons'))) { ?>
+                            <?php
+                            $hackathonPages = ['hackathons.php', 'hackathon_registrations.php', 'hackathon_leaderboard.php'];
+                            $isHackathonsActive = in_array(basename($_SERVER['SCRIPT_NAME']), $hackathonPages);
+                            ?>
+                            <li>
+                                <a href="hackathons.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                 <?php echo $isHackathonsActive ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 21H16M12 17V21M17 3H7V9C7 11.7614 9.23858 14 12 14C14.7614 14 17 11.7614 17 9V3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+                                            <path d="M7 5H4.5C3.67157 5 3 5.67157 3 6.5C3 8.433 4.567 10 6.5 10H7M17 5H19.5C20.3284 5 21 5.67157 21 6.5C21 8.433 19.433 10 17.5 10H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Hackathons</span>
+                                </a>
+                            </li>
+                        <?php } ?>
+
                         <?php if ($_SESSION['user_role'] == 1) { ?>
                             <li>
                                 <a href="tech.php" onclick="window.location=this.href"

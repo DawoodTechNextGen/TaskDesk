@@ -33,6 +33,10 @@ define('MODULE_REPORTS', 'reports');
 // registrations above, so they get their own module rather than riding on
 // MODULE_REGISTRATIONS.
 define('MODULE_BOOTCAMP', 'bootcamp');
+// Hackathons (event CRUD, registrations viewer, leaderboard) - see
+// include/hackathon_helper.php. Shares its four DB tables with the public
+// Node.js registration site; TaskDesk only adds an admin UI on top.
+define('MODULE_HACKATHONS', 'hackathons');
 
 // Single source of truth for the permission checkboxes in User Management and
 // for validating module names coming back from that form.
@@ -47,6 +51,7 @@ if (!function_exists('collaboratorModules')) {
             MODULE_ATTENDANCE    => 'Intern Attendance',
             MODULE_REPORTS       => 'Reports',
             MODULE_BOOTCAMP      => 'Bootcamp Enrollments',
+            MODULE_HACKATHONS    => 'Hackathons',
         ];
     }
 }
@@ -74,6 +79,9 @@ if (!function_exists('currentPageModule')) {
             'attendance_supervisor.php'  => MODULE_ATTENDANCE,
             'reports.php'                => MODULE_REPORTS,
             'bootcamp_registrations.php' => MODULE_BOOTCAMP,
+            'hackathons.php'              => MODULE_HACKATHONS,
+            'hackathon_registrations.php' => MODULE_HACKATHONS,
+            'hackathon_leaderboard.php'   => MODULE_HACKATHONS,
         ];
         $file = basename($_SERVER['SCRIPT_NAME'] ?? '');
         return $map[$file] ?? null;

@@ -32,6 +32,11 @@ if ($user_role == 1) {
     // registrations above - see bootcamp_registrations.php. Count of new
     // enrollments (status = 'new'), matching how $new_registrations is counted.
     $bootcamp_enrollments = $conn->query("SELECT COUNT(id) as total FROM " . BOOTCAMP_TABLE . " WHERE status = 'new'")->fetch_assoc()['total'];
+    // Hackathons module - shares its tables with the public Node.js registration
+    // site (see include/hackathon_helper.php), so these counts reflect what's
+    // live there too.
+    $hackathons_open_count = $conn->query("SELECT COUNT(id) as total FROM hackathons WHERE status IN ('open','upcoming')")->fetch_assoc()['total'];
+    $hackathons_total_registrations = $conn->query("SELECT COUNT(id) as total FROM hackathon_registrations")->fetch_assoc()['total'];
 
     // Additional admin stats
     $inprogress_tasks = $conn->query("SELECT COUNT(id) as total FROM tasks WHERE status = 'inprogress' AND (due_date >= CURDATE() OR due_date IS NULL)")->fetch_assoc()['total'];
@@ -356,6 +361,23 @@ include_once "./include/headerLinks.php"; ?>
                                         </svg>
                                     </div>
                                 </div>
+                                <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
+                            </div>
+
+                            <!-- Hackathons -->
+                            <div class="rounded-2xl shadow-lg p-6 relative overflow-hidden bg-white dark:bg-gray-800">
+                                <a href="hackathons.php" class="block">
+                                    <div class="relative">
+                                        <p class="text-pink-500 dark:text-pink-100 text-sm font-medium mb-2">Open Hackathons</p>
+                                        <h3 class="text-black dark:text-white text-3xl font-bold mb-2"><?= $hackathons_open_count ?></h3>
+                                        <p class="text-pink-500 dark:text-pink-100 text-sm"><?= $hackathons_total_registrations ?> total registrations</p>
+                                    </div>
+                                </a>
+                                <a href="hackathons.php" title="New Hackathon" class="absolute top-4 right-4 bg-gray-400 dark:bg-white/20 p-3 rounded-xl block">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21h8m-4-4v4M7 3h10v6a5 5 0 01-10 0V3z" />
+                                    </svg>
+                                </a>
                                 <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-400 dark:bg-white/30"></div>
                             </div>
                         </div>

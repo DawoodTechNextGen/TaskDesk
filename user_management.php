@@ -16,6 +16,38 @@ requirePageAdmin();
 $page_title = 'User Management - TaskDesk';
 include_once "./include/headerLinks.php"; ?>
 
+<style>
+    .expand-icon {
+        width: 10px;
+        height: 10px;
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+        transition: transform 300ms ease;
+    }
+    .expand-icon .bar {
+        position: absolute;
+        background-color: currentColor;
+        border-radius: 2px;
+    }
+    .expand-icon .horizontal {
+        width: 100%;
+        height: 1.5px;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+    }
+    .expand-icon .vertical {
+        height: 100%;
+        width: 1.5px;
+        left: 50%;
+        top: 0;
+        transform: translateX(-50%);
+    }
+    tr.shown .expand-icon {
+        transform: rotate(45deg);
+    }
+</style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
 
@@ -44,6 +76,7 @@ include_once "./include/headerLinks.php"; ?>
                         <table id="CollaboratorsTable" class="min-w-full">
                             <thead class="bg-indigo-200 dark:bg-indigo-600">
                                 <tr>
+                                    <th class="px-4 py-3 border border-gray-300 dark:border-gray-600"></th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Email</th>
@@ -149,22 +182,50 @@ include_once "./include/headerLinks.php"; ?>
         const table = $('#CollaboratorsTable').DataTable({
             ordering: false,
             pageLength: 10,
-            columnDefs: [{
-                targets: 4,
-                orderable: false
-            }]
+            columnDefs: [
+                { targets: 0, orderable: false, className: 'details-control cursor-pointer text-center select-none' },
+                { targets: 5, orderable: false }
+            ]
         });
 
         const MODULE_LABELS = <?= json_encode(collaboratorModules()) ?>;
+        let collaboratorsCache = [];
 
+        // Compact counts for the row itself - the full per-module breakdown
+        // only shows in the expand row below, so a Collaborator granted many
+        // modules doesn't blow the table row height up.
         function summarizeAccess(permissions) {
-            const parts = Object.entries(permissions || {})
-                .filter(([, level]) => level === 'read' || level === 'write')
-                .map(([mod, level]) => `${MODULE_LABELS[mod] || mod}: ${level === 'write' ? 'Write' : 'Read'}`);
-            if (!parts.length) {
+            const entries = Object.entries(permissions || {}).filter(([, level]) => level === 'read' || level === 'write');
+            if (!entries.length) {
                 return '<span class="px-2 py-1 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">No access</span>';
             }
-            return parts.map(p => `<span class="inline-block mb-1 mr-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">${p}</span>`).join('');
+            const writeCount = entries.filter(([, level]) => level === 'write').length;
+            const readCount = entries.filter(([, level]) => level === 'read').length;
+            let html = '<div class="flex flex-wrap gap-1">';
+            if (writeCount) html += `<span class="px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">${writeCount} Write</span>`;
+            if (readCount) html += `<span class="px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">${readCount} Read</span>`;
+            html += '</div>';
+            return html;
+        }
+
+        function formatAccessDetails(permissions) {
+            const entries = Object.entries(permissions || {}).filter(([, level]) => level === 'read' || level === 'write');
+            if (!entries.length) {
+                return '<div class="p-4 text-sm text-gray-500 dark:text-gray-400">No module access granted.</div>';
+            }
+            const items = entries.map(([mod, level]) => {
+                const label = MODULE_LABELS[mod] || mod;
+                const cls = level === 'write'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                return `
+                    <div class="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <span class="text-sm text-gray-700 dark:text-gray-200">${label}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}">${level === 'write' ? 'Write' : 'Read'}</span>
+                    </div>
+                `;
+            }).join('');
+            return `<div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">${items}</div>`;
         }
 
         async function loadCollaborators() {
@@ -173,8 +234,10 @@ include_once "./include/headerLinks.php"; ?>
                 const json = await res.json();
                 if (json.success) {
                     table.clear();
+                    collaboratorsCache = json.data;
                     json.data.forEach(u => {
                         table.row.add([
+                            '<span class="expand-icon"><span class="bar horizontal"></span><span class="bar vertical"></span></span>',
                             u.id,
                             u.name,
                             u.email || '<em class="text-gray-400">No email</em>',
@@ -206,6 +269,21 @@ include_once "./include/headerLinks.php"; ?>
                 if (radio) radio.checked = true;
             });
         }
+
+        $('#CollaboratorsTable tbody').on('click', 'td.details-control', function () {
+            const tr = $(this).closest('tr');
+            const row = table.row(tr);
+            const id = tr.find('.edit-Collaborator').data('id');
+            const collaborator = collaboratorsCache.find(u => String(u.id) === String(id));
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+            } else if (collaborator) {
+                row.child(formatAccessDetails(collaborator.permissions)).show();
+                tr.addClass('shown');
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.open-modal').onclick = () => {

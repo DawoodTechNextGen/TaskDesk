@@ -1193,6 +1193,17 @@ switch ($action) {
         $conn->begin_transaction();
 
         try {
+            // Lock the registration so two overlapping hire requests (e.g. a double click)
+            // run one after the other, and the second one stops here instead of failing later.
+            $lock = $conn->prepare("SELECT status FROM registrations WHERE id = ? FOR UPDATE");
+            $lock->bind_param('i', $id);
+            $lock->execute();
+            $current = $lock->get_result()->fetch_assoc();
+            $lock->close();
+            if ($current && $current['status'] === 'hire') {
+                throw new Exception('This candidate has already been hired');
+            }
+
             // Update registration status and duration/type
             $u = $conn->prepare("UPDATE registrations SET status = ?, internship_type = ? WHERE id = ?");
             $u->bind_param('sii', $newStatus, $internshipType, $id);

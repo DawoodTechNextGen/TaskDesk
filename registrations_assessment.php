@@ -355,12 +355,24 @@ include_once "./include/headerLinks.php"; ?>
             $('#hireCancelBtn, #cancelHireBtn').on('click', () => $('#hireModal').addClass('hidden'));
             $('#hireForm').on('submit', async function(e) {
                 e.preventDefault();
-                const formData = new FormData(this);
-                formData.append('action', 'update_hire_status');
-                const res = await fetch('controller/registrations.php', { method: 'POST', body: formData });
-                const json = await res.json();
-                showToast(json.success ? 'success' : 'error', json.message);
-                if (json.success) { $('#hireModal').addClass('hidden'); table.ajax.reload(); }
+                if (!confirm('Are you sure you want to hire this candidate?')) return;
+                // Hiring generates the offer letter and sends email/WhatsApp, which takes a few
+                // seconds; lock the button so a second click can't fire a duplicate hire.
+                const btn = $(this).find('button[type="submit"]');
+                const btnText = btn.text();
+                btn.prop('disabled', true).addClass('opacity-60 cursor-not-allowed').text('Hiring...');
+                try {
+                    const formData = new FormData(this);
+                    formData.append('action', 'update_hire_status');
+                    const res = await fetch('controller/registrations.php', { method: 'POST', body: formData });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) { $('#hireModal').addClass('hidden'); table.ajax.reload(); }
+                } catch (err) {
+                    showToast('error', 'Submission failed: ' + err.message);
+                } finally {
+                    btn.prop('disabled', false).removeClass('opacity-60 cursor-not-allowed').text(btnText);
+                }
             });
 
             // Interview

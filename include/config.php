@@ -51,6 +51,8 @@ define('DB_NAME', getenv('DB_NAME') ?: 'task_management');
 // server, so the bootcamp listing reads across to it on the existing connection.
 // Set BOOTCAMP_DB to DB_NAME if the two ever end up in one database.
 define('BOOTCAMP_DB', getenv('BOOTCAMP_DB') ?: 'dawoodte_task_desk');
+// DawoodTech Community app, linked from the intern sidebar. Leave empty to hide the link.
+define('COMMUNITY_URL', getenv('COMMUNITY_URL') ?: 'https://community.dawoodtechnextgen.com/');
 // Smtp
 define('MAIL_HOST', getenv('MAIL_HOST'));
 define('MAIL_PORT', getenv('MAIL_PORT'));

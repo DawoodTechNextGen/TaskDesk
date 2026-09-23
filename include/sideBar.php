@@ -873,6 +873,24 @@
 
         <!-- Sidebar Footer with User Profile and Theme Toggle -->
         <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <?php if ((int)$_SESSION['user_role'] === ROLE_INTERN && COMMUNITY_URL !== '') { ?>
+                <a href="<?= htmlspecialchars(COMMUNITY_URL, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"
+                    title="Join DawoodTech Community"
+                    class="group flex items-center justify-center gap-3 mb-4 p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all">
+                    <div class="shrink-0 h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="sidebar-item flex-1 min-w-0">
+                        <p class="text-sm font-semibold leading-tight">Join DawoodTech Community</p>
+                        <p class="text-xs text-blue-100 leading-tight mt-0.5">Connect with fellow interns</p>
+                    </div>
+                    <svg class="sidebar-item w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
+            <?php } ?>
             <div class="flex items-center justify-between mb-3 flex-row">
                 <div id="footer-profile" class="flex items-center space-x-2">
                     <div id="sidebar-short-name" class="h-8 w-8 bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-200 rounded-full flex items-center justify-center font-semibold">

@@ -872,13 +872,23 @@ switch ($action) {
             $candidateRole = ROLE_CANDIDATE;
             $status = 1;
 
-            $insertUser = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $insertUser->bind_param('ssssiii', $registration['name'], $registration['email'], $password, $hash, $candidateRole, $status, $registration['technology_id']);
-            if (!$insertUser->execute()) {
-                throw new Exception('Failed to create assessment login');
+            $candidateUserId = findReusableCandidateUserId($conn, $registration['email']);
+            if ($candidateUserId > 0) {
+                $upUser = $conn->prepare("UPDATE users SET name = ?, plain_password = ?, password = ?, status = ?, tech_id = ? WHERE id = ?");
+                $upUser->bind_param('sssiii', $registration['name'], $password, $hash, $status, $registration['technology_id'], $candidateUserId);
+                if (!$upUser->execute()) {
+                    throw new Exception('Failed to update assessment login');
+                }
+                $upUser->close();
+            } else {
+                $insertUser = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $insertUser->bind_param('ssssiii', $registration['name'], $registration['email'], $password, $hash, $candidateRole, $status, $registration['technology_id']);
+                if (!$insertUser->execute()) {
+                    throw new Exception('Failed to create assessment login');
+                }
+                $candidateUserId = $conn->insert_id;
+                $insertUser->close();
             }
-            $candidateUserId = $conn->insert_id;
-            $insertUser->close();
 
             $insertCa = $conn->prepare("INSERT INTO candidate_assessments (registration_id, assessment_id, user_id, status) VALUES (?, ?, ?, 'pending')");
             $insertCa->bind_param('iii', $id, $assessmentId, $candidateUserId);
@@ -1208,16 +1218,26 @@ switch ($action) {
                 throw new Exception('Registration not found');
             }
 
-            // Create user record
-            $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id, internship_type, internship_duration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $insertHire->bind_param('ssssiiiiss', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $internshipType, $duration);
+            // Create user record, or promote the candidate account left over from the assessment
+            $tech_id = findReusableCandidateUserId($conn, $registration['email']);
+            if ($tech_id > 0) {
+                $upHire = $conn->prepare("UPDATE users SET name = ?, plain_password = ?, password = ?, user_role = ?, status = ?, tech_id = ?, supervisor_id = ?, internship_type = ?, internship_duration = ? WHERE id = ?");
+                $upHire->bind_param('sssiiiiisi', $registration['name'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $internshipType, $duration, $tech_id);
+                if (!$upHire->execute()) {
+                    throw new Exception('Failed to create user');
+                }
+                $upHire->close();
+            } else {
+                $insertHire = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id, supervisor_id, internship_type, internship_duration) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $insertHire->bind_param('ssssiiiiss', $registration['name'], $registration['email'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $internshipType, $duration);
 
-            if (!$insertHire->execute()) {
-                throw new Exception('Failed to create user');
+                if (!$insertHire->execute()) {
+                    throw new Exception('Failed to create user');
+                }
+
+                $tech_id = $conn->insert_id;
+                $insertHire->close();
             }
-
-            $tech_id = $conn->insert_id;
-            $insertHire->close();
 
             // Record commission if learning base (internship_type = 1)
             if ($internshipType === 1) {
@@ -1735,6 +1755,27 @@ function generateStrictPassword($length = 12)
 
     // Shuffle to avoid pattern
     return str_shuffle($password);
+}
+
+// A candidate keeps their users row after an assessment (pass, fail or reject), so
+// hiring or re-sending an assessment must reuse it instead of inserting a duplicate email.
+// Returns the reusable candidate user id, 0 if the email is free, and throws if the email
+// belongs to a non-candidate account that must not be overwritten.
+function findReusableCandidateUserId($conn, $email)
+{
+    $stmt = $conn->prepare("SELECT id, user_role FROM users WHERE email = ? LIMIT 1");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $existing = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$existing) {
+        return 0;
+    }
+    if ((int)$existing['user_role'] !== ROLE_CANDIDATE) {
+        throw new Exception("A user account with email $email already exists and is not a candidate account");
+    }
+    return (int)$existing['id'];
 }
 
 // Close database connection

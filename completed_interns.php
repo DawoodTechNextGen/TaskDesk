@@ -26,11 +26,11 @@ include_once "./include/headerLinks.php"; ?>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Completed Interns</h2>
                     <?php if (in_array((int)($_SESSION['user_role'] ?? 0), [1, 4], true)): ?>
-                        <button id="cleanupOldTasksBtn" type="button" title="Delete the tasks of interns whose certificate was approved more than a month ago" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md flex items-center space-x-2">
+                        <button id="cleanupOldTasksBtn" type="button" title="Delete the tasks and attendance of interns whose certificate was approved more than a month ago" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md flex items-center space-x-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            <span>Clean Up Old Tasks (> 1 Month)</span>
+                            <span>Clean Up Old Records (> 1 Month)</span>
                         </button>
                     <?php endif; ?>
                 </div>
@@ -525,7 +525,7 @@ Are you sure you still want to approve their certificate?`;
                     return;
                 }
                 if (preview.intern_count === 0) {
-                    showToast('success', `No interns with a certificate approved more than ${preview.retention_days} days ago still have tasks.`);
+                    showToast('success', `No interns with a certificate approved more than ${preview.retention_days} days ago still have tasks or attendance.`);
                     return;
                 }
 
@@ -533,7 +533,7 @@ Are you sure you still want to approve their certificate?`;
                     .map(([status, count]) => `- ${status.replace(/_/g, ' ')}: ${count}`)
                     .join('\n');
 
-                if (!confirm(`Permanently delete ${preview.task_count} task(s) of ${preview.intern_count} intern(s) whose certificate was approved more than ${preview.retention_days} days ago?\n\nAll statuses are deleted:\n${breakdown}\n\nTheir time logs go too. Attendance and certificates are kept. This cannot be undone.`)) return;
+                if (!confirm(`Permanently delete ${preview.task_count} task(s) and ${preview.attendance_count} attendance record(s) of ${preview.intern_count} intern(s) whose certificate was approved more than ${preview.retention_days} days ago?\n\nTasks of all statuses are deleted:\n${breakdown || '- none'}\n\nTheir time logs go too. Certificates are kept. This cannot be undone.`)) return;
 
                 const res = await fetch('controller/certificate-approval.php', {
                     method: 'POST',

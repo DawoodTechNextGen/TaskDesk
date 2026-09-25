@@ -298,20 +298,35 @@ if ($_POST['action'] === 'toggle_verified') {
     $stmt->close();
 }
 
+function certCleanupTableExists($conn, $table)
+{
+    $res = $conn->query("SHOW TABLES LIKE '" . $conn->real_escape_string($table) . "'");
+    return $res && $res->num_rows > 0;
+}
+
 // Interns whose certificate was approved more than CERT_TASK_RETENTION_DAYS ago and
-// who still have tasks on record - the ones "Clean Up Old Tasks" would clear.
+// who still have tasks or attendance on record - the ones the cleanup would clear.
 function getInternsWithExpiredTaskRetention($conn)
 {
     $days = (int)CERT_TASK_RETENTION_DAYS;
+    $hasDtls = certCleanupTableExists($conn, 'attendance_dtls');
+    $dtlsCount = $hasDtls
+        ? "(SELECT COUNT(*) FROM attendance_dtls d WHERE d.user_id = u.id)"
+        : "0";
+
     $stmt = $conn->prepare("
-        SELECT u.id, u.name, COUNT(t.id) AS task_count
-        FROM certificate c
-        JOIN users u ON u.id = c.intern_id AND u.user_role = 2
-        JOIN tasks t ON t.assign_to = u.id
-        WHERE c.approve_status = 1
-          AND c.approved_at IS NOT NULL
-          AND c.approved_at <= NOW() - INTERVAL ? DAY
-        GROUP BY u.id, u.name
+        SELECT * FROM (
+            SELECT u.id, u.name,
+                (SELECT COUNT(*) FROM tasks t WHERE t.assign_to = u.id) AS task_count,
+                (SELECT COUNT(*) FROM attendance a WHERE a.user_id = u.id) AS attendance_count,
+                $dtlsCount AS attendance_dtls_count
+            FROM certificate c
+            JOIN users u ON u.id = c.intern_id AND u.user_role = 2
+            WHERE c.approve_status = 1
+              AND c.approved_at IS NOT NULL
+              AND c.approved_at <= NOW() - INTERVAL ? DAY
+        ) x
+        WHERE task_count > 0 OR attendance_count > 0 OR attendance_dtls_count > 0
     ");
     $stmt->bind_param("i", $days);
     $stmt->execute();
@@ -321,14 +336,16 @@ function getInternsWithExpiredTaskRetention($conn)
 }
 
 if ($_POST['action'] === 'cleanup_preview' || $_POST['action'] === 'cleanup_old_tasks') {
-    // Only Admin (1) and Manager (4) can remove completed interns' tasks
+    // Only Admin (1) and Manager (4) can remove completed interns' records
     if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
         echo json_encode(['success' => false, 'message' => 'Unauthorized: Only Admins and Managers can clean up tasks.']);
         exit;
     }
 
     $interns = getInternsWithExpiredTaskRetention($conn);
-    $taskCount = array_sum(array_map(fn($r) => (int)$r['task_count'], $interns));
+    $sum = fn($key) => array_sum(array_map(fn($r) => (int)$r[$key], $interns));
+    $taskCount = $sum('task_count');
+    $attendanceCount = $sum('attendance_count');
 
     if ($_POST['action'] === 'cleanup_preview') {
         // Every status is deleted (complete, rejected, expired, in progress...); the
@@ -346,6 +363,7 @@ if ($_POST['action'] === 'cleanup_preview' || $_POST['action'] === 'cleanup_old_
             'success' => true,
             'intern_count' => count($interns),
             'task_count' => $taskCount,
+            'attendance_count' => $attendanceCount,
             'by_status' => $byStatus,
             'retention_days' => (int)CERT_TASK_RETENTION_DAYS,
         ]);
@@ -364,30 +382,40 @@ if ($_POST['action'] === 'cleanup_preview' || $_POST['action'] === 'cleanup_old_
     try {
         // Child rows keyed by task_id. Not every environment has these tables.
         foreach (['time_logs', 'approvals'] as $childTable) {
-            $exists = $conn->query("SHOW TABLES LIKE '$childTable'");
-            if ($exists && $exists->num_rows > 0) {
+            if (certCleanupTableExists($conn, $childTable)) {
                 $conn->query("DELETE c FROM `$childTable` c JOIN tasks t ON c.task_id = t.id WHERE t.assign_to IN ($idList)");
             }
         }
+        // The intern's own time logs, including any not tied to one of their tasks.
+        if (certCleanupTableExists($conn, 'time_logs')) {
+            $conn->query("DELETE FROM time_logs WHERE user_id IN ($idList)");
+        }
 
-        // Attendance rows are kept on purpose: they are the intern's attendance history
-        // and still feed the attendance % shown for completed interns.
         $conn->query("DELETE FROM tasks WHERE assign_to IN ($idList)");
-        $deleted = $conn->affected_rows;
+        $deletedTasks = $conn->affected_rows;
+
+        // Attendance history. Auto-attendance skips interns past their completion
+        // date, so these rows are not re-created afterwards.
+        if (certCleanupTableExists($conn, 'attendance_dtls')) {
+            $conn->query("DELETE FROM attendance_dtls WHERE user_id IN ($idList)");
+        }
+        $conn->query("DELETE FROM attendance WHERE user_id IN ($idList)");
+        $deletedAttendance = $conn->affected_rows;
 
         $conn->commit();
     } catch (\Throwable $e) {
         $conn->rollback();
-        echo json_encode(['success' => false, 'message' => 'Failed to clean up tasks: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Failed to clean up: ' . $e->getMessage()]);
         exit;
     }
 
+    $summary = "Deleted $deletedTasks task(s) and $deletedAttendance attendance record(s) of " . count($interns) . " intern(s)";
     $names = implode(', ', array_map(fn($r) => $r['name'] . ' (ID ' . $r['id'] . ')', $interns));
-    logActivity('Clean Up Completed Interns Tasks', "Deleted $deleted task(s) of " . count($interns) . " intern(s) whose certificate was approved over " . CERT_TASK_RETENTION_DAYS . " days ago: $names");
+    logActivity('Clean Up Completed Interns Tasks', "$summary whose certificate was approved over " . CERT_TASK_RETENTION_DAYS . " days ago: $names");
 
     echo json_encode([
         'success' => true,
-        'message' => "Deleted $deleted task(s) of " . count($interns) . " intern(s)."
+        'message' => "$summary."
     ]);
     exit;
 }

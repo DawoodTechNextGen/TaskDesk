@@ -58,6 +58,19 @@ if ($tech_id > 0 && !empty($duration)) {
     $c_stmt->close();
 }
 
+// A week unlocks once its task has been assigned to the intern. Week 1 is assigned
+// when the curriculum is started, and each next week when the supervisor approves
+// the previous one, so weeks open up one at a time. Locked weeks show no content.
+$assigned_week_status = [];
+$as_stmt = $conn->prepare("SELECT week_number, status FROM tasks WHERE assign_to = ? AND week_number > 0 ORDER BY id ASC");
+$as_stmt->bind_param("i", $user_id);
+$as_stmt->execute();
+$as_res = $as_stmt->get_result();
+while ($as_row = $as_res->fetch_assoc()) {
+    $assigned_week_status[(int)$as_row['week_number']] = $as_row['status']; // latest task wins
+}
+$as_stmt->close();
+
 $total_weeks = count($roadmap_tasks);
 $completed_count = count(array_intersect($completed_weeks, array_column($roadmap_tasks, 'week_number')));
 $progress_percent = ($total_weeks > 0) ? round(($completed_count / $total_weeks) * 100) : 0;
@@ -119,7 +132,26 @@ include_once "./include/headerLinks.php"; ?>
                                     $w_num = (int)$rt['week_number'];
                                     $is_done = in_array($w_num, $completed_weeks);
                                     $is_current = ($w_num === $active_week);
+                                    $is_unlocked = $is_done || $is_current || isset($assigned_week_status[$w_num]);
+                                    $is_under_review = !$is_done && ($assigned_week_status[$w_num] ?? '') === 'pending_review';
                                 ?>
+                                    <?php if (!$is_unlocked): ?>
+                                    <div class="relative pl-8 md:pl-10">
+                                        <div class="absolute -left-[11px] top-1.5 w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-800"></div>
+                                        <div class="w-full p-5 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                                </svg>
+                                                <div>
+                                                    <p class="font-semibold text-gray-700 dark:text-gray-300">Week <?= $w_num ?> is locked</p>
+                                                    <p class="text-xs"><?= $w_num > 1 ? 'Unlocks when your supervisor approves your Week ' . ($w_num - 1) . ' task.' : 'Unlocks when your curriculum is started.' ?></p>
+                                                </div>
+                                            </div>
+                                            <span class="self-start sm:self-auto bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">🔒 Locked</span>
+                                        </div>
+                                    </div>
+                                    <?php continue; endif; ?>
                                     <div class="relative pl-8 md:pl-10 group">
                                         <!-- Status Dot Indicator -->
                                         <?php if ($is_done): ?>
@@ -152,8 +184,10 @@ include_once "./include/headerLinks.php"; ?>
                                                         <span class="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-900/60">✓ Completed</span>
                                                     <?php elseif ($is_current): ?>
                                                         <span class="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200/50 dark:border-indigo-900/60">In Progress</span>
+                                                    <?php elseif ($is_under_review): ?>
+                                                        <span class="bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-200/50 dark:border-amber-900/60">Under Review</span>
                                                     <?php else: ?>
-                                                        <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">🔒 Upcoming</span>
+                                                        <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs font-semibold px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">Assigned</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>

@@ -22,6 +22,13 @@ $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
     case 'get':
+        // The full curriculum is for staff. Interns see it week by week, as each
+        // week is unlocked, on my_roadmap.php.
+        if ((int)$_SESSION['user_role'] === 2) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+            exit;
+        }
+
         $tech_id = (int)($_GET['tech_id'] ?? 0);
         $duration = $_GET['duration'] ?? '';
 

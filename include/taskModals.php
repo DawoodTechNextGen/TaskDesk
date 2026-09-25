@@ -69,7 +69,16 @@
         <button class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-lg close-modal">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        <h2 class="text-2xl font-bold mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">Task Details</h2>
+        <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700 pr-10">
+            <h2 class="text-2xl font-bold">Task Details</h2>
+            <?php if (in_array((int)($_SESSION['user_role'] ?? 0), [1, 3], true)): // Admin and Supervisor only ?>
+            <button type="button" id="view-task-copy" onclick="copyTaskDetails(this.dataset.taskId, this)" title="Copy all task details"
+                class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-900/30 dark:hover:bg-gray-600 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <span>Copy Task Details</span>
+            </button>
+            <?php endif; ?>
+        </div>
 
         <!-- Live Timer Banner (Hidden by default) -->
         <div id="live-timer-banner" class="hidden mb-6 p-4 bg-blue-600/10 dark:bg-blue-600/20 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-center justify-between">

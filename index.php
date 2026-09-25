@@ -1545,6 +1545,7 @@ include_once "./include/headerLinks.php"; ?>
         <script src="./assets/js/dashboard/intern-dashboard.js"></script>
     <?php elseif ($user_role == 3): ?>
         <script src="./assets/js/dashboard/supervisor-dashboard.js"></script>
+        <script src="assets/js/task-copy.js?v=<?= filemtime(__DIR__ . '/assets/js/task-copy.js') ?>"></script>
         <script src="assets/js/task-review.js?v=<?= filemtime(__DIR__ . '/assets/js/task-review.js') ?>"></script>
     <?php endif; ?>
     <?php if ($user_role == 4): ?>

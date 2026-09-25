@@ -79,6 +79,7 @@ include_once "./include/headerLinks.php"; ?>
         </div>
     </div>
     <?php include_once "./include/footerLinks.php"; ?>
+    <script src="./assets/js/task-copy.js?v=<?= filemtime(__DIR__ . '/assets/js/task-copy.js') ?>"></script>
     <script src="./assets/js/tasks-management.js?v=<?= time() ?>"></script>
     <script>
         let dataTable;

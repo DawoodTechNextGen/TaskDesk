@@ -477,6 +477,9 @@ async function viewTaskDetails(taskId) {
 
         const task = taskResult.data;
 
+        const copyBtn = document.getElementById('view-task-copy');
+        if (copyBtn) copyBtn.dataset.taskId = task.id;
+
         // Clear any existing timer
         if (liveTimerInterval) {
             clearInterval(liveTimerInterval);

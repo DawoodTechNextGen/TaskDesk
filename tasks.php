@@ -99,7 +99,7 @@ $page_title = ($statusTitles[$status] ?? 'Task Management') . ' - TaskDesk';
 
     <?php include_once "./include/footerLinks.php"; ?>
     <script src="./assets/js/tasks-management.js?v=<?= time() ?>"></script>
-    <script src="./assets/js/task-review.js"></script>
+    <script src="./assets/js/task-review.js?v=<?= filemtime(__DIR__ . '/assets/js/task-review.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const currentStatus = '<?= $status ?>';

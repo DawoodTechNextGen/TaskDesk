@@ -2,6 +2,8 @@
 header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
+require_once __DIR__ . '/../include/certificate_helper.php';
+ensureCertificateApprovedAtColumn($conn);
 
 
 if ($_POST['action'] === 'get_cert_id') {
@@ -16,7 +18,7 @@ if ($_POST['action'] === 'get_cert_id') {
     if ($row = $result->fetch_assoc()) {
         $cert_id = $row['id'];
     } else {
-        $ins = $conn->prepare("INSERT INTO certificate (intern_id, approve_status, created_at) VALUES (?, 1, NOW())");
+        $ins = $conn->prepare("INSERT INTO certificate (intern_id, approve_status, verified, approved_at, created_at) VALUES (?, 1, 1, NOW(), NOW())");
         $ins->bind_param("i", $intern_id);
         $ins->execute();
         $cert_id = $conn->insert_id;
@@ -84,10 +86,12 @@ if ($_POST['action'] === 'approve') {
         }
         $id_stmt->close();
 
-        $stmt = $conn->prepare("UPDATE certificate SET approve_status = 1 WHERE intern_id = ?");
+        // Issuing a certificate also marks it QR verified, so it doesn't have to be
+        // toggled by hand afterwards (it can still be unmarked from the list).
+        $stmt = $conn->prepare("UPDATE certificate SET approve_status = 1, verified = 1, approved_at = COALESCE(approved_at, NOW()) WHERE intern_id = ?");
         $stmt->bind_param("i", $intern_id);
     } else {
-        $stmt = $conn->prepare("INSERT INTO certificate (intern_id, approve_status, created_at) VALUES (?, 1, NOW())");
+        $stmt = $conn->prepare("INSERT INTO certificate (intern_id, approve_status, verified, approved_at, created_at) VALUES (?, 1, 1, NOW(), NOW())");
         $stmt->bind_param("i", $intern_id);
     }
 
@@ -292,6 +296,100 @@ if ($_POST['action'] === 'toggle_verified') {
         echo json_encode(['success' => false, 'message' => 'Failed to update verification status']);
     }
     $stmt->close();
+}
+
+// Interns whose certificate was approved more than CERT_TASK_RETENTION_DAYS ago and
+// who still have tasks on record - the ones "Clean Up Old Tasks" would clear.
+function getInternsWithExpiredTaskRetention($conn)
+{
+    $days = (int)CERT_TASK_RETENTION_DAYS;
+    $stmt = $conn->prepare("
+        SELECT u.id, u.name, COUNT(t.id) AS task_count
+        FROM certificate c
+        JOIN users u ON u.id = c.intern_id AND u.user_role = 2
+        JOIN tasks t ON t.assign_to = u.id
+        WHERE c.approve_status = 1
+          AND c.approved_at IS NOT NULL
+          AND c.approved_at <= NOW() - INTERVAL ? DAY
+        GROUP BY u.id, u.name
+    ");
+    $stmt->bind_param("i", $days);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $rows;
+}
+
+if ($_POST['action'] === 'cleanup_preview' || $_POST['action'] === 'cleanup_old_tasks') {
+    // Only Admin (1) and Manager (4) can remove completed interns' tasks
+    if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [1, 4], true)) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized: Only Admins and Managers can clean up tasks.']);
+        exit;
+    }
+
+    $interns = getInternsWithExpiredTaskRetention($conn);
+    $taskCount = array_sum(array_map(fn($r) => (int)$r['task_count'], $interns));
+
+    if ($_POST['action'] === 'cleanup_preview') {
+        // Every status is deleted (complete, rejected, expired, in progress...); the
+        // breakdown is only shown so the admin can see that before confirming.
+        $byStatus = [];
+        if (!empty($interns)) {
+            $idList = implode(',', array_map(fn($r) => (int)$r['id'], $interns));
+            $res = $conn->query("SELECT status, COUNT(*) AS cnt FROM tasks WHERE assign_to IN ($idList) GROUP BY status");
+            foreach ($res->fetch_all(MYSQLI_ASSOC) as $r) {
+                $byStatus[$r['status'] === '' ? 'unknown' : $r['status']] = (int)$r['cnt'];
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'intern_count' => count($interns),
+            'task_count' => $taskCount,
+            'by_status' => $byStatus,
+            'retention_days' => (int)CERT_TASK_RETENTION_DAYS,
+        ]);
+        exit;
+    }
+
+    if (empty($interns)) {
+        echo json_encode(['success' => true, 'message' => 'Nothing to clean up.']);
+        exit;
+    }
+
+    $ids = array_map(fn($r) => (int)$r['id'], $interns);
+    $idList = implode(',', $ids); // all cast to int above
+
+    $conn->begin_transaction();
+    try {
+        // Child rows keyed by task_id. Not every environment has these tables.
+        foreach (['time_logs', 'approvals'] as $childTable) {
+            $exists = $conn->query("SHOW TABLES LIKE '$childTable'");
+            if ($exists && $exists->num_rows > 0) {
+                $conn->query("DELETE c FROM `$childTable` c JOIN tasks t ON c.task_id = t.id WHERE t.assign_to IN ($idList)");
+            }
+        }
+
+        // Attendance rows are kept on purpose: they are the intern's attendance history
+        // and still feed the attendance % shown for completed interns.
+        $conn->query("DELETE FROM tasks WHERE assign_to IN ($idList)");
+        $deleted = $conn->affected_rows;
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'message' => 'Failed to clean up tasks: ' . $e->getMessage()]);
+        exit;
+    }
+
+    $names = implode(', ', array_map(fn($r) => $r['name'] . ' (ID ' . $r['id'] . ')', $interns));
+    logActivity('Clean Up Completed Interns Tasks', "Deleted $deleted task(s) of " . count($interns) . " intern(s) whose certificate was approved over " . CERT_TASK_RETENTION_DAYS . " days ago: $names");
+
+    echo json_encode([
+        'success' => true,
+        'message' => "Deleted $deleted task(s) of " . count($interns) . " intern(s)."
+    ]);
+    exit;
 }
 
 $conn->close();

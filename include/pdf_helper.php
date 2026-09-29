@@ -16,7 +16,7 @@ use Dompdf\Options;
 function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issueDate = null) {
     try {
         if (!$issueDate) {
-            $issueDate = date('j F Y');
+            $issueDate = date('d-M-Y');
         }
 
         $options = new Options();
@@ -62,56 +62,51 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
                     height: 100%;
                     z-index: -1;
                 }
+                /* Header, stamp, signature and Ref# are part of the background image;
+                   the box sits between the header divider and the stamp. */
                 .content-box {
                     position: absolute;
-                    top: 200px;
-                    left: 40px;
-                    right: 40px;
-                    padding: 40px;
-                    height: 720px;
+                    top: 80mm;
+                    left: 26mm;
+                    width: 169mm;
+                    font-size: 10.5pt;
+                    line-height: 1.5;
+                    color: #222;
                     z-index: 1;
                 }
-                .section {
-                    margin-bottom: 10px;
+                .date { float: right; }
+                .to { line-height: 1.7; margin-bottom: 7mm; }
+                .title {
+                    text-align: center;
+                    font-weight: bold;
+                    text-decoration: underline;
+                    margin-bottom: 8mm;
                 }
-                .signature {
-                    margin-top: 30px;
-                    line-height: 1.5;
-                }
+                .greeting { font-weight: bold; margin-bottom: 5mm; }
+                p { margin: 0 0 4mm 0; }
+                .closing { margin-top: 6mm; line-height: 1.8; }
             </style>
         </head>
         <body>
             <img src="' . $bgImageUri . '" class="background-img" />
             <div class="content-box">
-                <div class="section" style="text-align:right;">
-                    <strong>Date:</strong> ' . htmlspecialchars($issueDate) . '
-                </div>
-                <div class="section">
+                <div class="date">Date: ' . htmlspecialchars($issueDate) . '</div>
+                <div class="to">
                     <strong>To:</strong><br>
                     ' . htmlspecialchars($name) . '<br>
-                    <strong>Designation:</strong> Intern – ' . htmlspecialchars($techName) . '<br>
+                    Designation: Intern – ' . htmlspecialchars($techName) . '<br>
                     DawoodTech NextGen
                 </div>
-                <div class="section title">
-                    <h3>Internship Offer – ' . htmlspecialchars($techName) . '</h3>
-                </div>
-                <div class="section">
-                    <p>Dear ' . htmlspecialchars($name) . ',</p>
-                    <p>We are pleased to offer you an internship opportunity from
-                    <strong>' . htmlspecialchars($startDate) . '</strong> to <br> <strong>' . htmlspecialchars($endDate) . '</strong> at <strong>DawoodTech NextGen</strong> as a
-                    <strong>' . htmlspecialchars($techName) . ' Intern</strong>.</p>
-                    <p>This internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
-                    <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>
-                </div>
-                <div class="signature">
+                <div class="title">Internship Offer – ' . htmlspecialchars($techName) . '</div>
+                <div class="greeting">Dear ' . htmlspecialchars($name) . ',</div>
+                <p>We are pleased to offer you an internship opportunity from <strong>' . htmlspecialchars($startDate) . '</strong> to
+                <strong>' . htmlspecialchars($endDate) . '</strong> at <strong>DawoodTech NextGen</strong> as a
+                <strong>' . htmlspecialchars($techName) . ' Intern.</strong></p>
+                <p>This internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
+                <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>
+                <div class="closing">
                     <strong>Sincerely,</strong><br>
-                    Qamar Naveed<br>
-                    Founder<br>
-                    <strong>DawoodTech NextGen</strong><br>
-                    <strong>Contact Information:</strong><br>
-                    <strong>Phone: </strong>+92-311-7305346<br>
-                    <strong>Email: </strong>info@dawoodtechnextgen.org<br>
-                    <strong>Website: </strong>https://dawoodtechnextgen.org
+                    DawoodTech NextGen
                 </div>
             </div>
         </body>
@@ -186,6 +181,14 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
             $fontUri = '';
         }
 
+        // Montserrat, to match the template's own lettering. SemiBold serves as "bold".
+        $fontData = function ($file) {
+            $path = __DIR__ . '/../assets/fonts/static/' . $file;
+            return file_exists($path) ? 'data:font/truetype;charset=utf-8;base64,' . base64_encode(file_get_contents($path)) : '';
+        };
+        $montserratUri = $fontData('Montserrat-Regular.ttf');
+        $montserratBoldUri = $fontData('Montserrat-SemiBold.ttf');
+
         $html = '
         <!DOCTYPE html>
         <html>
@@ -198,17 +201,35 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
                     font-weight: 700;
                     src: url("' . $fontUri . '") format("truetype");
                 }
+                @font-face {
+                    font-family: "Montserrat";
+                    font-style: normal;
+                    font-weight: 400;
+                    src: url("' . $montserratUri . '") format("truetype");
+                }
+                @font-face {
+                    font-family: "Montserrat";
+                    font-style: normal;
+                    font-weight: 700;
+                    src: url("' . $montserratBoldUri . '") format("truetype");
+                }
                 @page { margin: 0; padding: 0; size: A4 landscape; }
                 body {
                     margin: 0;
                     padding: 0;
                     width: 842pt;
                     height: 595pt;
-                    font-family: Arial, sans-serif;
+                    font-family: "Montserrat", Arial, sans-serif;
                     position: relative;
-                    background-image: url("' . $bgImageUri . '");
-                    background-size: 100% 100%;
-                    background-repeat: no-repeat;
+                }
+                /* An <img>, not a CSS background: dompdf resamples backgrounds down to
+                   96 DPI, while an image keeps the template\'s full 300 DPI. */
+                .background-img {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 842pt;
+                    height: 595pt;
                 }
                 .name-text {
                     position: absolute;
@@ -227,34 +248,41 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
                     left: 60pt;
                     right: 60pt;
                     text-align: center;
-                    font-size: 13pt;
-                    line-height: 1.5;
+                    font-size: 12pt;
+                    line-height: 1.6;
                     color: #2c3e50;
                 }
-                .underline-text {
-                    font-weight: bold;
-                    text-decoration: underline;
+                .cert-note {
+                    font-size: 10pt;
+                    line-height: 1.5;
+                    margin-top: 8pt;
                 }
                 .bold-text {
                     font-weight: bold;
                 }
+                /* Centred over the DATE line, which sits in the middle of the page */
                 .issue-date {
                     position: absolute;
-                    left: 296pt;
-                    top: 550pt;
-                    font-size: 13pt;
+                    left: 361pt;
+                    width: 120pt;
+                    text-align: center;
+                    top: 547pt;
+                    font-size: 11pt;
                     font-weight: bold;
                     color: #2c3e50;
                 }
+                /* Bottom row, centred on the page: QR | DATE | SIGNATURE with column
+                   centres at 233pt, 421pt and 609pt. */
                 .qr-code {
                     position: absolute;
-                    left: 690pt;
-                    top: 72pt;
+                    left: 193pt;
+                    width: 80pt;
+                    top: 514pt;
                     text-align: center;
                 }
                 .qr-code img {
-                    width: 45pt;
-                    height: 45pt;
+                    width: 50pt;
+                    height: 50pt;
                     display: block;
                     margin: 0 auto;
                 }
@@ -262,25 +290,24 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
                     font-size: 7.5pt;
                     font-weight: bold;
                     color: #2c3e50;
-                    margin-top: 4pt;
+                    margin-top: 7.5pt;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
             </style>
         </head>
         <body>
+            <img src="' . $bgImageUri . '" class="background-img" />
             <div class="name-text">
                 ' . htmlspecialchars($name) . '
             </div>
             
             <div class="cert-text">
-                This is to certify that <span class="underline-text">' . htmlspecialchars($name) . '</span>
-                has successfully completed his/her internship at <span class="bold-text">DawoodTech NextGen</span>
-                <br/>
-                from <span class="underline-text">' . htmlspecialchars($startDate) . '</span> to <span class="underline-text">' . htmlspecialchars($endDate) . '</span>
-                in <span class="underline-text">' . htmlspecialchars($techName) . '</span>.
-                <br/>
-                <span style="font-size: 11pt;">During this period, the intern showed dedication, professionalism, and a strong willingness to learn while contributing effectively to assigned projects.</span>
+                for successfully completing his/her internship at <span class="bold-text">DawoodTech NextGen</span><br/>
+                from <span class="bold-text">' . htmlspecialchars($startDate) . '</span> to <span class="bold-text">' . htmlspecialchars($endDate) . '</span>
+                in <span class="bold-text">' . htmlspecialchars($techName) . '</span>.
+                <div class="cert-note">During this period, the intern showed dedication, professionalism, and a strong<br/>
+                willingness to learn while contributing effectively to assigned projects.</div>
             </div>
             
             <div class="issue-date">

@@ -88,6 +88,22 @@ if ($user_result->num_rows > 0) {
                         src: url('./assets/fonts/static/Caveat-Bold.ttf') format('truetype');
                     }
 
+                    @font-face {
+                        font-family: 'Montserrat';
+                        font-style: normal;
+                        font-weight: 400;
+                        font-display: swap;
+                        src: url('./assets/fonts/static/Montserrat-Regular.ttf') format('truetype');
+                    }
+
+                    @font-face {
+                        font-family: 'Montserrat';
+                        font-style: normal;
+                        font-weight: 700;
+                        font-display: swap;
+                        src: url('./assets/fonts/static/Montserrat-SemiBold.ttf') format('truetype');
+                    }
+
                     .certificate-container {
                         max-width: 1200px;
                         margin: 0 auto;
@@ -364,8 +380,8 @@ if ($user_result->num_rows > 0) {
         const template = new Image();
         // Use different template for Participation (Type 0) vs Completion (Type 1)
         template.src = certificateData.internship_type == 0 
-            ? "assets/images/participation_certificate.png" 
-            : "assets/images/certificate.png";
+            ? "assets/images/participation_certificate.png?v=<?php echo filemtime(__DIR__ . '/assets/images/participation_certificate.png'); ?>"
+            : "assets/images/certificate.png?v=<?php echo filemtime(__DIR__ . '/assets/images/certificate.png'); ?>";
 
         template.onload = function() {
             // Set canvas size to match template
@@ -382,6 +398,13 @@ if ($user_result->num_rows > 0) {
             canvas.height = 800;
             drawCertificate();
         };
+
+        // Canvas text only uses a web font once it has loaded, so draw again when they are ready.
+        if (document.fonts) {
+            Promise.all(['28px Montserrat', 'bold 28px Montserrat', 'bold 80px Caveat'].map(f => document.fonts.load(f)))
+                .then(() => drawCertificate())
+                .catch(() => {});
+        }
 
         function formatDate(dateString) {
             const [year, month, day] = dateString.substring(0, 10).split('-').map(Number);
@@ -413,6 +436,12 @@ if ($user_result->num_rows > 0) {
                 ctx.fillText('CERTIFICATE OF COMPLETION', canvas.width / 2, 150);
             }
 
+            // Text positions below are laid out for a 1790x1276 template; scale them to
+            // whatever size the template really is (the current one is 300 DPI).
+            const W = 1790, H = 1276;
+            ctx.save();
+            ctx.scale(canvas.width / W, canvas.height / H);
+
             // Certificate data
             const name = certificateData.name;
             const technology = certificateData.technology;
@@ -425,136 +454,36 @@ if ($user_result->num_rows > 0) {
 
             // Student Name Large
             ctx.font = 'bold 80px "Caveat", cursive, Arial';
-            ctx.fillText(name, canvas.width / 2, 680);
+            ctx.fillText(name, W / 2, 680);
 
-            // Main certificate text
-            ctx.font = "28px Arial";
-            const lineHeight = 40;
-            let yPosition = 750;
+            // Main certificate text: carries on from "This certificate is proudly
+            // presented to <name>", so the name is not repeated.
+            // Draws [text, bold] segments as one centred line.
+            const drawLine = (segments, y, size) => {
+                const fontFor = (bold) => (bold ? "bold " : "") + size + "px Montserrat, Arial";
+                let total = 0;
+                segments.forEach(([text, bold]) => { ctx.font = fontFor(bold); total += ctx.measureText(text).width; });
+                let x = W / 2 - total / 2;
+                ctx.textAlign = "left";
+                segments.forEach(([text, bold]) => {
+                    ctx.font = fontFor(bold);
+                    ctx.fillText(text, x, y);
+                    x += ctx.measureText(text).width;
+                });
+                ctx.textAlign = "center";
+            };
 
-            // Line 1
-            ctx.fillText("This is to certify that", canvas.width / 2, yPosition);
-            yPosition += lineHeight;
-
-            // Name underlined
-            ctx.font = "bold 28px Arial";
-            ctx.fillText(name, canvas.width / 2, yPosition);
-            const nameWidth = ctx.measureText(name).width;
-            ctx.beginPath();
-            ctx.moveTo(canvas.width / 2 - nameWidth / 2, yPosition + 5);
-            ctx.lineTo(canvas.width / 2 + nameWidth / 2, yPosition + 5);
-            ctx.stroke();
-            yPosition += lineHeight;
-
-            // Line 2
-            // One-line sentence, only last part bold
-            let text1 = "has successfully completed his/her internship at ";
-            let text2 = "DawoodTech NextGen";
-
-            // Measure widths
-            ctx.font = "28px Arial";
-            let text1Width = ctx.measureText(text1).width;
-
-            ctx.font = "bold 28px Arial";
-            let text2Width = ctx.measureText(text2).width;
-
-            // Center whole line
-            let totaltWidth = text1Width + text2Width;
-            let startX = (canvas.width - totaltWidth) / 2;
-
-            // Draw normal text
-            ctx.font = "28px Arial";
-            ctx.fillText(text1, startX + text1Width / 2, yPosition);
-
-            // Draw bold text immediately after
-            ctx.font = "bold 28px Arial";
-            ctx.fillText(text2, startX + text1Width + text2Width / 2, yPosition);
-
-            yPosition += lineHeight;
-
-            /* *******************************
-               NEW UPDATED DATE SECTION
-               Only dates bold & underlined
-               from / to normal & no underline
-            ******************************** */
-            const fromText = "from ";
-            const toText = " to ";
-
-            ctx.font = "28px Arial";
-            const fromWidth = ctx.measureText(fromText).width;
-            const toWidth = ctx.measureText(toText).width;
-
-            ctx.font = "bold 28px Arial";
-            const startWidth = ctx.measureText(startDate).width;
-            const endWidth = ctx.measureText(endDate).width;
-
-            const totalWidth = fromWidth + startWidth + toWidth + endWidth;
-            let xPos = (canvas.width / 2) - (totalWidth / 2);
-
-            // Draw from
-            ctx.font = "28px Arial";
-            ctx.fillText(fromText, xPos + fromWidth / 2, yPosition);
-            xPos += fromWidth;
-
-            // Start date bold + underline
-            ctx.font = "bold 28px Arial";
-            ctx.fillText(startDate, xPos + startWidth / 2, yPosition);
-
-            ctx.beginPath();
-            ctx.moveTo(xPos, yPosition + 5);
-            ctx.lineTo(xPos + startWidth, yPosition + 5);
-            ctx.stroke();
-            xPos += startWidth;
-
-            // Draw to
-            ctx.font = "28px Arial";
-            ctx.fillText(toText, xPos + toWidth / 2, yPosition);
-            xPos += toWidth;
-
-            // End date bold + underline
-            ctx.font = "bold 28px Arial";
-            ctx.fillText(endDate, xPos + endWidth / 2, yPosition);
-
-            ctx.beginPath();
-            ctx.moveTo(xPos, yPosition + 5);
-            ctx.lineTo(xPos + endWidth, yPosition + 5);
-            ctx.stroke();
-
-            yPosition += lineHeight;
-
-            const techText1 = "in ";
-            ctx.font = "28px Arial";
-            const tech1Width = ctx.measureText(techText1).width;
-
-            ctx.font = "bold 28px Arial";
-            const techBoldWidth = ctx.measureText(technology).width;
-
-            const techTotalWidth = tech1Width + techBoldWidth;
-            let techX = (canvas.width / 2) - (techTotalWidth / 2);
-
-            // Draw "as a"
-            ctx.font = "28px Arial";
-            ctx.fillText(techText1, techX + tech1Width / 2, yPosition);
-            techX += tech1Width;
-            // Draw Technology (BOLD)
-            ctx.font = "bold 28px Arial";
-            ctx.fillText(technology, techX + techBoldWidth / 2, yPosition);
-            ctx.beginPath();
-            ctx.moveTo(techX, yPosition + 5);
-            ctx.lineTo(techX + techBoldWidth, yPosition + 5);
-            ctx.stroke();
-            yPosition += lineHeight * 1.5;
-
-            // Additional content
-            ctx.font = "28px Arial";
-            ctx.fillText("During this period, the intern showed dedication, professionalism, and a strong", canvas.width / 2, yPosition);
-            yPosition += lineHeight;
-            ctx.fillText("willingness to learn while contributing effectively to assigned projects.", canvas.width / 2, yPosition);
+            drawLine([["for successfully completing his/her internship at ", false], ["DawoodTech NextGen", true]], 762, 28);
+            drawLine([["from ", false], [startDate, true], [" to ", false], [endDate, true], [" in ", false], [technology, true], [".", false]], 808, 28);
+            drawLine([["During this period, the intern showed dedication, professionalism, and a strong", false]], 866, 23);
+            drawLine([["willingness to learn while contributing effectively to assigned projects.", false]], 900, 23);
 
             // Issue date
-            ctx.font = "bold 30px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText(`${issueDate}`, 630, canvas.height - 75);
+            // Centred over the DATE line in the middle of the page
+            ctx.font = "bold 24px Montserrat, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(`${issueDate}`, 895, H - 75);
+            ctx.restore();
         }
 
 
@@ -562,8 +491,9 @@ if ($user_result->num_rows > 0) {
         function generatePDF() {
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
-            const pdfWidth = canvasWidth * 0.75;
-            const pdfHeight = canvasHeight * 0.75;
+            // A4 landscape in points; the 300 DPI canvas is scaled onto it.
+            const pdfWidth = 842;
+            const pdfHeight = 595;
 
             const pdf = new jsPDF({
                 orientation: "landscape",

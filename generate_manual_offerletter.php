@@ -26,9 +26,9 @@ if ($user_result->num_rows > 0) {
     $user_data = $user_result->fetch_assoc();
 
     // Calculate dates - these are defaults that can be overridden by user input
-    $default_start_date = date('j F Y', strtotime($user_data['created_at']));
-    $default_end_date = date('j F Y', strtotime($user_data['created_at'] . ' + 3 months'));
-    $default_issue_date = date('j F Y'); // Today's date
+    $default_start_date = date('d-M-Y', strtotime($user_data['created_at']));
+    $default_end_date = date('d-M-Y', strtotime($user_data['created_at'] . ' + 3 months'));
+    $default_issue_date = date('d-M-Y'); // Today's date
 
     // Get technology name
     $tech_query = $conn->prepare("SELECT name FROM technologies WHERE id = ?");
@@ -143,24 +143,27 @@ if ($user_result->num_rows > 0) {
                         font-weight: 600;
                     }
 
+                    /* A4 at 595x842px (1mm = 2.834px). Header, stamp, signature and Ref#
+                       are part of the background image, same as the emailed PDF. */
                     .letter-container {
                         padding: 0;
                         background-color: #ffffff;
-                        min-height: 600px;
                         position: relative;
-                        width: 100%;
-                        height: 842px; /* A4 height approximation */
+                        width: 595px;
+                        max-width: 100%;
+                        height: 842px;
+                        margin: 0 auto;
                         overflow: hidden;
                     }
 
                     .letter-content {
                         font-family: 'Arial', sans-serif;
-                        color: #333;
+                        color: #222;
                         line-height: 1.5;
                         position: relative;
                         width: 100%;
                         height: 100%;
-                        font-size: 12px;
+                        font-size: 10.5px;
                     }
 
                     .background-img {
@@ -170,63 +173,45 @@ if ($user_result->num_rows > 0) {
                         width: 100%;
                         height: 100%;
                         z-index: 0;
-                        object-fit: cover;
                         display: block;
                     }
 
                     .content-box {
                         position: absolute;
-                        top: 150px;
-                        left: 60px;
-                        right: 60px;
-                        padding: 20px;
-                        height: auto;
-                        max-height: 650px;
+                        top: 227px;
+                        left: 74px;
+                        width: 479px;
                         z-index: 2;
-                        background: transparent;
                     }
 
-                    .section {
-                        margin-bottom: 8px;
-                        position: relative;
-                        z-index: 3;
-                        font-size: 12px;
-                    }
-
-                    .section.title h3 {
-                        margin: 8px 0;
-                        font-size: 14px;
-                        font-weight: bold;
-                        color: var(--dark);
+                    .letter-date {
+                        float: right;
                     }
 
                     .letter-to {
-                        margin-bottom: 12px;
-                        line-height: 1.4;
-                        position: relative;
-                        z-index: 3;
-                        font-size: 12px;
+                        margin-bottom: 20px;
+                        line-height: 1.7;
                     }
 
-                    .letter-body {
-                        text-align: justify;
-                        margin-bottom: 15px;
-                        position: relative;
-                        z-index: 3;
+                    .letter-title {
+                        text-align: center;
+                        font-weight: bold;
+                        text-decoration: underline;
+                        margin-bottom: 23px;
+                    }
+
+                    .letter-greeting {
+                        font-weight: bold;
+                        margin-bottom: 14px;
                     }
 
                     .letter-body p {
-                        margin-bottom: 8px;
-                        font-size: 12px;
-                        line-height: 1.5;
+                        margin: 0 0 11px 0;
                     }
 
                     .signature {
-                        margin-top: 20px;
-                        line-height: 1.4;
-                        font-size: 11px;
-                        position: relative;
-                        z-index: 3;
+                        margin-top: 17px;
+                        line-height: 1.8;
                     }
 
                     .controls {
@@ -425,10 +410,6 @@ if ($user_result->num_rows > 0) {
                             gap: 20px;
                         }
 
-                        .letter-container {
-                            padding: 20px;
-                        }
-
                         .company-name {
                             font-size: 1.5rem;
                         }
@@ -450,45 +431,35 @@ if ($user_result->num_rows > 0) {
                             <div class="letter-container" id="offerLetterContent">
                                 <div class="letter-content">
                                     <!-- Background Image -->
-                                    <img src="./assets/images/offerletter.png" class="background-img" alt="Offer Letter Background">
+                                    <img src="./assets/images/offerletter.png?v=<?php echo filemtime(__DIR__ . '/assets/images/offerletter.png'); ?>" class="background-img" alt="Offer Letter Background">
                                     
                                     <div class="content-box">
-                                        <div class="section" style="text-align:right;">
-                                            <strong>Date:</strong> <span id="displayIssueDate"><?php echo $default_issue_date; ?></span>
-                                        </div>
-                                        
-                                        <div class="section letter-to">
+                                        <div class="letter-date">Date: <span id="displayIssueDate"><?php echo $default_issue_date; ?></span></div>
+
+                                        <div class="letter-to">
                                             <strong>To:</strong><br>
                                             <span id="displayNameInLetter"><?php echo htmlspecialchars($user_data['name']); ?></span><br>
-                                            <strong>Designation:</strong> Intern – <span id="displayTechInLetter"><?php echo htmlspecialchars($tech_name); ?></span><br>
+                                            Designation: Intern – <span id="displayTechInLetter"><?php echo htmlspecialchars($tech_name); ?></span><br>
                                             DawoodTech NextGen
                                         </div>
-                                        
-                                        <div class="section title">
-                                            <h3>Internship Offer – <span id="displaySubjectTech"><?php echo htmlspecialchars($tech_name); ?></span></h3>
-                                        </div>
-                                        
-                                        <div class="section letter-body">
-                                            <p>Dear <span id="displayBodyName"><?php echo htmlspecialchars($user_data['name']); ?></span>,</p>
-                                            
-                                            <p>We are pleased to offer you an internship opportunity from
-                                            <strong><span id="displayStartDate"><?php echo $default_start_date; ?></span></strong> to <br> <strong><span id="displayEndDate"><?php echo $default_end_date; ?></span></strong> at <strong>DawoodTech NextGen</strong> as a
-                                            <strong><span id="displayBodyTech"><?php echo htmlspecialchars($tech_name); ?></span> Intern</strong>.</p>
-                                            
+
+                                        <div class="letter-title">Internship Offer – <span id="displaySubjectTech"><?php echo htmlspecialchars($tech_name); ?></span></div>
+
+                                        <div class="letter-greeting">Dear <span id="displayBodyName"><?php echo htmlspecialchars($user_data['name']); ?></span>,</div>
+
+                                        <div class="letter-body">
+                                            <p>We are pleased to offer you an internship opportunity from <strong><span id="displayStartDate"><?php echo $default_start_date; ?></span></strong> to
+                                            <strong><span id="displayEndDate"><?php echo $default_end_date; ?></span></strong> at <strong>DawoodTech NextGen</strong> as a
+                                            <strong><span id="displayBodyTech"><?php echo htmlspecialchars($tech_name); ?></span> Intern.</strong></p>
+
                                             <p>This internship will provide you with the chance to enhance your skills, gain practical exposure, and contribute to real-world projects under professional guidance. We believe your dedication and efforts will add value to our team, and we look forward to your valuable contribution and growth during this program.</p>
-                                            
+
                                             <p>We are confident that this experience will be a stepping stone in your professional journey, equipping you with the knowledge and confidence to excel in your career.</p>
                                         </div>
-                                        
+
                                         <div class="signature">
                                             <strong>Sincerely,</strong><br>
-                                            Qamar Naveed<br>
-                                            Founder<br>
-                                            <strong>DawoodTech NextGen</strong><br>
-                                            <strong>Contact Information:</strong><br>
-                                            <strong>Phone: </strong>+92-311-7305346<br>
-                                            <strong>Email: </strong>info@dawoodtechnextgen.org<br>
-                                            <strong>Website: </strong>https://dawoodtechnextgen.org
+                                            DawoodTech NextGen
                                         </div>
                                     </div>
                                 </div>
@@ -610,13 +581,7 @@ if ($user_result->num_rows > 0) {
 
     <?php include_once "./include/footerLinks.php"; ?>
 
-    <!-- jsPDF and html2canvas CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <script>
-        const { jsPDF } = window.jspdf;
-
         // Default offer letter data from PHP
         const defaultOfferData = {
             name: "<?php echo $user_data['name']; ?>",
@@ -725,45 +690,30 @@ if ($user_result->num_rows > 0) {
             statusMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Generating PDF, please wait...</span>';
             
             try {
-                const element = document.getElementById('offerLetterContent');
-                
-                // Use html2canvas to convert HTML to canvas
-                const canvas = await html2canvas(element, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff'
-                });
-                
-                const imgData = canvas.toDataURL('image/png');
-                
-                // Calculate PDF dimensions
-                const imgWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                // Create PDF
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                let heightLeft = imgHeight;
-                let position = 0;
-                
-                // Add image to PDF (handle multiple pages if needed)
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                // Built server-side with the same template as the hire email: sharp
+                // text and always one A4 page (a canvas screenshot was blurry and
+                // spilled onto a second page).
+                const formData = new FormData();
+                formData.append('name', offerData.name);
+                formData.append('technology', offerData.technology);
+                formData.append('start_date', offerData.start_date);
+                formData.append('end_date', offerData.end_date);
+                formData.append('issue_date', offerData.issue_date);
+
+                const res = await fetch('controller/offer_letter.php', { method: 'POST', body: formData });
+                if (!res.ok) {
+                    throw new Error(await res.text());
                 }
-                
-                // Generate filename
-                const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
+                const blob = await res.blob();
+
                 const safeName = offerData.name.replace(/[^a-zA-Z0-9]/g, '_');
-                
-                // Save PDF
-                pdf.save(`OfferLetter_${safeName}_${timestamp}.pdf`);
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `OfferLetter_${safeName}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(link.href), 1000);
                 
                 // Show success message
                 statusMessage.innerHTML = '<i class="fas fa-check-circle"></i> <span>PDF generated successfully!</span>';

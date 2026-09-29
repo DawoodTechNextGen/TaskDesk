@@ -644,13 +644,6 @@ include_once "./include/headerLinks.php";
         hideGlobal: function() { document.getElementById('globalLoader').classList.add('hidden'); }
     };
 
-    function showToast(type, msg) {
-        const toast = document.createElement('div');
-        toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-        toast.textContent = msg;
-        document.getElementById('toast-container').appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
     // Step-by-step modal functionality
     let currentStep = 1;
     let selectedDate = null;

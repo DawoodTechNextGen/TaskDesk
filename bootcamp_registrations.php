@@ -177,16 +177,6 @@ include_once "./include/headerLinks.php";
         }
     };
 
-    function showToast(type, msg) {
-        const toast = document.createElement('div');
-        toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${
-            type === 'success' ? 'bg-green-600' :
-            type === 'error' ? 'bg-red-600' : 'bg-yellow-500'
-        }`;
-        toast.textContent = msg;
-        document.getElementById('toast-container').appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
 
     // Which stage this page is showing (New / Contact / Enrolled / Rejected / all),
     // decided server-side by the sidebar link's ?status= - there is no on-page

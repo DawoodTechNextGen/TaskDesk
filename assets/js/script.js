@@ -386,44 +386,113 @@ if (sidebarThemeToggle) {
     sidebarThemeToggle.addEventListener('click', toggleDarkMode);
 }
 
+// ===============================
+// TOASTS - the one toast used across the app. Styles are injected here so it
+// looks the same on every page (light and dark), whatever CSS the page loads.
+// ===============================
+const TOAST_TYPES = {
+    success: { title: 'Success', accent: '#10b981', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>' },
+    error: { title: 'Error', accent: '#ef4444', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>' },
+    warning: { title: 'Warning', accent: '#f59e0b', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01"/>' },
+    info: { title: 'Info', accent: '#3b82f6', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01"/>' }
+};
+const TOAST_DURATION = 5000;
+const TOAST_MAX = 4;
+
+function ensureToastStyles() {
+    if (document.getElementById('td-toast-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'td-toast-styles';
+    style.textContent = `
+        .td-toast-stack { position: fixed; top: 1rem; right: 1rem; z-index: 10000; display: flex; flex-direction: column; gap: .625rem; width: min(380px, calc(100vw - 2rem)); pointer-events: none; }
+        .td-toast { pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: flex-start; gap: .75rem; padding: .875rem .875rem 1rem 1rem;
+            background: #fff; color: #111827; border: 1px solid #eef0f4; border-radius: 14px; box-shadow: 0 10px 30px -8px rgba(15, 23, 42, .18), 0 2px 6px rgba(15, 23, 42, .06);
+            font-family: inherit; opacity: 0; transform: translateX(24px) scale(.98); transition: opacity .28s ease, transform .35s cubic-bezier(.16, 1, .3, 1); }
+        .td-toast.show { opacity: 1; transform: none; }
+        .td-toast.hide { opacity: 0; transform: translateX(24px) scale(.98); }
+        .td-toast-icon { flex: none; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .td-toast-icon svg { width: 18px; height: 18px; }
+        .td-toast-body { flex: 1; min-width: 0; padding-top: 1px; }
+        .td-toast-title { font-size: .875rem; font-weight: 600; line-height: 1.25rem; }
+        .td-toast-msg { font-size: .8125rem; line-height: 1.2rem; color: #4b5563; margin-top: 1px; word-wrap: break-word; }
+        .td-toast-close { flex: none; margin: -2px -2px 0 0; width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: #9ca3af; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s; }
+        .td-toast-close:hover { background: #f3f4f6; color: #374151; }
+        .td-toast-close svg { width: 16px; height: 16px; }
+        .td-toast-bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform-origin: left; }
+        html.dark .td-toast { background: #111827; color: #f3f4f6; border-color: #1f2937; box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .6); }
+        html.dark .td-toast-msg { color: #9ca3af; }
+        html.dark .td-toast-close:hover { background: #1f2937; color: #e5e7eb; }
+        @media (prefers-reduced-motion: reduce) { .td-toast { transition: opacity .2s; transform: none !important; } }
+    `;
+    document.head.appendChild(style);
+}
+
+function getToastStack() {
+    let stack = document.getElementById('td-toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'td-toast-stack';
+        stack.className = 'td-toast-stack';
+        stack.setAttribute('aria-live', 'polite');
+        document.body.appendChild(stack);
+    }
+    return stack;
+}
+
+// showToast(type, message). Also accepts (message, type), which profile.php uses.
 function showToast(type, message) {
-    const toastContainer = document.getElementById('toast-container');
-    const toastId = Date.now();
+    if (!TOAST_TYPES[type] && TOAST_TYPES[message]) {
+        [type, message] = [message, type];
+    }
+    const conf = TOAST_TYPES[type] || TOAST_TYPES.info;
+    ensureToastStyles();
+    const stack = getToastStack();
+
+    // Keep the stack short: drop the oldest when too many are open
+    while (stack.children.length >= TOAST_MAX) {
+        stack.firstElementChild.remove();
+    }
+
+    const toastId = Date.now() + Math.floor(Math.random() * 1000);
     const toast = document.createElement('div');
     toast.id = `toast-${toastId}`;
-    toast.className = `p-4 rounded-lg shadow-lg flex items-center justify-between transition-all duration-300 max-w-sm opacity-0 transform translate-x-full`;
-
-    const styles = {
-        success: 'bg-emerald-500 text-white',
-        error: 'bg-red-500 text-white',
-        warning: 'bg-yellow-500 text-black',
-        info: 'bg-blue-500 text-white'
-    };
-
-    toast.className += ` ${styles[type]}`;
+    toast.className = 'td-toast';
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.innerHTML = `
-        <span>${message}</span>
-        <button onclick="dismissToast(${toastId})" class="ml-4 text-white hover:text-gray-200">✕</button>
-    `;
+        <div class="td-toast-icon" style="background:${conf.accent}1a;color:${conf.accent}">
+            <svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">${conf.icon}</svg>
+        </div>
+        <div class="td-toast-body">
+            <div class="td-toast-title"></div>
+            <div class="td-toast-msg"></div>
+        </div>
+        <button type="button" class="td-toast-close" aria-label="Dismiss">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="td-toast-bar" style="background:${conf.accent}"></div>`;
+    toast.querySelector('.td-toast-title').textContent = conf.title;
+    toast.querySelector('.td-toast-msg').textContent = message == null ? '' : String(message);
+    toast.querySelector('.td-toast-close').addEventListener('click', () => dismissToast(toastId));
+    stack.appendChild(toast);
 
-    toastContainer.appendChild(toast);
+    // Countdown bar; hovering pauses it so the message can be read
+    const bar = toast.querySelector('.td-toast-bar');
+    const countdown = bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: TOAST_DURATION, easing: 'linear', fill: 'forwards' });
+    countdown.onfinish = () => dismissToast(toastId);
+    toast.addEventListener('mouseenter', () => countdown.pause());
+    toast.addEventListener('mouseleave', () => countdown.play());
 
-    setTimeout(() => {
-        toast.classList.remove('opacity-0', 'translate-x-full');
-    }, 100);
-
-    setTimeout(() => {
-        dismissToast(toastId);
-    }, 5000);
+    // Force a layout so the entry transition runs (requestAnimationFrame is paused in
+    // background tabs, which would leave the toast invisible)
+    void toast.offsetWidth;
+    toast.classList.add('show');
 }
 
 function dismissToast(toastId) {
     const toast = document.getElementById(`toast-${toastId}`);
-    if (toast) {
-        toast.classList.add('opacity-0', 'translate-x-full');
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
+    if (toast && !toast.classList.contains('hide')) {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 300);
     }
 }
 function formatDateTime(datetime) {

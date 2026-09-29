@@ -214,13 +214,6 @@ include_once "./include/headerLinks.php"; ?>
             $('.actions-dropdown-menu').addClass('hidden');
         });
 
-        function showToast(type, msg) {
-            const toast = document.createElement('div');
-            toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-            toast.textContent = msg;
-            document.getElementById('toast-container').appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
         function escapeHTML(str) {
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

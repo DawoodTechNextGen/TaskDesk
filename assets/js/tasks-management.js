@@ -374,23 +374,6 @@ const themeObserver = new MutationObserver((mutations) => {
 themeObserver.observe(document.documentElement, { attributes: true });
 
 // Toast Helper (Reusing project's toast system if exists, or simple alert)
-function showToast(type, message) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-red-500';
-    toast.className = `flex items-center p-4 mb-4 text-white rounded-xl shadow-lg animate-fadeIn ${bgColor}`;
-    toast.innerHTML = `
-        <div class="ml-3 text-sm font-medium">${message}</div>
-        <button class="ml-auto -mx-1.5 -my-1.5 p-1.5 inline-flex items-center justify-center h-8 w-8 text-white hover:bg-white/20 rounded-lg">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-    `;
-
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-}
 
 // Setup Event Listeners
 function setupEventListeners() {

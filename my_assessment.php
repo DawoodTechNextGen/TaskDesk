@@ -163,13 +163,6 @@ include_once "./include/headerLinks.php";
 
     <?php include_once "./include/footerLinks.php"; ?>
     <script>
-        function showToast(type, msg) {
-            const toast = document.createElement('div');
-            toast.className = `px-5 py-3 rounded-lg text-white shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-            toast.textContent = msg;
-            document.getElementById('toast-container').appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
 
         const screens = ['loadingState', 'noneState', 'pendingState', 'inProgressState', 'resultState', 'violationFailState'];
         function showScreen(id) {

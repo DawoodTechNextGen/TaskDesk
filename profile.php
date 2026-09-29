@@ -374,47 +374,6 @@ include "./include/headerLinks.php" ?>
             });
 
             // Toast notification function
-            function showToast(message, type = 'info') {
-                const toastContainer = document.getElementById('toast-container');
-                const toastId = 'toast-' + Date.now();
-
-                const bgColor = type === 'success' ? 'bg-green-500' :
-                    type === 'error' ? 'bg-red-500' :
-                    'bg-blue-500';
-
-                const toast = document.createElement('div');
-                toast.id = toastId;
-                toast.className = `p-4 rounded-lg shadow-lg text-white ${bgColor} transition-all duration-300 transform translate-x-full`;
-                toast.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span>${message}</span>
-                <button onclick="document.getElementById('${toastId}').remove()" class="ml-4 text-white hover:text-gray-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-
-                toastContainer.appendChild(toast);
-
-                // Animate in
-                setTimeout(() => {
-                    toast.classList.remove('translate-x-full');
-                }, 10);
-
-                // Auto remove after 5 seconds
-                setTimeout(() => {
-                    if (document.getElementById(toastId)) {
-                        toast.classList.add('translate-x-full');
-                        setTimeout(() => {
-                            if (document.getElementById(toastId)) {
-                                document.getElementById(toastId).remove();
-                            }
-                        }, 300);
-                    }
-                }, 5000);
-            }
         });
 
         function getInitials(fullName) {

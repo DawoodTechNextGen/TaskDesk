@@ -263,13 +263,6 @@ include_once "./include/headerLinks.php"; ?>
         });
 
         // Simple toast function (you probably already have this in your project)
-        function showToast(type, message) {
-            const toast = document.createElement('div');
-            toast.className = `px-4 py-3 rounded-lg text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-            toast.textContent = message;
-            document.getElementById('toast-container').appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
     </script>
 </body>
 

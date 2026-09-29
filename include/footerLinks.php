@@ -35,5 +35,6 @@ endif;
 ?>
 
 <script src="./assets/js/tailwind.js"></script>
-<script src="./assets/js/script.js"></script>
+<!-- ?v= changes with the file, so browsers pick up updates instead of a cached copy -->
+<script src="./assets/js/script.js?v=<?= filemtime(__DIR__ . '/../assets/js/script.js') ?>"></script>
 <script src="./assets/js/searchable.js"></script>

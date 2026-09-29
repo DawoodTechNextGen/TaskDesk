@@ -109,6 +109,68 @@ function sendNotificationFallback($params) {
     return $results;
 }
 
+/**
+ * Same as sendNotificationFallback(), but the send happens after the JSON
+ * response has already reached the browser. WhatsApp (30s timeout) plus two
+ * SMTP attempts (10s each) used to keep the admin's request - and, through the
+ * session lock, every other request of theirs - waiting on the network.
+ */
+function queueNotification($params) {
+    static $registered = false;
+    $GLOBALS['__queued_notifications'][] = $params;
+
+    if (!$registered) {
+        $registered = true;
+        // Buffer the response so it can be sent with an explicit length on shutdown.
+        ob_start();
+        register_shutdown_function('flushResponseAndSendQueuedNotifications');
+    }
+}
+
+function flushResponseAndSendQueuedNotifications() {
+    $queue = $GLOBALS['__queued_notifications'] ?? [];
+
+    $body = '';
+    while (ob_get_level() > 0) {
+        $body = ob_get_clean() . $body;
+    }
+    if (!headers_sent()) {
+        header('Content-Encoding: none');
+        header('Content-Length: ' . strlen($body));
+        header('Connection: close');
+    }
+    echo $body;
+    flush();
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
+
+    ignore_user_abort(true);
+    set_time_limit(0);
+
+    // The controller closes its connection before shutdown, and the email
+    // helper logs sends through the global $conn, so open a fresh one.
+    try {
+        $GLOBALS['conn'] = (new Database())->getConnection();
+    } catch (Throwable $e) {
+        $GLOBALS['conn'] = null;
+    }
+
+    foreach ($queue as $params) {
+        try {
+            $res = sendNotificationFallback($params);
+            if (empty($res['final_success'])) {
+                error_log('Queued notification to ' . ($params['email'] ?? '') . ' failed: ' . implode(' | ', $res['error_logs']));
+            }
+        } catch (Throwable $e) {
+            error_log('Queued notification to ' . ($params['email'] ?? '') . ' threw: ' . $e->getMessage());
+        }
+    }
+}
+
 function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent = null, $pdfFileName = 'Offer_Letter.pdf', $type = 'primary') {
     global $conn;
 

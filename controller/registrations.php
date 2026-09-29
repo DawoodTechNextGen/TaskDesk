@@ -37,6 +37,11 @@ if (!isset($_SESSION['user_role']) || !in_array((int)$_SESSION['user_role'], [RO
     exit;
 }
 
+// Nothing below writes to the session, so release its lock now. Otherwise one slow
+// action (hire, resend...) blocks every other request from the same admin, such as
+// the pipeline table reloading. $_SESSION stays readable after this.
+session_write_close();
+
 // Status Mapping
 $statusMap = [
     'new' => 'new',
@@ -508,7 +513,7 @@ switch ($action) {
             </body>
             </html>";
 
-            $notifRes = sendNotificationFallback([
+            queueNotification([
                 'email' => $candidate_email,
                 'name' => $name,
                 'mbl_number' => $mbl_number,
@@ -520,7 +525,6 @@ switch ($action) {
             echo json_encode([
                 'success' => true,
                 'message' => 'Interview scheduled successfully',
-                'notification' => $notifRes
             ]);
         } else {
             echo json_encode([
@@ -935,7 +939,7 @@ switch ($action) {
                 <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
             </div>";
 
-            $notifRes = sendNotificationFallback([
+            queueNotification([
                 'email' => $registration['email'],
                 'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
@@ -951,7 +955,6 @@ switch ($action) {
             echo json_encode([
                 'success' => true,
                 'message' => 'Assessment sent successfully! Credentials emailed to the candidate.',
-                'notification' => $notifRes
             ]);
         } catch (Exception $e) {
             $conn->rollback();
@@ -1024,19 +1027,35 @@ switch ($action) {
                 . "🔑 *Password:* `$password`\n\n"
                 . "⚠️ You get *ONE attempt only* this time as well. Best of luck!\n\nHR Department\n*DawoodTech NextGen*";
 
-            $notifRes = sendNotificationFallback([
+            $htmlEmail = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
+                <h2 style='color: #2563eb; text-align: center;'>New Assessment Attempt 📝</h2>
+                <p>Dear <strong>" . htmlspecialchars($latest['u_name']) . "</strong>,</p>
+                <p>A new attempt for the following assessment has been set up for you:</p>
+                <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
+                    <p><strong>Assessment:</strong> " . htmlspecialchars($assessment['title']) . "</p>
+                    <p><strong>Time Limit:</strong> " . (int)$assessment['duration_minutes'] . " minutes</p>
+                    <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
+                    <p><strong>Email:</strong> " . htmlspecialchars($latest['u_email']) . "</p>
+                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>
+                </div>
+                <p style='color:#b91c1c;'><strong>Important:</strong> You get one attempt only and the timer cannot be paused once started. Please ensure a stable internet connection before you begin.</p>
+                <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
+            </div>";
+
+            queueNotification([
                 'email' => $latest['u_email'],
                 'name' => $latest['u_name'],
                 'mbl_number' => $latest['mbl_number'],
                 'subject' => 'New Assessment Attempt - DawoodTech NextGen',
-                'html_content' => "<p>Dear " . htmlspecialchars($latest['u_name']) . ",</p><p>A new attempt for <strong>" . htmlspecialchars($assessment['title']) . "</strong> has been set up for you.</p><p>Email: " . htmlspecialchars($latest['u_email']) . "<br>Password: <code>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>",
+                'html_content' => $htmlEmail,
                 'whatsapp_msg' => $whatsappMsg
             ]);
 
             $conn->commit();
             logActivity('Resend Assessment', "Created a new assessment attempt for registration ID $id");
 
-            echo json_encode(['success' => true, 'message' => 'New attempt created and credentials resent.', 'notification' => $notifRes]);
+            echo json_encode(['success' => true, 'message' => 'New attempt created and credentials resent.']);
         } catch (Exception $e) {
             $conn->rollback();
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -1229,10 +1248,12 @@ switch ($action) {
                 throw new Exception('Registration not found');
             }
 
-            // Create user record, or promote the candidate account left over from the assessment
+            // Create user record, or promote the candidate account left over from the assessment.
+            // created_at is the internship start date everywhere, so reset it to the hire moment
+            // instead of keeping the day the assessment account was made.
             $tech_id = findReusableCandidateUserId($conn, $registration['email']);
             if ($tech_id > 0) {
-                $upHire = $conn->prepare("UPDATE users SET name = ?, plain_password = ?, password = ?, user_role = ?, status = ?, tech_id = ?, supervisor_id = ?, internship_type = ?, internship_duration = ? WHERE id = ?");
+                $upHire = $conn->prepare("UPDATE users SET name = ?, plain_password = ?, password = ?, user_role = ?, status = ?, tech_id = ?, supervisor_id = ?, internship_type = ?, internship_duration = ?, created_at = NOW() WHERE id = ?");
                 $upHire->bind_param('sssiiiiisi', $registration['name'], $password, $hash, $userRole, $status, $registration['technology_id'], $trainer, $internshipType, $duration, $tech_id);
                 if (!$upHire->execute()) {
                     throw new Exception('Failed to create user');
@@ -1324,12 +1345,12 @@ switch ($action) {
             </div>";
 
             // Generate Offer Letter PDF
-            $startDate = date('j F Y');
-            $endDate = date('j F Y', strtotime('+' . $duration));
+            $startDate = date('d-M-Y');
+            $endDate = date('d-M-Y', strtotime('+' . $duration));
             $pdfContent = generateOfferLetterHelper($registration['name'], $startDate, $endDate, $registration['tech_name']);
 
             // Send notification with fallback
-            $notifRes = sendNotificationFallback([
+            queueNotification([
                 'email' => $registration['email'],
                 'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
@@ -1350,7 +1371,6 @@ switch ($action) {
             echo json_encode([
                 'success' => true,
                 'message' => 'Hired successfully! Credentials and offer letter sent.',
-                'notification' => $notifRes
             ]);
         } catch (Exception $e) {
             // Rollback transaction on error
@@ -1618,7 +1638,7 @@ switch ($action) {
                 </div>
             ";
 
-            sendNotificationFallback([
+            queueNotification([
                 'email' => $candidate['email'],
                 'name' => $candidate['name'],
                 'subject' => $subject,
@@ -1721,7 +1741,7 @@ $html_content = "
 ";
 
 
-            sendNotificationFallback([
+            queueNotification([
                 'email' => $candidate['email'],
                 'name' => $candidate['name'],
                 'subject' => $subject,

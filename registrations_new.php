@@ -90,6 +90,7 @@ include_once "./include/headerLinks.php";
 
 
     <?php include_once "./include/footerLinks.php"; ?>
+    <?php include_once "./include/internship_type_js.php"; ?>
 <script>
     /* Reused utilities */
     const LoaderManager = {
@@ -103,8 +104,8 @@ include_once "./include/headerLinks.php";
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); 
     }
 
-    const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at'];
-    const headerMap = { id: 'ID', name: 'Name', email: 'Email', mbl_number: 'Contact', technology: 'Technology', internship_type: 'Internship Type', experience: 'Experience', cnic: 'CNIC', city: 'City', country: 'Country', created_at: 'Created At' };
+    const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at', 'university', 'referred_by'];
+    const headerMap = { id: 'ID', name: 'Name', email: 'Email', mbl_number: 'Contact', technology: 'Technology', internship_type: 'Internship Type', experience: 'Experience', cnic: 'CNIC', city: 'City', country: 'Country', created_at: 'Created At', university: 'University', referred_by: 'Referred By' };
 
     function formatDetails(row) {
         return `<div class="details-wrapper"><div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg grid grid-cols-2 gap-4 text-sm">${expandableColumns.map(k => `<div><span class="font-semibold">${headerMap[k]}:</span> <span>${escapeHTML(row[k] ?? '-')}</span></div>`).join('')}</div></div>`;
@@ -150,7 +151,7 @@ $(document).ready(function() {
             { data: 'name' },
             { data: 'mbl_number' },
             { data: 'technology' },
-            { data: 'internship_type_text' },
+            { data: 'internship_type_text', visible: SHOW_INTERNSHIP_TYPE },
             { data: 'experience_text' },
             {
                 data: null,

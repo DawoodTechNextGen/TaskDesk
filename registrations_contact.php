@@ -625,6 +625,7 @@ include_once "./include/headerLinks.php";
     </div>
 
     <?php include_once "./include/footerLinks.php"; ?>
+    <?php include_once "./include/internship_type_js.php"; ?>
 <script>
     // Row "Actions" dropdown (Schedule/Send Assessment/Hire/Reject) - delegated
     // since DataTables re-renders rows, and only one menu open at a time.
@@ -1538,7 +1539,7 @@ include_once "./include/headerLinks.php";
         });
 
         // DataTable initialization
-        const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at'];
+        const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at', 'university', 'referred_by'];
         const headerMap = {
             id: 'ID',
             name: 'Name',
@@ -1550,7 +1551,9 @@ include_once "./include/headerLinks.php";
             cnic: 'CNIC',
             city: 'City',
             country: 'Country',
-            created_at: 'Created At'
+            created_at: 'Created At',
+            university: 'University',
+            referred_by: 'Referred By'
         };
 
         function formatDetails(row) {
@@ -1593,6 +1596,7 @@ include_once "./include/headerLinks.php";
                 },
                 {
                     data: 'internship_type_text',
+                    visible: SHOW_INTERNSHIP_TYPE,
                     render: function(data, type, row) {
                         return `<span class="internship-type-cell cursor-pointer inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition" data-id="${row.id}" data-current="${row.internship_type}">${escapeHTML(data)}</span>`;
                     }
@@ -1849,8 +1853,7 @@ include_once "./include/headerLinks.php";
             // Create select dropdown
             const select = $(`
                 <select class="internship-type-select px-2 py-1 rounded border border-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-white">
-                    <option value="0" ${current == 0 ? 'selected' : ''}>Task Base Intern</option>
-                    <option value="1" ${current == 1 ? 'selected' : ''}>Learning Base Intern</option>
+                    ${internshipTypeOptionsHtml(current)}
                 </select>
             `);
             

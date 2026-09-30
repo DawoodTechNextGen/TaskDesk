@@ -24,6 +24,9 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
 require_once '../include/capture_helper.php';
+require_once '../include/internship_type_helper.php';
+// The list queries join on registrations.ref_code / users.referral_code
+ensureInternshipTypeSchema($conn);
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -82,8 +85,9 @@ switch ($action) {
 
         $orderBy = $columns[$orderColumnIndex] ?? 'r.created_at';
 
-        $sqlBase = "FROM registrations r 
-                LEFT JOIN technologies t ON t.id = r.technology_id";
+        $sqlBase = "FROM registrations r
+                LEFT JOIN technologies t ON t.id = r.technology_id
+                LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR;
 
         $where = [];
         $params = [];
@@ -120,7 +124,7 @@ switch ($action) {
         SELECT r.id, r.name, r.email, r.mbl_number, r.status, r.email_status,
                r.internship_type, r.experience, r.city, r.country,
                r.cnic, DATE(r.created_at) created_at, r.remarks,
-               r.technology_id, t.name technology
+               r.technology_id, t.name technology, amb.name referred_by, r.university
         $sqlBase
         $whereClause
         ORDER BY $orderBy $orderDir
@@ -138,12 +142,8 @@ switch ($action) {
 
         $data = [];
         while ($row = $result->fetch_assoc()) {
-            // Format internship_type
-            if (isset($row['internship_type'])) {
-                $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Task Base Intern'
-                    : 'Learning Base Intern';
-            }
+            // Format internship_type (NULL when no type was offered on the form)
+            $row['internship_type_text'] = internshipTypeLabel($row['internship_type'] ?? null);
 
             // Format experience
             if (isset($row['experience'])) {
@@ -559,9 +559,11 @@ switch ($action) {
             'r.created_at'
         ];
 
-        $sql = "SELECT " . implode(', ', $columns) . " 
-            FROM registrations r 
+        // referred_by is appended after the list above so DataTables' order indexes don't shift
+        $sql = "SELECT " . implode(', ', $columns) . ", amb.name AS referred_by, r.university
+            FROM registrations r
             LEFT JOIN technologies t ON r.technology_id = t.id
+            LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR . "
             WHERE r.status = 'interview'";
 
         // Apply filters
@@ -627,12 +629,8 @@ switch ($action) {
 
         $data = [];
         while ($row = $result->fetch_assoc()) {
-            // Format internship_type
-            if (isset($row['internship_type'])) {
-                $row['internship_type_text'] = $row['internship_type'] == 0
-                    ? 'Task Base Intern'
-                    : 'Learning Base Intern';
-            }
+            // Format internship_type (NULL when no type was offered on the form)
+            $row['internship_type_text'] = internshipTypeLabel($row['internship_type'] ?? null);
 
             // Format experience
             if (isset($row['experience'])) {
@@ -688,7 +686,8 @@ switch ($action) {
                     SELECT ca2.id FROM candidate_assessments ca2
                     WHERE ca2.registration_id = r.id ORDER BY ca2.id DESC LIMIT 1
                 )
-                LEFT JOIN assessments a ON a.id = ca.assessment_id";
+                LEFT JOIN assessments a ON a.id = ca.assessment_id
+                LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR;
 
         $where = ["r.status = 'assessment'"];
         $params = [];
@@ -719,7 +718,7 @@ switch ($action) {
 
         $dataSql = "
         SELECT r.id, r.name, r.email, r.mbl_number, r.technology_id, t.name technology, DATE(r.created_at) created_at,
-               r.internship_type,
+               r.internship_type, amb.name referred_by, r.university,
                ca.id candidate_assessment_id, ca.status assessment_status, ca.percentage, ca.score,
                ca.total_marks, ca.violation_count, ca.fail_reason, ca.completed_at, ca.expires_at,
                a.id assessment_id, a.title assessment_title, a.passing_percentage
@@ -740,9 +739,7 @@ switch ($action) {
         $data = [];
         while ($row = $result->fetch_assoc()) {
             $row['assessment_status'] = $row['assessment_status'] ?? 'pending';
-            $row['internship_type_text'] = isset($row['internship_type'])
-                ? ($row['internship_type'] == 0 ? 'Task Base Intern' : 'Learning Base Intern')
-                : null;
+            $row['internship_type_text'] = internshipTypeLabel($row['internship_type'] ?? null);
             $data[] = $row;
         }
         $stmt->close();
@@ -1174,8 +1171,8 @@ switch ($action) {
             break;
         }
 
-        // Validate internship type (0 = Full-Time, 1 = Part-Time)
-        if (!in_array($internship_type, ['0', '1'])) {
+        // Only a type the Admin currently offers (see internship_types.php) can be set
+        if (!ctype_digit((string)$internship_type) || !in_array((int)$internship_type, getEnabledInternshipTypeValues($conn), true)) {
             echo json_encode(['success' => false, 'message' => 'Invalid internship type']);
             break;
         }
@@ -1438,9 +1435,12 @@ switch ($action) {
             $formattedMessage = nl2br(htmlspecialchars($emailMessage));
             $logoUrl = rtrim(BASE_URL, '/') . '/assets/images/logo.png';
             $waNumber = COMPANY_WHATSAPP;
-            $internshipType = (int)($resFetch['internship_type'] ?? 0);
-            $internTypeLabel = ($internshipType === 1) ? 'Learning Base Interns' : 'Task Base Interns';
-            $waMessage = 'Interested in ' . $internTypeLabel;
+            if ($resFetch['internship_type'] === null) {
+                $waMessage = 'Interested in the Internship';
+            } else {
+                $internTypeLabel = internshipTypeEmailLabel($resFetch['internship_type']);
+                $waMessage = 'Interested in ' . $internTypeLabel;
+            }
             $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
 
             $htmlContent = "

@@ -201,6 +201,7 @@ include_once "./include/headerLinks.php"; ?>
     </div>
 
     <?php include_once "./include/footerLinks.php"; ?>
+    <?php include_once "./include/internship_type_js.php"; ?>
     <script>
         // Row "Actions" dropdown (Resend/Interview/Hire/Reject) - delegated since
         // DataTables re-renders rows, and only one menu open at a time.
@@ -258,6 +259,7 @@ include_once "./include/headerLinks.php"; ?>
                     { data: 'name' },
                     {
                         data: 'internship_type_text',
+                        visible: SHOW_INTERNSHIP_TYPE,
                         render: function(text, type, row) {
                             if (!text) return '-';
                             const cls = row.internship_type == 0
@@ -331,6 +333,8 @@ include_once "./include/headerLinks.php"; ?>
                         <div><span class="font-semibold">Violations:</span> ${d.violation_count ?? 0}</div>
                         <div><span class="font-semibold">Fail Reason:</span> ${escapeHTML(d.fail_reason) || '-'}</div>
                         <div><span class="font-semibold">Completed At:</span> ${escapeHTML(d.completed_at) || '-'}</div>
+                        <div><span class="font-semibold">University:</span> ${escapeHTML(d.university) || '-'}</div>
+                        <div><span class="font-semibold">Referred By:</span> ${escapeHTML(d.referred_by) || '-'}</div>
                     </div></div>`).show();
                     tr.addClass('shown');
                     $(row.child()).find('.details-wrapper').slideDown(300);

@@ -21,6 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         if (password_verify($password, $user['password'])) {
+            if ((int)$user['user_role'] === ROLE_AMBASSADOR && (int)$user['status'] !== 1) {
+                $_SESSION['error'] = 'Your ambassador account is inactive';
+                header('Location:'.BASE_URL.'login.php');
+                exit;
+            }
             $stmtTech = $conn->prepare("SELECT t.name,c.approve_status as approve_status FROM technologies t LEFT JOIN certificate c on c.intern_id = ? WHERE t.id = ?");
             $stmtTech->bind_param('ii',$user['id'], $user['tech_id']);
             $stmtTech->execute();

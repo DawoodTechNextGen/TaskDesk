@@ -3,6 +3,7 @@
 require_once __DIR__ . '/include/config.php';
 require_once __DIR__ . '/include/connection.php';
 require_once __DIR__ . '/include/notification_helper.php';
+require_once __DIR__ . '/include/internship_type_helper.php';
 
 date_default_timezone_set('Asia/Karachi');
 
@@ -38,9 +39,13 @@ function cronSendRegistrationEmails() {
             continue;
         }
         
-        $internshipType = (int)($row['internship_type'] ?? 0);
-        $internTypeLabel = ($internshipType === 1) ? 'Learning Base Interns' : 'Task Base Interns';
-        $waMessage = 'Interested in ' . $internTypeLabel;
+        // NULL = no internship type was offered on the form when they registered
+        if ($row['internship_type'] === null) {
+            $waMessage = 'Interested in the Internship';
+        } else {
+            $internTypeLabel = internshipTypeEmailLabel($row['internship_type']);
+            $waMessage = 'Interested in ' . $internTypeLabel;
+        }
         $waLink = 'https://wa.me/' . $waNumber . '?text=' . urlencode($waMessage);
         
         // Construct HTML email body matching company design

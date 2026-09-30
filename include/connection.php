@@ -85,6 +85,41 @@ if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_C
     }
 }
 
+// A Campus Ambassador (see include/ambassador_helper.php) can only see their own
+// referral dashboard. Same whitelist idea as the Candidate lock above. The
+// account's status is re-checked on every request so an Admin deactivating an
+// ambassador signs them out straight away.
+if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_AMBASSADOR) {
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $file = basename($scriptName);
+
+    $ambStmt = $conn->prepare("SELECT status FROM users WHERE id = ? AND user_role = ? LIMIT 1");
+    $ambId = (int)$_SESSION['user_id'];
+    $ambRole = ROLE_AMBASSADOR;
+    $ambStmt->bind_param('ii', $ambId, $ambRole);
+    $ambStmt->execute();
+    $ambRow = $ambStmt->get_result()->fetch_assoc();
+    $ambStmt->close();
+    if (!$ambRow || (int)$ambRow['status'] !== 1) {
+        session_unset();
+        session_destroy();
+        if (strpos($scriptName, '/controller/') !== false) {
+            denyJson('Your ambassador account is inactive.');
+        }
+        header('Location: ' . BASE_URL . 'login.php');
+        exit;
+    }
+
+    $allowedForAmbassador = ['ambassador_dashboard.php', 'ambassador.php', 'logout.php', 'auth.php'];
+    if (!in_array($file, $allowedForAmbassador, true)) {
+        if (strpos($scriptName, '/controller/') !== false) {
+            denyJson('Access restricted to your ambassador dashboard.');
+        }
+        header('Location: ' . BASE_URL . 'ambassador_dashboard.php');
+        exit;
+    }
+}
+
 if (!function_exists('logActivity')) {
     function logActivity($action, $details) {
         global $conn;

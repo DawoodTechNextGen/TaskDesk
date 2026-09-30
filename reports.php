@@ -174,7 +174,7 @@ include_once "./include/headerLinks.php";
             const chartKeys = Object.keys(reportData.charts);
             chartKeys.forEach(key => {
                 const chartInfo = reportData.charts[key];
-                const card = createChartCard(key, chartInfo.label || key.replace('_', ' ').toUpperCase());
+                const card = createChartCard(key, chartInfo.title || chartInfo.label || key.replace('_', ' ').toUpperCase());
                 container.appendChild(card);
                 
                 const ctx = document.getElementById(`chart-${key}`).getContext('2d');
@@ -436,7 +436,7 @@ include_once "./include/headerLinks.php";
 
                 doc.setFontSize(14);
                 doc.setTextColor(0);
-                doc.text(key.replace('_', ' ').toUpperCase(), 14, currentY);
+                doc.text((chart.title || key.replace('_', ' ')).toUpperCase(), 14, currentY);
                 currentY += 5;
 
                 let head, body;

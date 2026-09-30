@@ -51,6 +51,9 @@ define('DB_NAME', getenv('DB_NAME') ?: 'task_management');
 // server, so the bootcamp listing reads across to it on the existing connection.
 // Set BOOTCAMP_DB to DB_NAME if the two ever end up in one database.
 define('BOOTCAMP_DB', getenv('BOOTCAMP_DB') ?: 'dawoodte_task_desk');
+// Public internship registration form (the separate React app). Campus
+// Ambassadors share this URL with ?ref=<their code> appended.
+define('REGISTRATION_FORM_URL', getenv('REGISTRATION_FORM_URL') ?: 'https://dawoodtechnextgen.com/internship-registration');
 // DawoodTech Community app, linked from the intern sidebar. Leave empty to hide the link.
 define('COMMUNITY_URL', getenv('COMMUNITY_URL') ?: 'https://community.dawoodtechnextgen.com/');
 // Smtp

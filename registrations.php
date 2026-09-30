@@ -271,6 +271,7 @@ include_once "./include/headerLinks.php";
     </div>
 
     <?php include_once "./include/footerLinks.php"; ?>
+    <?php include_once "./include/internship_type_js.php"; ?>
 <script>
     // Loader Management
     const LoaderManager = {
@@ -324,7 +325,9 @@ include_once "./include/headerLinks.php";
         'cnic',
         'city',
         'country',
-        'created_at'
+        'created_at',
+        'university',
+        'referred_by'
     ];
 
     const headerMap = {
@@ -339,7 +342,9 @@ include_once "./include/headerLinks.php";
         cnic: 'CNIC',
         city: 'City',
         country: 'Country',
-        created_at: 'Created At'
+        created_at: 'Created At',
+        university: 'University',
+            referred_by: 'Referred By'
     };
 
     /* =====================================================
@@ -449,7 +454,7 @@ include_once "./include/headerLinks.php";
                 { data: 'name' },
                 { data: 'mbl_number' },
                 { data: 'technology' },
-                { data: 'internship_type' },
+                { data: 'internship_type_text', visible: SHOW_INTERNSHIP_TYPE },
                 { data: 'experience' },
                 {
                     data: 'status',

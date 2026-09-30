@@ -14,6 +14,11 @@ define('ROLE_COLLABORATOR', 5);
 // registrations pipeline (see controller/registrations.php's send_assessment
 // action). Locked to my_assessment.php only - see the guard in connection.php.
 define('ROLE_CANDIDATE', 6);
+// Campus Ambassador: a university representative who shares a referral link to
+// the public registration form. View-only and locked to ambassador_dashboard.php,
+// which lists only registrations carrying their own referral code - see the
+// guard in connection.php and include/ambassador_helper.php.
+define('ROLE_AMBASSADOR', 7);
 
 /* =========================
    Collaborator module permissions
@@ -172,6 +177,8 @@ if (!function_exists('roleLabel')) {
                 return 'Collaborator';
             case ROLE_CANDIDATE:
                 return 'Assessment Candidate';
+            case ROLE_AMBASSADOR:
+                return 'Campus Ambassador';
             default:
                 return 'Unknown';
         }

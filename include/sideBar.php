@@ -74,10 +74,11 @@
                     <p class="text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-2 px-1"
                         id="menu-title">Menu</p>
                     <ul class="space-y-1">
+                        <?php $dashboardPage = ((int)$_SESSION['user_role'] === ROLE_AMBASSADOR) ? 'ambassador_dashboard.php' : 'index.php'; ?>
                         <li>
-                            <a href="index.php" onclick="window.location=this.href"
+                            <a href="<?= $dashboardPage ?>" onclick="window.location=this.href"
                                 class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
-                                <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'index.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                <?php echo (basename($_SERVER['SCRIPT_NAME']) == $dashboardPage) ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
                                 <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
                                     <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -259,6 +260,12 @@
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);
                                 // List of all registration-related pages to keep parent active
                                 $registrationPages = ['registrations.php', 'registrations_new.php', 'registrations_contact.php', 'registrations_assessment.php', 'registrations_interview.php', 'registrations_rejected.php'];
+                                // For an Admin the dropdown follows the whole journey, so the
+                                // intern lists (Active / Frozen / Completed) live here too.
+                                $showInternStagesInDropdown = ((int)$_SESSION['user_role'] === ROLE_ADMIN);
+                                if ($showInternStagesInDropdown) {
+                                    $registrationPages = array_merge($registrationPages, ['internees.php', 'frozen_interns.php', 'completed_interns.php']);
+                                }
                                 $isRegistrationsActive = in_array($currentPage, $registrationPages);
                                 ?>
                                 <button type="button" onclick="document.getElementById('registrations-submenu').classList.toggle('hidden'); document.getElementById('registrations-arrow').classList.toggle('rotate-180');"
@@ -359,6 +366,44 @@
                                             <span class="sidebar-item text-gray-700 dark:text-gray-200">Interview</span>
                                         </a>
                                     </li>
+                                    <?php if ($showInternStagesInDropdown) { ?>
+                                    <li>
+                                        <a href="internees.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'internees.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <circle cx="9" cy="6" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                                    <path d="M15 9C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M5.88915 20.5843C6.82627 20.8504 7.88256 21 9 21C12.866 21 16 19.2091 16 17C16 14.7909 12.866 13 9 13C5.13401 13 2 14.7909 2 17C2 17.3453 2.07657 17.6804 2.22053 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M18 14C19.7542 14.3847 21 15.3589 21 16.5C21 17.5293 19.9863 18.4229 18.5 18.8704" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Active</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="frozen_interns.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'frozen_interns.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M12 2V18M12 22V18M12 18L15 21M12 18L9 21M15 3L12 6L9 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M3.33978 7.00042L6.80389 9.00042M6.80389 9.00042L17.1962 15.0004M6.80389 9.00042L5.70581 4.90234M6.80389 9.00042L2.70581 10.0985M17.1962 15.0004L20.6603 17.0004M17.1962 15.0004L21.2943 13.9023M17.1962 15.0004L18.2943 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M20.66 7.00042L17.1959 9.00042M17.1959 9.00042L6.80364 15.0004M17.1959 9.00042L18.294 4.90234M17.1959 9.00042L21.294 10.0985M6.80364 15.0004L3.33954 17.0004M6.80364 15.0004L2.70557 13.9023M6.80364 15.0004L5.70557 19.0985" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Frozen</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="completed_interns.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'completed_interns.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5" />
+                                                    <path d="M8 12L10.5 14.5L16 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Completed</span>
+                                        </a>
+                                    </li>
+                                    <?php } ?>
                                     <li>
                                         <a href="registrations_rejected.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'registrations_rejected.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
                                             <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
@@ -604,6 +649,43 @@
                                 </a>
                              </li>
                              <li>
+                                <a href="ambassadors.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                     <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'ambassadors.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 10L12 5L21 10L12 15L3 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+                                            <path d="M7 12.5V16C7 17.1 9.24 18.5 12 18.5C14.76 18.5 17 17.1 17 16V12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Campus Ambassadors</span>
+                                </a>
+                             </li>
+                             <li>
+                                <a href="internship_types.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                     <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'internship_types.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4 6H20M4 12H20M4 18H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Internship Types</span>
+                                </a>
+                             </li>
+                             <li>
+                                <a href="universities.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                     <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'universities.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="relative sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 21H21M5 21V10M19 21V10M9 21V10M15 21V10M12 3L21 8H3L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Universities</span>
+                                </a>
+                             </li>
+                             <li>
                                 <a href="salaries.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
                                  <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'salaries.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
@@ -655,7 +737,8 @@
                         <?php
                         } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || ($_SESSION['user_role'] == 5 && (canViewModule('interns') || canViewModule('attendance')))) { ?>
-                        <?php if ($_SESSION['user_role'] != 5 || canViewModule('interns')) { ?>
+                        <?php // An Admin reaches these from the Internship dropdown above. ?>
+                        <?php if (((int)$_SESSION['user_role'] !== ROLE_ADMIN) && ($_SESSION['user_role'] != 5 || canViewModule('interns'))) { ?>
                             <li>
                                 <a href="internees.php" onclick="window.location=this.href"
                                     class="flex items-center space-x-2 p-2 rounded-lg sidebar-link 

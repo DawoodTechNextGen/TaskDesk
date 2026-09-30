@@ -3,6 +3,7 @@ header("Content-Type: application/json");
 session_start();
 include_once "../include/connection.php";
 require_once __DIR__ . '/../include/bootcamp_helper.php';
+require_once __DIR__ . '/../include/internship_type_helper.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -328,6 +329,96 @@ if ($action === 'get_report_data') {
             'labels' => $bootcamp_city_labels,
             'data' => $bootcamp_city_counts,
             'backgroundColor' => array_slice($city_chart_colors, 0, count($bootcamp_city_labels))
+        ];
+
+        // 6a-6d. Registration-form insights: universities, internship types and
+        // Campus Ambassador referrals (see include/internship_type_helper.php,
+        // include/university_helper.php and include/ambassador_helper.php).
+        // Placed as two pairs so they fill two full rows of the 2-column grid.
+        ensureInternshipTypeSchema($conn);
+
+        // 6a. Top Universities - Internship Applicants
+        $uni_labels = [];
+        $uni_counts = [];
+        $stmt = $conn->query("
+            SELECT university, COUNT(*) as count
+            FROM registrations
+            WHERE university IS NOT NULL AND university <> ''
+            GROUP BY university
+            ORDER BY count DESC
+            LIMIT 8
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $uni_labels[] = $row['university'];
+            $uni_counts[] = (int)$row['count'];
+        }
+        $data['charts']['internship_universities'] = [
+            'type' => 'bar',
+            'title' => 'Top Universities - Internship Applicants',
+            'label' => 'Applicants',
+            'labels' => $uni_labels,
+            'data' => $uni_counts,
+            'backgroundColor' => array_slice($city_chart_colors, 0, count($uni_labels))
+        ];
+
+        // 6b. Internship Registrations by Type (last 6 months), incl. admin-added types
+        $type_labels = [];
+        $type_counts = [];
+        $stmt = $conn->query("
+            SELECT internship_type, COUNT(*) as count
+            FROM registrations
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY internship_type
+            ORDER BY count DESC
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $type_labels[] = internshipTypeLabel($row['internship_type']);
+            $type_counts[] = (int)$row['count'];
+        }
+        $data['charts']['internship_types'] = [
+            'type' => 'doughnut',
+            'title' => 'Registrations by Internship Type (6m)',
+            'labels' => $type_labels,
+            'data' => $type_counts
+        ];
+
+        // 6c. Top Campus Ambassadors by referrals (all time)
+        $amb_labels = [];
+        $amb_counts = [];
+        $stmt = $conn->query("
+            SELECT u.name, COUNT(r.id) as count
+            FROM users u
+            JOIN registrations r ON r.ref_code = u.referral_code
+            WHERE u.user_role = " . ROLE_AMBASSADOR . "
+            GROUP BY u.id
+            ORDER BY count DESC
+            LIMIT 8
+        ");
+        while ($row = $stmt->fetch_assoc()) {
+            $amb_labels[] = $row['name'];
+            $amb_counts[] = (int)$row['count'];
+        }
+        $data['charts']['ambassador_referrals'] = [
+            'type' => 'bar',
+            'title' => 'Top Campus Ambassadors',
+            'label' => 'Referred Students',
+            'labels' => $amb_labels,
+            'data' => $amb_counts,
+            'backgroundColor' => array_slice($city_chart_colors, 0, count($amb_labels))
+        ];
+
+        // 6d. Where registrations came from (last 6 months): an ambassador's link or direct
+        $source = $conn->query("
+            SELECT SUM(ref_code IS NOT NULL AND ref_code <> '') AS referred,
+                   SUM(ref_code IS NULL OR ref_code = '') AS direct
+            FROM registrations
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        ")->fetch_assoc();
+        $data['charts']['registration_sources'] = [
+            'type' => 'pie',
+            'title' => 'Registration Source (6m)',
+            'labels' => ['Ambassador Referral', 'Direct'],
+            'data' => [(int)($source['referred'] ?? 0), (int)($source['direct'] ?? 0)]
         ];
 
         // 7. Overall Task Status (Admin/Manager sees all)

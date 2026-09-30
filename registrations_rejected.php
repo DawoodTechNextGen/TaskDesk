@@ -176,13 +176,14 @@ include_once "./include/headerLinks.php";
     </div>
 
     <?php include_once "./include/footerLinks.php"; ?>
+    <?php include_once "./include/internship_type_js.php"; ?>
     <script>
         function escapeHTML(str) {
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at', 'status'];
+        const expandableColumns = ['email', 'cnic', 'city', 'country', 'created_at', 'status', 'university', 'referred_by'];
         const headerMap = {
             id: 'ID',
             name: 'Name',
@@ -195,7 +196,9 @@ include_once "./include/headerLinks.php";
             city: 'City',
             country: 'Country',
             created_at: 'Created At',
-            status: 'Status'
+            status: 'Status',
+            university: 'University',
+            referred_by: 'Referred By'
         };
 
         function formatDetails(row) {
@@ -281,7 +284,8 @@ include_once "./include/headerLinks.php";
                         data: 'mbl_number'
                     },
                     {
-                        data: 'internship_type_text'
+                        data: 'internship_type_text',
+                        visible: SHOW_INTERNSHIP_TYPE
                     },
                     {
                         data: 'technology'

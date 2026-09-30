@@ -93,6 +93,22 @@
                                     class="sidebar-item text-gray-700 dark:text-gray-200">Dashboard</span>
                             </a>
                         </li>
+                        <?php if ((int)$_SESSION['user_role'] === ROLE_AMBASSADOR) { ?>
+                            <li>
+                                <a href="ambassador_registrations.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                    <?php echo (basename($_SERVER['SCRIPT_NAME']) == 'ambassador_registrations.php') ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                            <path d="M2 21C2 17.6863 5.13401 15 9 15C12.866 15 16 17.6863 16 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            <path d="M17 8H22M19.5 5.5V10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
+                                </a>
+                            </li>
+                        <?php } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('reports'))) { ?>
                             <li>
                                 <a href="reports.php" onclick="window.location=this.href"

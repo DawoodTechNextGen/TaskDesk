@@ -17,7 +17,6 @@ $stmt->close();
 
 $referralCode = $me['referral_code'] ?? '';
 $referralLink = $referralCode ? ambassadorReferralLink($referralCode) : '';
-$showInternshipType = showInternshipTypeColumn($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,26 +74,27 @@ include_once "./include/headerLinks.php"; ?>
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Referred students -->
+                <!-- Latest referrals; the full list is on ambassador_registrations.php -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Students you referred</h3>
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Latest registrations</h3>
+                        <a href="ambassador_registrations.php" class="text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:underline whitespace-nowrap">View all &rarr;</a>
                     </div>
-                    <div class="overflow-x-auto p-4 custom-scrollbar">
-                        <table id="referralsTable" class="min-w-full">
-                            <thead class="bg-indigo-200 dark:bg-indigo-600 text-xs uppercase text-gray-700 dark:text-gray-200">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="min-w-full text-xs text-gray-800 dark:text-gray-100">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50 uppercase text-gray-500 dark:text-gray-300">
                                 <tr>
-                                    <th class="px-4 py-3 text-left">Name</th>
-                                    <th class="px-4 py-3 text-left">Contact</th>
-                                    <th class="px-4 py-3 text-left">Technology</th>
-                                    <th class="px-4 py-3 text-left">Internship Type</th>
-                                    <th class="px-4 py-3 text-left">Applied On</th>
-                                    <th class="px-4 py-3 text-left">Status</th>
-                                    <th class="px-4 py-3 text-left">Assessment</th>
-                                    <th class="px-4 py-3 text-left">Score</th>
+                                    <th class="px-6 py-3 text-left font-medium">Name</th>
+                                    <th class="px-4 py-3 text-left font-medium">Technology</th>
+                                    <th class="px-4 py-3 text-left font-medium">Applied On</th>
+                                    <th class="px-4 py-3 text-left font-medium">Status</th>
+                                    <th class="px-4 py-3 text-left font-medium">Assessment</th>
+                                    <th class="px-4 py-3 text-left font-medium">Score</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-xs dark:text-gray-100 text-gray-800"></tbody>
+                            <tbody id="latest-referrals" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">Loading...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -105,49 +105,10 @@ include_once "./include/headerLinks.php"; ?>
 
     <?php include_once "./include/footerLinks.php"; ?>
 
+    <script src="assets/js/ambassador.js"></script>
     <script>
-        const SHOW_INTERNSHIP_TYPE = <?= json_encode($showInternshipType) ?>;
-
-        function esc(str) {
-            return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
-
-        const STATUS = {
-            new: ['Applied', 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'],
-            contact: ['Contacted', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'],
-            assessment: ['Assessment', 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'],
-            interview: ['Interview', 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'],
-            hire: ['Hired', 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'],
-            rejected: ['Rejected', 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
-        };
-        const ASSESSMENT = {
-            pending: ['Not started', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'],
-            in_progress: ['In progress', 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'],
-            pass: ['Passed', 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'],
-            fail: ['Failed', 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
-        };
-
-        function badge(map, key) {
-            if (!key || !map[key]) return '-';
-            return `<span class="px-2 py-1 rounded-full text-[10px] font-semibold ${map[key][1]}">${map[key][0]}</span>`;
-        }
-
-        const table = $('#referralsTable').DataTable({
-            pageLength: 25,
-            order: [[4, 'desc']],
-            columnDefs: [{ targets: 3, visible: SHOW_INTERNSHIP_TYPE }],
-            language: { emptyTable: 'No students have registered through your link yet.' }
-        });
-
         async function loadReferrals() {
-            const res = await fetch('controller/ambassador.php?action=my_referrals');
-            const json = await res.json();
-            if (!json.success) {
-                showToast('error', json.message || 'Failed to load your referrals');
-                return;
-            }
-
-            const rows = json.data;
+            const rows = await ambFetchReferrals();
             const count = s => rows.filter(r => r.status === s).length;
             const stats = {
                 total: rows.length,
@@ -162,23 +123,18 @@ include_once "./include/headerLinks.php"; ?>
                 if (el) el.textContent = v;
             });
 
-            table.clear();
-            rows.forEach(r => {
-                const score = (r.assessment_status === 'pass' || r.assessment_status === 'fail') && r.percentage !== null
-                    ? `${parseFloat(r.percentage).toFixed(0)}% <span class="text-gray-400">(${esc(r.score)}/${esc(r.total_marks)})</span>`
-                    : '-';
-                table.row.add([
-                    `<div class="font-medium">${esc(r.name)}</div><div class="text-gray-500 dark:text-gray-400">${esc(r.university) || esc(r.city)}</div>`,
-                    `<div>${esc(r.email)}</div><div class="text-gray-500 dark:text-gray-400">${esc(r.phone)}</div>`,
-                    esc(r.technology) || '-',
-                    esc(r.internship_type),
-                    esc(r.applied_on),
-                    badge(STATUS, r.status),
-                    badge(ASSESSMENT, r.assessment_status),
-                    score
-                ]);
-            });
-            table.draw();
+            const latest = rows.slice(0, 5);
+            document.getElementById('latest-referrals').innerHTML = latest.length
+                ? latest.map(r => `
+                    <tr>
+                        <td class="px-6 py-3">${ambNameCell(r)}</td>
+                        <td class="px-4 py-3">${ambEsc(r.technology) || '-'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${ambEsc(r.applied_on)}</td>
+                        <td class="px-4 py-3">${ambBadge(AMB_STATUS, r.status)}</td>
+                        <td class="px-4 py-3">${ambBadge(AMB_ASSESSMENT, r.assessment_status)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${ambScore(r)}</td>
+                    </tr>`).join('')
+                : '<tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">No students have registered through your link yet. Share it to get started!</td></tr>';
         }
 
         document.getElementById('copy-referral-link')?.addEventListener('click', async () => {

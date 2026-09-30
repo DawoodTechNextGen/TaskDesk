@@ -110,7 +110,7 @@ if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_A
         exit;
     }
 
-    $allowedForAmbassador = ['ambassador_dashboard.php', 'ambassador.php', 'logout.php', 'auth.php'];
+    $allowedForAmbassador = ['ambassador_dashboard.php', 'ambassador_registrations.php', 'ambassador.php', 'logout.php', 'auth.php'];
     if (!in_array($file, $allowedForAmbassador, true)) {
         if (strpos($scriptName, '/controller/') !== false) {
             denyJson('Access restricted to your ambassador dashboard.');

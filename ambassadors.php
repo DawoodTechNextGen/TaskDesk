@@ -96,11 +96,11 @@ include_once "./include/headerLinks.php"; ?>
                 <p class="mb-4 text-sm text-gray-700 dark:text-gray-300" id="intern-note"></p>
                 <div class="mb-4 account-field">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Full Name</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <input type="text" name="name" required placeholder="e.g. Ayesha Khan" class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="mb-4 account-field">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Email</label>
-                    <input type="email" name="email" required class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <input type="email" name="email" required placeholder="e.g. ayesha@gmail.com" class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">University</label>
@@ -135,7 +135,7 @@ include_once "./include/headerLinks.php"; ?>
                         Password
                         <span class="text-xs text-gray-500" id="password-hint">(Leave blank to auto-generate)</span>
                     </label>
-                    <input type="text" name="password" autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <input type="text" name="password" placeholder="Leave blank to auto-generate" autocomplete="new-password" class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 </div>
                 <div class="flex justify-end gap-3 mt-4">
                     <button type="button" class="close-ambassador-modal px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>
@@ -309,6 +309,7 @@ include_once "./include/headerLinks.php"; ?>
             document.getElementById('ambassador-modal-title').textContent =
                 modalMode === 'intern' ? 'Make Intern an Ambassador' : (a ? 'Edit Ambassador' : 'Add Ambassador');
             document.getElementById('password-hint').textContent = a ? '(Leave blank to keep the current one)' : '(Leave blank to auto-generate)';
+            form.elements.password.placeholder = a ? 'Leave blank to keep the current one' : 'Leave blank to auto-generate';
             if (modalMode === 'intern') loadInterns();
             modal.classList.remove('hidden');
         }

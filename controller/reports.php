@@ -389,7 +389,7 @@ if ($action === 'get_report_data') {
             SELECT u.name, COUNT(r.id) as count
             FROM users u
             JOIN registrations r ON r.ref_code = u.referral_code
-            WHERE u.user_role = " . ROLE_AMBASSADOR . "
+            WHERE u.referral_code IS NOT NULL
             GROUP BY u.id
             ORDER BY count DESC
             LIMIT 8

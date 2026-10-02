@@ -89,6 +89,22 @@ if (!function_exists('ensureInternshipTypeSchema')) {
             if ($col && $col->num_rows === 0) {
                 $conn->query("ALTER TABLE `users` ADD COLUMN `university` VARCHAR(150) NULL DEFAULT NULL");
             }
+
+            // Per-ambassador switches set by the Admin: whether that ambassador
+            // sees their students' full email / phone instead of the masked one.
+            $col = $conn->query("SHOW COLUMNS FROM `users` LIKE 'amb_show_email'");
+            if ($col && $col->num_rows === 0) {
+                $conn->query("ALTER TABLE `users` ADD COLUMN `amb_show_email` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `amb_show_phone` TINYINT(1) NOT NULL DEFAULT 0");
+            }
+
+            // An Intern can also be a Campus Ambassador on the same account (one
+            // login per email). amb_active switches only the ambassador side on/off,
+            // so deactivating it never touches the intern's own login (users.status).
+            $col = $conn->query("SHOW COLUMNS FROM `users` LIKE 'amb_active'");
+            if ($col && $col->num_rows === 0) {
+                $conn->query("ALTER TABLE `users` ADD COLUMN `amb_active` TINYINT(1) NOT NULL DEFAULT 0");
+                $conn->query("UPDATE `users` SET `amb_active` = (`status` = 1) WHERE `user_role` = " . ROLE_AMBASSADOR . " AND `referral_code` IS NOT NULL");
+            }
         } catch (\Throwable $e) {
             error_log('Internship type self-migration failed: ' . $e->getMessage());
         }

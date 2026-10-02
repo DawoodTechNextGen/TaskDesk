@@ -49,6 +49,20 @@ SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEM
   'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- Admin switches: may this ambassador see their students' full email / phone?
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'amb_show_email') = 0,
+  'ALTER TABLE `users` ADD COLUMN `amb_show_email` TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN `amb_show_phone` TINYINT(1) NOT NULL DEFAULT 0',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- An Intern can also be a Campus Ambassador on the same account. amb_active
+-- switches only the ambassador side on/off; existing ambassadors copy their status.
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'amb_active') = 0,
+  'ALTER TABLE `users` ADD COLUMN `amb_active` TINYINT(1) NOT NULL DEFAULT 0',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+UPDATE `users` SET `amb_active` = (`status` = 1) WHERE `user_role` = 7 AND `referral_code` IS NOT NULL AND `amb_active` = 0 AND `status` = 1;
+
 -- 5. Universities for the registration form dropdown (managed from universities.php).
 CREATE TABLE IF NOT EXISTS `universities` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

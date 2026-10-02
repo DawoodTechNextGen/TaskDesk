@@ -49,6 +49,8 @@ if (!function_exists('ambassadorReferralLink')) {
 // Welcome email with the ambassador's login and referral link, sent after the
 // response so creating an ambassador doesn't wait on SMTP. Email only - no
 // mobile number is stored for ambassadors. Needs include/notification_helper.php.
+// $password = null for an Intern made an ambassador: they keep their own login,
+// so the email points them to "My Referrals" instead of sending credentials.
 if (!function_exists('queueAmbassadorWelcomeEmail')) {
     function queueAmbassadorWelcomeEmail($name, $email, $password, $university, $code)
     {
@@ -71,12 +73,18 @@ if (!function_exists('queueAmbassadorWelcomeEmail')) {
                 <p style='margin: 0; color: #475569;'>Referral code: <strong>" . $e($code) . "</strong></p>
             </div>
 
+            " . ($password === null ? "
+            <h3 style='color: #0f172a; margin-bottom: 8px;'>Your dashboard</h3>
+            <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 12px 0 20px;'>
+                <p style='margin-top: 0;'>Log in to TaskDesk with your existing intern account (<strong>" . $e($email) . "</strong>) at <a href='" . $e($loginUrl) . "'>" . $e($loginUrl) . "</a> and open <strong>My Referrals</strong> in the sidebar.</p>
+                <p style='margin-bottom: 0;'>Your internship tasks and everything else stay exactly as they are.</p>
+            </div>" : "
             <h3 style='color: #0f172a; margin-bottom: 8px;'>Your dashboard login</h3>
             <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 12px 0 20px;'>
                 <p><strong>URL:</strong> <a href='" . $e($loginUrl) . "'>" . $e($loginUrl) . "</a></p>
                 <p><strong>Email:</strong> " . $e($email) . "</p>
                 <p style='margin-bottom: 0;'><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . $e($password) . "</code></p>
-            </div>
+            </div>") . "
             <p>On your dashboard you can see every student who registered through your link, where they are in the internship process, and their assessment result.</p>
             <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
         </div>";

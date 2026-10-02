@@ -9,7 +9,7 @@ include '../include/connection.php';
 require_once '../include/ambassador_helper.php';
 header('Content-Type: application/json');
 
-if (currentUserRole() !== ROLE_AMBASSADOR) {
+if (!isAmbassadorUser()) {
     denyJson('Unauthorized');
 }
 session_write_close();
@@ -21,11 +21,15 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
     case 'my_referrals':
         $userId = (int)$_SESSION['user_id'];
-        $stmt = $conn->prepare("SELECT referral_code FROM users WHERE id = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT referral_code, amb_show_email, amb_show_phone FROM users WHERE id = ? LIMIT 1");
         $stmt->bind_param('i', $userId);
         $stmt->execute();
-        $code = $stmt->get_result()->fetch_assoc()['referral_code'] ?? '';
+        $me = $stmt->get_result()->fetch_assoc() ?: [];
         $stmt->close();
+        $code = $me['referral_code'] ?? '';
+        // Contact details stay masked unless the Admin allowed this ambassador to see them.
+        $showEmail = !empty($me['amb_show_email']);
+        $showPhone = !empty($me['amb_show_phone']);
 
         if ($code === '' || $code === null) {
             echo json_encode(['success' => true, 'data' => []]);
@@ -55,8 +59,8 @@ switch ($action) {
             $data[] = [
                 'id' => (int)$row['id'],
                 'name' => $row['name'],
-                'email' => maskEmail($row['email']),
-                'phone' => maskPhone($row['mbl_number']),
+                'email' => $showEmail ? $row['email'] : maskEmail($row['email']),
+                'phone' => $showPhone ? $row['mbl_number'] : maskPhone($row['mbl_number']),
                 'city' => $row['city'],
                 'university' => $row['university'],
                 'technology' => $row['technology'],

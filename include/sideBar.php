@@ -108,6 +108,22 @@
                                     <span class="sidebar-item text-gray-700 dark:text-gray-200">Registrations</span>
                                 </a>
                             </li>
+                        <?php } elseif (isAmbassadorUser()) { ?>
+                            <!-- An Intern who is also a Campus Ambassador -->
+                            <li>
+                                <a href="ambassador_dashboard.php" onclick="window.location=this.href"
+                                    class="flex items-center space-x-2 p-2 rounded-lg sidebar-link
+                                    <?php echo in_array(basename($_SERVER['SCRIPT_NAME']), ['ambassador_dashboard.php', 'ambassador_registrations.php'], true) ? ' active-sidebar-link' : 'sidebar-link-border' ?>">
+                                    <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"></circle>
+                                            <path d="M2 21C2 17.6863 5.13401 15 9 15C12.866 15 16 17.6863 16 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                            <path d="M17 8H22M19.5 5.5V10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">My Referrals</span>
+                                </a>
+                            </li>
                         <?php } ?>
                         <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 3 || $_SESSION['user_role'] == 4 || ($_SESSION['user_role'] == 5 && canViewModule('reports'))) { ?>
                             <li>
@@ -674,7 +690,7 @@
                                             <path d="M7 12.5V16C7 17.1 9.24 18.5 12 18.5C14.76 18.5 17 17.1 17 16V12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
                                         </svg>
                                     </div>
-                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Campus Ambassadors</span>
+                                    <span class="sidebar-item text-gray-700 dark:text-gray-200">Ambassadors</span>
                                 </a>
                              </li>
                              <li>

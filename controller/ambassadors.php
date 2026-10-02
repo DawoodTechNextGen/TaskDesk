@@ -14,24 +14,34 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
     case 'list':
+        // Ambassador accounts plus Interns who are also ambassadors. `status`
+        // here is the ambassador side (amb_active), not the intern's own login.
         $role = ROLE_AMBASSADOR;
+        $internRole = ROLE_INTERN;
         $stmt = $conn->prepare("
-            SELECT u.id, u.name, u.email, u.plain_password, u.university, u.referral_code, u.status,
+            SELECT u.id, u.name, u.email, u.plain_password, u.university, u.referral_code,
+                   u.amb_active AS status, u.user_role,
+                   u.amb_show_email, u.amb_show_phone,
                    DATE(u.created_at) AS created_on,
                    COUNT(r.id) AS total_referrals,
                    COALESCE(SUM(r.status = 'hire'), 0) AS hired
             FROM users u
             LEFT JOIN registrations r ON r.ref_code = u.referral_code
-            WHERE u.user_role = ?
+            WHERE u.user_role = ? OR (u.user_role = ? AND u.referral_code IS NOT NULL)
             GROUP BY u.id
             ORDER BY u.name ASC
         ");
-        $stmt->bind_param('i', $role);
+        $stmt->bind_param('ii', $role, $internRole);
         $stmt->execute();
         $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
         foreach ($data as &$row) {
             $row['referral_link'] = $row['referral_code'] ? ambassadorReferralLink($row['referral_code']) : '';
+            $row['is_intern'] = (int)$row['user_role'] === ROLE_INTERN;
+            if ($row['is_intern']) {
+                // The intern's login is theirs; this page never shows or changes it.
+                $row['plain_password'] = null;
+            }
         }
         unset($row);
         echo json_encode(['success' => true, 'data' => $data]);
@@ -42,13 +52,22 @@ switch ($action) {
         $email = trim($_POST['email'] ?? '');
         $university = trim($_POST['university'] ?? '');
         $password = $_POST['password'] ?? '';
+        $showEmail = !empty($_POST['show_email']) ? 1 : 0;
+        $showPhone = !empty($_POST['show_phone']) ? 1 : 0;
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $university === '') {
             echo json_encode(['success' => false, 'message' => 'Name, a valid email and university are required']);
             exit;
         }
         if (emailTakenByOtherUser($conn, $email, 0)) {
-            echo json_encode(['success' => false, 'message' => 'That email is already registered']);
+            $existing = $conn->prepare("SELECT user_role FROM users WHERE email = ? LIMIT 1");
+            $existing->bind_param('s', $email);
+            $existing->execute();
+            $existingRole = (int)($existing->get_result()->fetch_assoc()['user_role'] ?? 0);
+            $existing->close();
+            echo json_encode(['success' => false, 'message' => $existingRole === ROLE_INTERN
+                ? 'This email belongs to an intern. Use "Make Intern an Ambassador" instead - they keep their intern account.'
+                : 'That email is already registered']);
             exit;
         }
         if ($password === '') {
@@ -64,9 +83,9 @@ switch ($action) {
 
         $hashed = password_hash($password, PASSWORD_DEFAULT);
         $role = ROLE_AMBASSADOR;
-        $stmt = $conn->prepare("INSERT INTO users (name, email, password, plain_password, user_role, status, tech_id, supervisor_id, commission_rate, university, referral_code)
-                                VALUES (?, ?, ?, ?, ?, 1, 0, 0, 0, ?, ?)");
-        $stmt->bind_param('ssssiss', $name, $email, $hashed, $password, $role, $university, $code);
+        $stmt = $conn->prepare("INSERT INTO users (name, email, password, plain_password, user_role, status, tech_id, supervisor_id, commission_rate, university, referral_code, amb_show_email, amb_show_phone, amb_active)
+                                VALUES (?, ?, ?, ?, ?, 1, 0, 0, 0, ?, ?, ?, ?, 1)");
+        $stmt->bind_param('ssssissii', $name, $email, $hashed, $password, $role, $university, $code, $showEmail, $showPhone);
         try {
             $ok = $stmt->execute();
             $errno = $ok ? 0 : $stmt->errno;
@@ -85,12 +104,94 @@ switch ($action) {
         $stmt->close();
         break;
 
+    // Pick list for "Make Intern an Ambassador": active interns not already one.
+    case 'available_interns':
+        $internRole = ROLE_INTERN;
+        $stmt = $conn->prepare("SELECT id, name, email FROM users WHERE user_role = ? AND status = 1 AND referral_code IS NULL ORDER BY name ASC");
+        $stmt->bind_param('i', $internRole);
+        $stmt->execute();
+        $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    // Gives an existing Intern a referral code on their own account. Their role,
+    // login and internship are untouched; they get "My Referrals" in the sidebar.
+    case 'make_intern_ambassador':
+        $id = (int)($_POST['intern_id'] ?? 0);
+        $university = trim($_POST['university'] ?? '');
+        $showEmail = !empty($_POST['show_email']) ? 1 : 0;
+        $showPhone = !empty($_POST['show_phone']) ? 1 : 0;
+
+        if ($id <= 0 || $university === '') {
+            echo json_encode(['success' => false, 'message' => 'Select an intern and a university']);
+            exit;
+        }
+
+        $internRole = ROLE_INTERN;
+        $stmt = $conn->prepare("SELECT name, email, referral_code FROM users WHERE id = ? AND user_role = ? AND status = 1 LIMIT 1");
+        $stmt->bind_param('ii', $id, $internRole);
+        $stmt->execute();
+        $intern = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$intern) {
+            echo json_encode(['success' => false, 'message' => 'Intern not found or inactive']);
+            exit;
+        }
+        if (!empty($intern['referral_code'])) {
+            echo json_encode(['success' => false, 'message' => 'This intern is already an ambassador']);
+            exit;
+        }
+
+        try {
+            $code = generateReferralCode($conn, $intern['name']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Could not generate a referral code, please try again']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("UPDATE users SET referral_code = ?, university = ?, amb_show_email = ?, amb_show_phone = ?, amb_active = 1
+                                WHERE id = ? AND user_role = ? AND referral_code IS NULL");
+        $stmt->bind_param('ssiiii', $code, $university, $showEmail, $showPhone, $id, $internRole);
+        $ok = $stmt->execute() && $stmt->affected_rows === 1;
+        $stmt->close();
+        if (!$ok) {
+            echo json_encode(['success' => false, 'message' => 'Failed to make this intern an ambassador']);
+            exit;
+        }
+
+        logActivity('Update User', "Made Intern {$intern['name']} ({$intern['email']}) a Campus Ambassador, code $code");
+        queueAmbassadorWelcomeEmail($intern['name'], $intern['email'], null, $university, $code);
+        echo json_encode(['success' => true, 'message' => $intern['name'] . ' is now a Campus Ambassador. Their internship is unchanged; a welcome email with the referral link is on its way.']);
+        break;
+
     case 'update':
         $id = (int)($_POST['id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $university = trim($_POST['university'] ?? '');
         $password = $_POST['password'] ?? '';
+        $showEmail = !empty($_POST['show_email']) ? 1 : 0;
+        $showPhone = !empty($_POST['show_phone']) ? 1 : 0;
+
+        // For an Intern-ambassador only the ambassador fields change; their name,
+        // email and password belong to their intern account (edited from Users).
+        if (isInternAmbassador($conn, $id)) {
+            if ($university === '') {
+                echo json_encode(['success' => false, 'message' => 'University is required']);
+                exit;
+            }
+            $internRole = ROLE_INTERN;
+            $stmt = $conn->prepare("UPDATE users SET university = ?, amb_show_email = ?, amb_show_phone = ? WHERE id = ? AND user_role = ?");
+            $stmt->bind_param('siiii', $university, $showEmail, $showPhone, $id, $internRole);
+            $ok = $stmt->execute();
+            $stmt->close();
+            if ($ok) {
+                logActivity('Update User', "Updated ambassador settings of Intern ID $id");
+            }
+            echo json_encode(['success' => $ok, 'message' => $ok ? 'Updated successfully!' : 'Update failed']);
+            exit;
+        }
 
         if ($id <= 0 || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $university === '') {
             echo json_encode(['success' => false, 'message' => 'Name, a valid email and university are required']);
@@ -106,11 +207,11 @@ switch ($action) {
         $role = ROLE_AMBASSADOR;
         if ($password !== '') {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, university = ?, password = ?, plain_password = ? WHERE id = ? AND user_role = ?");
-            $stmt->bind_param('sssssii', $name, $email, $university, $hashed, $password, $id, $role);
+            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, university = ?, amb_show_email = ?, amb_show_phone = ?, password = ?, plain_password = ? WHERE id = ? AND user_role = ?");
+            $stmt->bind_param('sssiissii', $name, $email, $university, $showEmail, $showPhone, $hashed, $password, $id, $role);
         } else {
-            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, university = ? WHERE id = ? AND user_role = ?");
-            $stmt->bind_param('sssii', $name, $email, $university, $id, $role);
+            $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, university = ?, amb_show_email = ?, amb_show_phone = ? WHERE id = ? AND user_role = ?");
+            $stmt->bind_param('sssiiii', $name, $email, $university, $showEmail, $showPhone, $id, $role);
         }
         try {
             $ok = $stmt->execute();
@@ -131,13 +232,16 @@ switch ($action) {
 
     // Ambassadors are deactivated rather than deleted, so the students they
     // referred keep pointing at them. An inactive ambassador can't log in and
-    // the registration form stops accepting their code.
+    // the registration form stops accepting their code. For an Intern-ambassador
+    // only the ambassador side (amb_active) changes - their intern login stays.
     case 'toggle_status':
         $id = (int)($_POST['id'] ?? 0);
         $status = ((int)($_POST['status'] ?? 0) === 1) ? 1 : 0;
         $role = ROLE_AMBASSADOR;
-        $stmt = $conn->prepare("UPDATE users SET status = ? WHERE id = ? AND user_role = ?");
-        $stmt->bind_param('iii', $status, $id, $role);
+        $internRole = ROLE_INTERN;
+        $stmt = $conn->prepare("UPDATE users SET amb_active = ?, status = IF(user_role = ?, ?, status)
+                                WHERE id = ? AND (user_role = ? OR (user_role = ? AND referral_code IS NOT NULL))");
+        $stmt->bind_param('iiiiii', $status, $role, $status, $id, $role, $internRole);
         $ok = $stmt->execute();
         $stmt->close();
         if ($ok) {
@@ -151,8 +255,10 @@ switch ($action) {
     case 'resend_welcome':
         $id = (int)($_POST['id'] ?? 0);
         $role = ROLE_AMBASSADOR;
-        $stmt = $conn->prepare("SELECT name, email, plain_password, university, referral_code, status FROM users WHERE id = ? AND user_role = ? LIMIT 1");
-        $stmt->bind_param('ii', $id, $role);
+        $internRole = ROLE_INTERN;
+        $stmt = $conn->prepare("SELECT name, email, plain_password, university, referral_code, amb_active AS status, user_role
+                                FROM users WHERE id = ? AND user_role IN (?, ?) LIMIT 1");
+        $stmt->bind_param('iii', $id, $role, $internRole);
         $stmt->execute();
         $amb = $stmt->get_result()->fetch_assoc();
         $stmt->close();
@@ -166,13 +272,26 @@ switch ($action) {
             exit;
         }
 
-        queueAmbassadorWelcomeEmail($amb['name'], $amb['email'], $amb['plain_password'], (string)$amb['university'], $amb['referral_code']);
+        // An Intern keeps their own login, so no password goes out for them.
+        $password = (int)$amb['user_role'] === ROLE_INTERN ? null : $amb['plain_password'];
+        queueAmbassadorWelcomeEmail($amb['name'], $amb['email'], $password, (string)$amb['university'], $amb['referral_code']);
         logActivity('Resend Ambassador Email', "Welcome email resent to {$amb['name']} ({$amb['email']})");
         echo json_encode(['success' => true, 'message' => 'Welcome email is being sent to ' . $amb['email']]);
         break;
 
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
+}
+
+function isInternAmbassador($conn, $id)
+{
+    $role = ROLE_INTERN;
+    $stmt = $conn->prepare("SELECT 1 FROM users WHERE id = ? AND user_role = ? AND referral_code IS NOT NULL LIMIT 1");
+    $stmt->bind_param('ii', $id, $role);
+    $stmt->execute();
+    $found = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $found;
 }
 
 // Login looks users up by email alone, so an ambassador can't share one with any other account.

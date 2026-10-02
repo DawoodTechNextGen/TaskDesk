@@ -67,6 +67,23 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_role']) && (int)$_SESSI
     $_SESSION['module_permissions'] = getModulePermissionsForUser($conn, (int)$_SESSION['user_id']);
 }
 
+// An Intern can also be a Campus Ambassador on the same account (users.referral_code
+// set + amb_active = 1). Re-read on every request so an Admin switching it off
+// hides the referral pages on the intern's next page load.
+if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_INTERN) {
+    $_SESSION['is_ambassador'] = false;
+    try {
+        $ambStmt = $conn->prepare("SELECT 1 FROM users WHERE id = ? AND referral_code IS NOT NULL AND amb_active = 1 LIMIT 1");
+        $ambId = (int)$_SESSION['user_id'];
+        $ambStmt->bind_param('i', $ambId);
+        $ambStmt->execute();
+        $_SESSION['is_ambassador'] = $ambStmt->get_result()->num_rows > 0;
+        $ambStmt->close();
+    } catch (Throwable $e) {
+        // amb_active not added yet (ensureInternshipTypeSchema hasn't run).
+    }
+}
+
 // An Assessment candidate account (see controller/registrations.php's
 // send_assessment action) may only ever reach its own assessment - never the
 // dashboard, sidebar, or any other module/controller. Checked here because

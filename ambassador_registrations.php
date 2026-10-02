@@ -6,7 +6,10 @@ if (!isset($_SESSION['user_id'])) {
 }
 include_once './include/connection.php';
 require_once './include/ambassador_helper.php';
-requirePageRoles([ROLE_AMBASSADOR]);
+if (!isAmbassadorUser()) {
+    header('Location: index.php');
+    exit;
+}
 
 $showInternshipType = showInternshipTypeColumn($conn);
 ?>

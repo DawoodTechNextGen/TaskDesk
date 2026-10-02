@@ -192,6 +192,16 @@ if (!function_exists('currentUserRole')) {
     }
 }
 
+// A Campus Ambassador account, or an Intern who is also an active ambassador
+// ($_SESSION['is_ambassador'] is refreshed per request in include/connection.php).
+if (!function_exists('isAmbassadorUser')) {
+    function isAmbassadorUser()
+    {
+        return currentUserRole() === ROLE_AMBASSADOR
+            || (currentUserRole() === ROLE_INTERN && !empty($_SESSION['is_ambassador']));
+    }
+}
+
 if (!function_exists('isAdmin')) {
     function isAdmin()
     {

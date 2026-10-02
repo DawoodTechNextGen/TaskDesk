@@ -87,7 +87,7 @@ switch ($action) {
 
         $sqlBase = "FROM registrations r
                 LEFT JOIN technologies t ON t.id = r.technology_id
-                LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR;
+                LEFT JOIN users amb ON amb.referral_code = r.ref_code";
 
         $where = [];
         $params = [];
@@ -563,7 +563,7 @@ switch ($action) {
         $sql = "SELECT " . implode(', ', $columns) . ", amb.name AS referred_by, r.university
             FROM registrations r
             LEFT JOIN technologies t ON r.technology_id = t.id
-            LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR . "
+            LEFT JOIN users amb ON amb.referral_code = r.ref_code
             WHERE r.status = 'interview'";
 
         // Apply filters
@@ -687,7 +687,7 @@ switch ($action) {
                     WHERE ca2.registration_id = r.id ORDER BY ca2.id DESC LIMIT 1
                 )
                 LEFT JOIN assessments a ON a.id = ca.assessment_id
-                LEFT JOIN users amb ON amb.referral_code = r.ref_code AND amb.user_role = " . ROLE_AMBASSADOR;
+                LEFT JOIN users amb ON amb.referral_code = r.ref_code";
 
         $where = ["r.status = 'assessment'"];
         $params = [];

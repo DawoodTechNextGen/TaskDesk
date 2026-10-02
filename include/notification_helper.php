@@ -171,8 +171,38 @@ function flushResponseAndSendQueuedNotifications() {
     }
 }
 
+/**
+ * False when the address is malformed or its domain has no MX/A record (e.g. a
+ * placeholder like manager@taskdesk.com on a staff account). Sending there only
+ * produces an "Address not found" bounce and uses up the hourly SMTP quota.
+ */
+function emailDomainCanReceive($email) {
+    static $cache = [];
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    $domain = strtolower(substr(strrchr($email, '@'), 1));
+    if (!isset($cache[$domain])) {
+        $mx = @dns_get_record($domain, DNS_MX) ?: [];
+        if ($mx) {
+            // A "Null MX" (target ".") means the domain accepts no mail at all.
+            $cache[$domain] = (bool)array_filter($mx, function ($r) {
+                return trim($r['target'] ?? '', '. ') !== '';
+            });
+        } else {
+            $cache[$domain] = checkdnsrr($domain, 'A') || checkdnsrr($domain, 'AAAA');
+        }
+    }
+    return $cache[$domain];
+}
+
 function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent = null, $pdfFileName = 'Offer_Letter.pdf', $type = 'primary') {
     global $conn;
+
+    if (!emailDomainCanReceive($toEmail)) {
+        error_log("Skipping email to $toEmail: domain does not exist or cannot receive mail.");
+        return false;
+    }
 
     // Force connection setup if it is not available in the global scope
     if (!isset($conn) || !$conn) {

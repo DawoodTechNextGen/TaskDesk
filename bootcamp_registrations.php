@@ -21,10 +21,21 @@ $stage_labels = [
     'new'      => 'New Enrollments',
     'contact'  => 'Contacted Enrollments',
     'enrolled' => 'Enrolled',
+    'completed' => 'Completed',
     'rejected' => 'Rejected Enrollments',
 ];
 $stage = $_GET['status'] ?? '';
 $page_heading = $stage_labels[$stage] ?? 'Bootcamp Enrollments';
+
+// Bootcamp filter: ?bootcamp_id= comes from the "Enrollments" link on bootcamps.php.
+$bootcampOptions = [];
+try {
+    $bcResult = $conn->query("SELECT id, title, status FROM " . BOOTCAMPS_TABLE . " ORDER BY created_at DESC");
+    $bootcampOptions = $bcResult ? $bcResult->fetch_all(MYSQLI_ASSOC) : [];
+} catch (\Throwable $e) {
+    $bootcampOptions = [];
+}
+$selectedBootcamp = (string)($_GET['bootcamp_id'] ?? '');
 ?>
 
 <!DOCTYPE html>
@@ -130,8 +141,18 @@ include_once "./include/headerLinks.php";
             <?php include_once "./include/header.php"; ?>
 
             <main class="flex-1 overflow-y-auto px-6 pt-24 bg-gray-50 dark:bg-gray-900/50 custom-scrollbar">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-wrap gap-3 justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white"><?php echo $page_heading; ?></h2>
+                    <div class="flex items-center gap-3">
+                        <select id="bootcamp-filter" class="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm">
+                            <option value="">All Bootcamps</option>
+                            <?php foreach ($bootcampOptions as $bc): ?>
+                                <option value="<?= (int)$bc['id'] ?>" <?= $selectedBootcamp === (string)$bc['id'] ? 'selected' : '' ?>><?= htmlspecialchars($bc['title']) ?> (<?= htmlspecialchars(ucfirst($bc['status'])) ?>)</option>
+                            <?php endforeach; ?>
+                            <option value="none" <?= $selectedBootcamp === 'none' ? 'selected' : '' ?>>Unassigned (older sign-ups)</option>
+                        </select>
+                        <a href="bootcamps.php" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Manage Bootcamps</a>
+                    </div>
                 </div>
 
                 <div class="bg-white mb-4 dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -191,6 +212,7 @@ include_once "./include/headerLinks.php";
     // the "+" icon.
     const visibleColumns = [
         'name',
+        'bootcamp_title',
         'email',
         'mbl_number',
         'city',
@@ -200,17 +222,22 @@ include_once "./include/headerLinks.php";
     const expandableColumns = [
         'province',
         'cnic',
-        'created_at'
+        'created_at',
+        'completed_at',
+        'certificate_code'
     ];
 
     const headerMap = {
         name: 'Name',
+        bootcamp_title: 'Bootcamp',
         email: 'Email',
         mbl_number: 'WhatsApp',
         province: 'Province',
         city: 'City',
         cnic: 'CNIC',
         created_at: 'Created At',
+        completed_at: 'Completed On',
+        certificate_code: 'Certificate ID',
         status: 'Status'
     };
 
@@ -295,14 +322,29 @@ include_once "./include/headerLinks.php";
             ['enrolled', 'Enrolled'],
             ['rejected', 'Rejected']
         ],
+        // Completed = finished the bootcamp; saving it emails the certificate.
+        enrolled: [
+            ['enrolled', 'Enrolled'],
+            ['completed', 'Completed + Certificate'],
+            ['rejected', 'Rejected']
+        ],
         all: [
             ['new', 'New'],
             ['contact_whatsapp', 'Contact by WhatsApp'],
             ['contact_email', 'Contact by Email'],
             ['enrolled', 'Enrolled'],
+            ['completed', 'Completed + Certificate'],
             ['rejected', 'Rejected']
         ]
     };
+
+    // certificate_status: 0 = not sent, 1 = sent, 2 = failed
+    function certificateBadge(row) {
+        const s = Number(row.certificate_status);
+        if (s === 1) return '<span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Certificate sent</span>';
+        if (s === 2) return '<span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">Certificate failed</span>';
+        return '<span class="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Not sent</span>';
+    }
 
     function createStatusDropdown(current, id, options) {
         const optionsHtml = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
@@ -318,11 +360,26 @@ include_once "./include/headerLinks.php";
     Actions Column
     ===================================================== */
     function renderActions(row) {
+        // A completed row is finished - its only action is the certificate, in
+        // every view (no stage dropdown).
+        if (normalizeStatus(row.status) === 'completed') {
+            return `
+<div class="flex items-center gap-2 whitespace-nowrap">
+    ${certificateBadge(row)}
+    <button class="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs resend-certificate-btn" data-id="${row.id}">
+        ${Number(row.certificate_status) === 1 ? 'Resend' : 'Send'} Certificate
+    </button>
+    <button class="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-100 rounded text-xs undo-completion-btn" data-id="${row.id}" data-name="${escapeHTML(row.name)}" title="Move back to Enrolled">
+        Undo
+    </button>
+</div>`;
+        }
+
         const options = STAGE_OPTIONS[currentStage] || STAGE_OPTIONS.all;
-        // In the New/Contact lists every row already sits on that stage, so the
-        // dropdown's current value is just the stage itself. The "All" view mixes
+        // In the New/Contact/Enrolled lists every row already sits on that stage, so
+        // the dropdown's current value is just the stage itself. The "All" view mixes
         // every stage, so it falls back to reading the row's own status.
-        const current = (currentStage === 'new' || currentStage === 'contact') ? currentStage : currentDropdownValue(row);
+        const current = ['new', 'contact', 'enrolled'].includes(currentStage) ? currentStage : currentDropdownValue(row);
 
         return `
 <div class="flex items-center space-x-2">
@@ -356,6 +413,7 @@ include_once "./include/headerLinks.php";
                 data: function(d) {
                     d.action = 'get_bootcamp_registrations';
                     d.status = currentStage;
+                    d.bootcamp_id = document.getElementById('bootcamp-filter').value;
                 }
             },
             columns: [
@@ -366,6 +424,12 @@ include_once "./include/headerLinks.php";
                     defaultContent: '<span class="expand-icon"><span class="bar horizontal"></span><span class="bar vertical"></span></span>'
                 },
                 { data: 'name' },
+                {
+                    data: 'bootcamp_title',
+                    render: function(data) {
+                        return data ? escapeHTML(data) : '<span class="text-gray-400 italic">Unassigned</span>';
+                    }
+                },
                 { data: 'email' },
                 { data: 'mbl_number' },
                 { data: 'city' },
@@ -377,6 +441,7 @@ include_once "./include/headerLinks.php";
                             new: ['NEW', 'bg-blue-600'],
                             contact: ['CONTACT', 'bg-yellow-500'],
                             enrolled: ['ENROLLED', 'bg-green-600'],
+                            completed: ['COMPLETED', 'bg-purple-600'],
                             rejected: ['REJECTED', 'bg-red-600']
                         };
                         return `<span class="px-2 py-1 rounded-full text-xs text-white ${map[s][1]}">${map[s][0]}</span>`;
@@ -444,9 +509,20 @@ include_once "./include/headerLinks.php";
             </tr>
         `);
 
-        // Initialize DataTables - the built-in search box is the only filter left,
-        // the sidebar's New/Contact/Enrolled/Rejected links are what pick the stage.
+        // Initialize DataTables - the sidebar's New/Contact/Enrolled/Rejected links
+        // pick the stage, and the bootcamp dropdown narrows it to one bootcamp.
         initDataTable();
+
+        document.getElementById('bootcamp-filter').addEventListener('change', function() {
+            const url = new URL(window.location.href);
+            if (this.value) {
+                url.searchParams.set('bootcamp_id', this.value);
+            } else {
+                url.searchParams.delete('bootcamp_id');
+            }
+            history.replaceState(null, '', url);
+            dataTable.ajax.reload();
+        });
 
         /* =====================================================
         Update Status Handler
@@ -473,6 +549,8 @@ include_once "./include/headerLinks.php";
 
             if (selected === 'contact_email') {
                 if (!confirm('Are you sure you want to contact this enrollee by email? A predefined template email will be sent automatically.')) return;
+            } else if (selected === 'completed') {
+                if (!confirm('Mark this student as completed? Their bootcamp certificate will be emailed to them right away.')) return;
             } else if (!confirm('Are you sure you want to update this status?')) {
                 return;
             }
@@ -510,6 +588,49 @@ include_once "./include/headerLinks.php";
                 }
             } catch (error) {
                 showToast('error', 'Update failed: ' + error.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
+        });
+
+        $(document).on('click', '.undo-completion-btn', async function(e) {
+            e.preventDefault();
+            const name = $(this).data('name');
+            if (!confirm(`Undo completion for ${name}?\n\nThey will move back to Enrolled, and the certificate already emailed to them will show as NOT valid on the verification page until they are marked completed again.`)) return;
+
+            try {
+                LoaderManager.showGlobal();
+                const res = await fetch('controller/bootcamp_registrations.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'undo_completion', id: $(this).data('id') })
+                });
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+                if (json.success && dataTable) dataTable.ajax.reload(null, false);
+            } catch (error) {
+                showToast('error', 'Undo failed: ' + error.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
+        });
+
+        $(document).on('click', '.resend-certificate-btn', async function(e) {
+            e.preventDefault();
+            if (!confirm('Email this student their bootcamp certificate?')) return;
+
+            try {
+                LoaderManager.showGlobal();
+                const res = await fetch('controller/bootcamp_registrations.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'resend_certificate', id: $(this).data('id') })
+                });
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+                if (dataTable) dataTable.ajax.reload(null, false);
+            } catch (error) {
+                showToast('error', 'Sending failed: ' + error.message);
             } finally {
                 LoaderManager.hideGlobal();
             }

@@ -6,17 +6,20 @@ ini_set('display_errors', 0);
 include '../include/connection.php';
 require_once '../include/bootcamp_helper.php';
 require_once '../include/notification_helper.php';
+require_once '../include/bootcamp_certificate_helper.php';
 
 // Bootcamp module: rows are created by the public bootcamp sign-up form, so the
-// only thing this controller writes is the enrollment's stage.
+// only things this controller writes are the enrollment's stage and its certificate.
 enforceModuleAccess(MODULE_BOOTCAMP, [
     'update_status',
+    'resend_certificate',
+    'undo_completion',
 ]);
 header('Content-Type: application/json');
 
-// The stages a bootcamp enrollment moves through. Kept here so the listing filter
-// and update_status validate against the same list.
-$bootcampStatuses = ['new', 'contact', 'enrolled', 'rejected'];
+// The stages a bootcamp enrollment moves through. Kept in one place so the listing
+// filter and update_status validate against the same list.
+$bootcampStatuses = bootcampEnrollmentStatuses();
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -35,6 +38,7 @@ function bootcampFilters()
     global $bootcampStatuses;
 
     $status = trim($_GET['status'] ?? '');
+    $bootcampId = trim($_GET['bootcamp_id'] ?? '');
     $province = trim($_GET['province'] ?? '');
     $city = trim($_GET['city'] ?? '');
     $searchValue = trim($_GET['search']['value'] ?? '');
@@ -47,6 +51,15 @@ function bootcampFilters()
         $where[] = "b.status = ?";
         $params[] = $status;
         $types .= 's';
+    }
+
+    // 'none' = sign-ups from before bootcamps could be created (no bootcamp_id).
+    if ($bootcampId === 'none') {
+        $where[] = "b.bootcamp_id IS NULL";
+    } elseif ($bootcampId !== '' && ctype_digit($bootcampId)) {
+        $where[] = "b.bootcamp_id = ?";
+        $params[] = (int)$bootcampId;
+        $types .= 'i';
     }
 
     if ($province !== '') {
@@ -95,15 +108,16 @@ switch ($action) {
         // moved into the expand row and are no longer sortable from the header.
         $columns = [
             1 => 'b.name',
-            2 => 'b.email',
-            3 => 'b.mbl_number',
-            4 => 'b.city',
-            5 => 'b.status'
+            2 => 'bc.title',
+            3 => 'b.email',
+            4 => 'b.mbl_number',
+            5 => 'b.city',
+            6 => 'b.status'
         ];
 
         $orderBy = $columns[$orderColumnIndex] ?? 'b.name';
 
-        $sqlBase = "FROM " . BOOTCAMP_TABLE . " b";
+        $sqlBase = "FROM " . BOOTCAMP_TABLE . " b LEFT JOIN " . BOOTCAMPS_TABLE . " bc ON bc.id = b.bootcamp_id";
 
         $filters = bootcampFilters();
         $whereClause = $filters['clause'];
@@ -120,8 +134,9 @@ switch ($action) {
 
         // Data query
         $dataSql = "
-        SELECT b.id, b.name, b.email, b.mbl_number, b.province, b.city, b.cnic,
-               b.status, b.email_status, DATE(b.created_at) created_at
+        SELECT b.id, b.bootcamp_id, bc.title AS bootcamp_title, b.name, b.email, b.mbl_number, b.province, b.city, b.cnic,
+               b.status, b.email_status, DATE(b.created_at) created_at,
+               DATE(b.completed_at) completed_at, b.certificate_code, b.certificate_status
         $sqlBase
         $whereClause
         ORDER BY $orderBy $orderDir
@@ -211,7 +226,7 @@ switch ($action) {
 
         // Fetch the enrollment first, both for the audit log and so a bogus id
         // reports an error instead of a no-op "success".
-        $name_stmt = $conn->prepare("SELECT name, email FROM " . BOOTCAMP_TABLE . " WHERE id = ?");
+        $name_stmt = $conn->prepare("SELECT b.name, b.email, b.status, b.email_status, bc.title AS bootcamp_title FROM " . BOOTCAMP_TABLE . " b LEFT JOIN " . BOOTCAMPS_TABLE . " bc ON bc.id = b.bootcamp_id WHERE b.id = ?");
         $name_stmt->bind_param('i', $id);
         $name_stmt->execute();
         $enrollee = $name_stmt->get_result()->fetch_assoc();
@@ -222,6 +237,36 @@ switch ($action) {
             exit;
         }
 
+        // Completing a bootcamp issues a certificate, so it only follows Enrolled.
+        if ($newStatus === 'completed') {
+            if ($enrollee['status'] === 'completed') {
+                echo json_encode(['success' => false, 'message' => 'Already completed. Use "Resend Certificate" to email the certificate again.']);
+                exit;
+            }
+            if ($enrollee['status'] !== 'enrolled') {
+                echo json_encode(['success' => false, 'message' => 'Only enrolled students can be marked as completed.']);
+                exit;
+            }
+
+            $stmt = $conn->prepare("UPDATE " . BOOTCAMP_TABLE . " SET status = 'completed', completed_at = NOW() WHERE id = ?");
+            $stmt->bind_param('i', $id);
+            if (!$stmt->execute()) {
+                echo json_encode(['success' => false, 'message' => 'Failed to update status: ' . $conn->error]);
+                exit;
+            }
+            $stmt->close();
+            logActivity('Complete Bootcamp', "Marked {$enrollee['name']} as completed" . (!empty($enrollee['bootcamp_title']) ? " in {$enrollee['bootcamp_title']}" : ''));
+
+            $cert = issueBootcampCertificate($conn, $id);
+            echo json_encode([
+                'success' => true,
+                'message' => $cert['sent']
+                    ? 'Marked as completed and certificate emailed successfully'
+                    : 'Marked as completed, but the certificate was not sent: ' . $cert['message']
+            ]);
+            exit;
+        }
+
         if ($sendEmail) {
             if (empty($enrollee['email'])) {
                 echo json_encode(['success' => false, 'message' => 'Enrollee email not found']);
@@ -229,7 +274,8 @@ switch ($action) {
             }
 
             if (empty($emailMessage)) {
-                $emailMessage = "Thank you for enrolling in the DawoodTech NextGen Bootcamp.\n\nTo proceed with your enrollment, please reply on WhatsApp with the word \"Interested\".\n\nWe will then share the next steps and bootcamp details.\n\nBest Regards,\nDawoodTech NextGen Team";
+                $bootcampName = !empty($enrollee['bootcamp_title']) ? $enrollee['bootcamp_title'] : 'DawoodTech NextGen Bootcamp';
+                $emailMessage = "Thank you for enrolling in the {$bootcampName}.\n\nTo proceed with your enrollment, please reply on WhatsApp with the word \"Interested\".\n\nWe will then share the next steps and bootcamp details.\n\nBest Regards,\nDawoodTech NextGen Team";
             }
 
             $enrollee_name = $enrollee['name'];
@@ -317,7 +363,9 @@ switch ($action) {
             $email_status = 3;
         }
 
-        $stmt = $conn->prepare("UPDATE " . BOOTCAMP_TABLE . " SET status = ?, email_status = ? WHERE id = ?");
+        // Moving a row back out of Completed (a correction) clears its completion
+        // date; the certificate code is kept so an emailed certificate still verifies.
+        $stmt = $conn->prepare("UPDATE " . BOOTCAMP_TABLE . " SET status = ?, email_status = ?, completed_at = NULL WHERE id = ?");
         $stmt->bind_param('sii', $newStatus, $email_status, $id);
 
         if ($stmt->execute()) {
@@ -335,6 +383,96 @@ switch ($action) {
             echo json_encode(['success' => false, 'message' => 'Failed to update status: ' . $conn->error]);
         }
         $stmt->close();
+        break;
+
+        // ===============================
+        // RESEND CERTIFICATE (completed only)
+        // ===============================
+    case 'resend_certificate':
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+        $cert = issueBootcampCertificate($conn, $id);
+        if ($cert['sent']) {
+            logActivity('Resend Bootcamp Certificate', "Resent bootcamp certificate for enrollment #{$id}");
+        }
+        echo json_encode(['success' => $cert['sent'], 'message' => $cert['message']]);
+        break;
+
+        // ===============================
+        // UNDO COMPLETION (completed -> enrolled)
+        // ===============================
+        // For a student marked completed by mistake. The certificate code is kept
+        // (re-completing reuses it), but while the row is not completed the
+        // verify page reports that certificate as invalid.
+    case 'undo_completion':
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("SELECT name, status FROM " . BOOTCAMP_TABLE . " WHERE id = ?");
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$row) {
+            echo json_encode(['success' => false, 'message' => 'Enrollment not found']);
+            exit;
+        }
+        if ($row['status'] !== 'completed') {
+            echo json_encode(['success' => false, 'message' => 'This enrollment is not marked as completed.']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("UPDATE " . BOOTCAMP_TABLE . " SET status = 'enrolled', completed_at = NULL WHERE id = ? AND status = 'completed'");
+        $stmt->bind_param('i', $id);
+        $success = $stmt->execute() && $stmt->affected_rows === 1;
+        $stmt->close();
+
+        if ($success) {
+            logActivity('Undo Bootcamp Completion', "Moved {$row['name']} back from completed to enrolled");
+        }
+        echo json_encode([
+            'success' => $success,
+            'message' => $success ? 'Completion undone - moved back to Enrolled. Their certificate link now shows as not valid.' : 'Failed to undo completion.'
+        ]);
+        break;
+
+        // ===============================
+        // PER-BOOTCAMP COMPLETION NUMBERS
+        // ===============================
+    case 'completion_stats':
+        $sql = "SELECT bc.id, bc.title, bc.status AS bootcamp_status, bc.total_seats, bc.start_date, bc.end_date,
+                    COUNT(b.id) AS total,
+                    SUM(b.status = 'new') AS new_count,
+                    SUM(b.status = 'contact') AS contact_count,
+                    SUM(b.status = 'enrolled') AS enrolled_count,
+                    SUM(b.status = 'completed') AS completed_count,
+                    SUM(b.status = 'rejected') AS rejected_count,
+                    SUM(b.status = 'completed' AND b.certificate_status = 1) AS certificates_sent,
+                    SUM(b.status = 'completed' AND b.certificate_status <> 1) AS certificates_pending
+                FROM " . BOOTCAMPS_TABLE . " bc
+                LEFT JOIN " . BOOTCAMP_TABLE . " b ON b.bootcamp_id = bc.id
+                GROUP BY bc.id
+                ORDER BY bc.created_at DESC";
+        $result = $conn->query($sql);
+        $rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+        foreach ($rows as &$r) {
+            foreach (['total', 'new_count', 'contact_count', 'enrolled_count', 'completed_count', 'rejected_count', 'certificates_sent', 'certificates_pending', 'total_seats'] as $k) {
+                $r[$k] = (int)$r[$k];
+            }
+            // Completion rate is measured against students who actually joined
+            // (enrolled + completed), not every sign-up.
+            $joined = $r['enrolled_count'] + $r['completed_count'];
+            $r['completion_rate'] = $joined > 0 ? round($r['completed_count'] / $joined * 100) : null;
+        }
+        unset($r);
+        echo json_encode(['success' => true, 'data' => $rows]);
         break;
 
     default:

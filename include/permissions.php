@@ -84,6 +84,8 @@ if (!function_exists('currentPageModule')) {
             'attendance_supervisor.php'  => MODULE_ATTENDANCE,
             'reports.php'                => MODULE_REPORTS,
             'bootcamp_registrations.php' => MODULE_BOOTCAMP,
+            'bootcamps.php'              => MODULE_BOOTCAMP,
+            'bootcamp_completions.php'   => MODULE_BOOTCAMP,
             'hackathons.php'              => MODULE_HACKATHONS,
             'hackathon_registrations.php' => MODULE_HACKATHONS,
             'hackathon_leaderboard.php'   => MODULE_HACKATHONS,

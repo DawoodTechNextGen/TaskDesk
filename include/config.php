@@ -54,6 +54,9 @@ define('BOOTCAMP_DB', getenv('BOOTCAMP_DB') ?: 'dawoodte_task_desk');
 // Public internship registration form (the separate React app). Campus
 // Ambassadors share this URL with ?ref=<their code> appended.
 define('REGISTRATION_FORM_URL', getenv('REGISTRATION_FORM_URL') ?: 'https://dawoodtechnextgen.com/internship-registration');
+// Public bootcamps listing on the same React app; each bootcamp's sign-up page
+// is this URL + /<slug>.
+define('BOOTCAMP_PUBLIC_URL', getenv('BOOTCAMP_PUBLIC_URL') ?: 'https://dawoodtechnextgen.com/bootcamps');
 // DawoodTech Community app, linked from the intern sidebar. Leave empty to hide the link.
 define('COMMUNITY_URL', getenv('COMMUNITY_URL') ?: 'https://community.dawoodtechnextgen.com/');
 // Smtp

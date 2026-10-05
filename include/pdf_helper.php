@@ -136,6 +136,45 @@ function generateOfferLetterHelper($name, $startDate, $endDate, $techName, $issu
  * @return string|null PDF content as string
  */
 function generateCertificateHelper($name, $startDate, $endDate, $techName, $issueDate, $internshipType, $verifyUrl) {
+    // Template background is always certificate.png per user request
+    $certText = '
+                for successfully completing his/her internship at <span class="bold-text">DawoodTech NextGen</span><br/>
+                from <span class="bold-text">' . htmlspecialchars($startDate) . '</span> to <span class="bold-text">' . htmlspecialchars($endDate) . '</span>
+                in <span class="bold-text">' . htmlspecialchars($techName) . '</span>.
+                <div class="cert-note">During this period, the intern showed dedication, professionalism, and a strong<br/>
+                willingness to learn while contributing effectively to assigned projects.</div>';
+
+    return renderCertificateTemplatePdf('certificate.png', $name, $certText, $issueDate, $verifyUrl);
+}
+
+/**
+ * Bootcamp completion certificate, emailed when an enrollment is marked Completed
+ * on bootcamp_registrations.php. Same layout as the internship certificate, on
+ * bootcamp_certificate.png (which reads "Certificate of Completion").
+ *
+ * @return string|null PDF content as string
+ */
+function generateBootcampCertificateHelper($name, $bootcampTitle, $startDate, $endDate, $issueDate, $verifyUrl) {
+    $period = '';
+    if ($startDate && $endDate) {
+        $period = '<br/>held from <span class="bold-text">' . htmlspecialchars($startDate) . '</span> to <span class="bold-text">' . htmlspecialchars($endDate) . '</span>';
+    }
+    $certText = '
+                for successfully completing the <span class="bold-text">' . htmlspecialchars($bootcampTitle) . '</span><br/>
+                at <span class="bold-text">DawoodTech NextGen</span>' . $period . '.
+                <div class="cert-note">The participant showed commitment and hands-on learning throughout the bootcamp,<br/>
+                completing its sessions and practical work.</div>';
+
+    return renderCertificateTemplatePdf('bootcamp_certificate.png', $name, $certText, $issueDate, $verifyUrl);
+}
+
+/**
+ * Shared A4-landscape certificate layout: background template, recipient name,
+ * the body text ($certTextHtml, already escaped), issue date and verification QR.
+ *
+ * @return string|null PDF content as string
+ */
+function renderCertificateTemplatePdf($bg_filename, $name, $certTextHtml, $issueDate, $verifyUrl) {
     try {
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
@@ -143,8 +182,6 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
         $options->set('defaultFont', 'Arial');
         $dompdf = new Dompdf($options);
 
-        // Get template background (always certificate.png per user request)
-        $bg_filename = 'certificate.png';
         $bgImagePath = __DIR__ . '/../assets/images/' . $bg_filename;
         if (file_exists($bgImagePath)) {
             $imageData = base64_encode(file_get_contents($bgImagePath));
@@ -302,12 +339,7 @@ function generateCertificateHelper($name, $startDate, $endDate, $techName, $issu
                 ' . htmlspecialchars($name) . '
             </div>
             
-            <div class="cert-text">
-                for successfully completing his/her internship at <span class="bold-text">DawoodTech NextGen</span><br/>
-                from <span class="bold-text">' . htmlspecialchars($startDate) . '</span> to <span class="bold-text">' . htmlspecialchars($endDate) . '</span>
-                in <span class="bold-text">' . htmlspecialchars($techName) . '</span>.
-                <div class="cert-note">During this period, the intern showed dedication, professionalism, and a strong<br/>
-                willingness to learn while contributing effectively to assigned projects.</div>
+            <div class="cert-text">' . $certTextHtml . '
             </div>
             
             <div class="issue-date">

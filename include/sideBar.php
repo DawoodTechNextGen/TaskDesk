@@ -464,8 +464,8 @@
                                 $currentPage = basename($_SERVER['SCRIPT_NAME']);
                                 // All four stages are the one listing page filtered by ?status=,
                                 // so the active sub-item is decided by that parameter.
-                                $isBootcampActive = ($currentPage == 'bootcamp_registrations.php');
-                                $bootcampStage = $isBootcampActive ? ($_GET['status'] ?? '') : '';
+                                $isBootcampActive = in_array($currentPage, ['bootcamp_registrations.php', 'bootcamps.php', 'bootcamp_completions.php'], true);
+                                $bootcampStage = ($currentPage == 'bootcamp_registrations.php') ? ($_GET['status'] ?? '') : '';
                                 ?>
                                 <button type="button" onclick="document.getElementById('bootcamp-submenu').classList.toggle('hidden'); document.getElementById('bootcamp-arrow').classList.toggle('rotate-180');"
                                     class="w-full flex items-center justify-between p-2 rounded-lg sidebar-link <?php echo $isBootcampActive ? 'active-sidebar-link' : 'sidebar-link-border' ?>">
@@ -490,6 +490,17 @@
                                     </svg>
                                 </button>
                                 <ul id="bootcamp-submenu" class="<?php echo $isBootcampActive ? '' : 'hidden' ?> py-2 space-y-2">
+                                    <li>
+                                        <a href="bootcamps.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'bootcamps.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M4 6H20M4 12H20M4 18H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                    <path d="M18 15V21M15 18H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Manage Bootcamps</span>
+                                        </a>
+                                    </li>
                                     <li>
                                         <a href="bootcamp_registrations.php?status=new" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'new') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
                                             <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
@@ -522,6 +533,28 @@
                                                 </svg>
                                             </div>
                                             <span class="sidebar-item text-gray-700 dark:text-gray-200">Enrolled</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="bootcamp_registrations.php?status=completed" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($bootcampStage == 'completed') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="1.5"></circle>
+                                                    <path d="M9.5 9L11.25 10.75L14.5 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                    <path d="M8.5 14.3L7 21L12 18.5L17 21L15.5 14.3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Completed</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="bootcamp_completions.php" class="flex items-center space-x-1 w-full p-2 text-gray-700 dark:text-gray-200 transition duration-75 rounded-lg pl-7 group hover:bg-gray-100 dark:hover:bg-gray-700 <?php echo ($currentPage == 'bootcamp_completions.php') ? 'bg-gray-100 dark:bg-gray-700' : '' ?>">
+                                            <div class="sidebar-icon w-6 text-center text-gray-500 dark:text-gray-400">
+                                                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M4 20V10M10 20V4M16 20V13M22 20H2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                            <span class="sidebar-item text-gray-700 dark:text-gray-200">Completion Report</span>
                                         </a>
                                     </li>
                                     <li>

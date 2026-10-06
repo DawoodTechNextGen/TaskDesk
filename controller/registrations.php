@@ -24,6 +24,7 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
 require_once '../include/capture_helper.php';
+require_once '../include/assessment_grading_helper.php';
 require_once '../include/internship_type_helper.php';
 // The list queries join on registrations.ref_code / users.referral_code
 ensureInternshipTypeSchema($conn);
@@ -675,6 +676,10 @@ switch ($action) {
     // GET ASSESSMENT PIPELINE LIST (WITH PASS/FAIL FILTER)
     // ===============================
     case 'assessment':
+        // Candidates who walked away mid-attempt and never came back would
+        // otherwise sit in "In Progress" forever - fail them before listing.
+        finalizeAbandonedAssessments($conn);
+
         $start  = (int)($_GET['start'] ?? 0);
         $length = (int)($_GET['length'] ?? 10);
         $searchValue = trim($_GET['search']['value'] ?? '');

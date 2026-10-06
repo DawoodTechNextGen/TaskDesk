@@ -101,6 +101,7 @@ include_once "./include/headerLinks.php";
                 <p>• You get <strong>ONE attempt only</strong>. The timer cannot be paused once started.</p>
                 <p>• The assessment runs in <strong>fullscreen</strong>. Switching tabs/apps or exiting fullscreen is treated as a rule violation.</p>
                 <p>• You will get <strong>one warning</strong> if you leave the assessment screen. A second time will <strong>fail your attempt immediately</strong>.</p>
+                <p>• <strong>Do not refresh, close the tab/browser, or navigate away.</strong> Leaving the page mid-attempt for any reason ends it and it is <strong>marked failed</strong>.</p>
                 <p>• Copying question/answer text is disabled.</p>
                 <p>• <strong>Camera access is required.</strong> Periodic snapshots are captured during the assessment for verification purposes.</p>
                 <p>• Make sure you're in a quiet place with a stable internet connection before starting.</p>
@@ -110,14 +111,7 @@ include_once "./include/headerLinks.php";
 
         <!-- In progress -->
         <div id="inProgressState" class="hidden">
-            <!-- Resume/Enter gate - required so Fullscreen API has a fresh user gesture -->
-            <div id="resumeGate" class="hidden text-center bg-white dark:bg-gray-800 rounded-2xl shadow-md p-10 border border-gray-100 dark:border-gray-700">
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Resume Assessment</h2>
-                <p class="text-gray-500 dark:text-gray-400 mb-6">Click below to re-enter fullscreen assessment mode and continue. Your timer keeps running.</p>
-                <button id="resumeBtn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md">Resume Assessment</button>
-            </div>
-
-            <div id="examContent" class="hidden exam-locked-select">
+            <div id="examContent" class="exam-locked-select">
                 <div id="timerBar" class="sticky z-30 bg-indigo-600 text-white rounded-xl px-5 py-3 mb-6 flex justify-between items-center shadow-md" style="top: 65px;">
                     <span class="font-semibold flex items-center gap-2">
                         <span id="examTitleLabel"></span>
@@ -243,23 +237,21 @@ include_once "./include/headerLinks.php";
         window.addEventListener('beforeunload', e => {
             if (examActive) { e.preventDefault(); e.returnValue = ''; }
         });
+        // Leaving the page mid-attempt (refresh, close tab/browser, navigate away)
+        // fails it. The server also fails any in_progress attempt it finds on the
+        // next page load, so this beacon is just the fast path.
+        window.addEventListener('pagehide', () => {
+            if (!examActive) return;
+            examActive = false;
+            const data = new FormData();
+            data.append('action', 'abandon');
+            navigator.sendBeacon('controller/candidate_assessment.php', data);
+        });
 
         document.getElementById('warningResumeBtn').addEventListener('click', () => {
             requestFullscreenSafe();
             violationReported = false;
             document.getElementById('warningOverlay').classList.add('hidden');
-        });
-        document.getElementById('resumeBtn').addEventListener('click', async () => {
-            requestFullscreenSafe(); // must be first: preserves the user-gesture for Fullscreen API
-            const cameraOk = await requestCameraAccess();
-            if (!cameraOk) {
-                exitFullscreenSafe();
-                showToast('error', 'Camera access is required to continue this assessment. Please allow camera permission and try again.');
-                return;
-            }
-            document.getElementById('resumeGate').classList.add('hidden');
-            document.getElementById('examContent').classList.remove('hidden');
-            armExam();
         });
 
         // ---------------- Rendering (one question at a time, forward-only) ----------------
@@ -440,7 +432,9 @@ include_once "./include/headerLinks.php";
             document.getElementById('resultIcon').textContent = pass ? '🎉' : '😞';
             document.getElementById('resultTitle').textContent = pass ? 'You Passed!' : 'Not This Time';
             document.getElementById('resultTitle').className = 'text-2xl font-bold mb-2 ' + (pass ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400');
-            document.getElementById('resultMessage').textContent = 'Thank you for completing the assessment. Your result has been recorded and our team will be in touch.';
+            document.getElementById('resultMessage').textContent = failReason === 'abandoned'
+                ? 'Your attempt was ended because you left the assessment page (refresh, closed tab or browser) before submitting. This has been recorded as a failed attempt.'
+                : 'Thank you for completing the assessment. Your result has been recorded and our team will be in touch.';
         }
 
         // ---------------- Boot ----------------
@@ -458,25 +452,15 @@ include_once "./include/headerLinks.php";
                 stopCameraCapture();
                 return;
             }
-            enterInProgress(result, true);
+            enterInProgress(result);
         });
 
-        function enterInProgress(data, freshStart) {
+        function enterInProgress(data) {
             remainingSeconds = data.remaining_seconds;
             document.getElementById('examTitleLabel').textContent = data.assessment.title;
             renderQuestions(data.questions, data.answers);
             showScreen('inProgressState');
-
-            if (freshStart) {
-                document.getElementById('resumeGate').classList.add('hidden');
-                document.getElementById('examContent').classList.remove('hidden');
-                armExam();
-            } else {
-                // Page was (re)loaded mid-attempt - browsers require a fresh click to
-                // re-enter fullscreen, so gate behind one.
-                document.getElementById('examContent').classList.add('hidden');
-                document.getElementById('resumeGate').classList.remove('hidden');
-            }
+            armExam();
         }
 
         async function loadState() {
@@ -494,8 +478,6 @@ include_once "./include/headerLinks.php";
                 document.getElementById('pendingDuration').textContent = result.assessment.duration_minutes;
                 document.getElementById('pendingPassing').textContent = result.assessment.passing_percentage + '%';
                 showScreen('pendingState');
-            } else if (result.state === 'in_progress') {
-                enterInProgress(result, false);
             } else {
                 showResult(result.state, result.fail_reason);
             }

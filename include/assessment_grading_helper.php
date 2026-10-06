@@ -10,11 +10,11 @@ function getCandidateAssessmentForGrading($conn, $caId)
 {
     $stmt = $conn->prepare("
         SELECT ca.*, a.title, a.duration_minutes, a.passing_percentage, a.technology_id, t.name technology_name,
-               u.name candidate_name, u.email candidate_email, r.mbl_number candidate_mbl
+               COALESCE(u.name, r.name) candidate_name, COALESCE(u.email, r.email) candidate_email, r.mbl_number candidate_mbl
         FROM candidate_assessments ca
         JOIN assessments a ON a.id = ca.assessment_id
         LEFT JOIN technologies t ON t.id = a.technology_id
-        JOIN users u ON u.id = ca.user_id
+        LEFT JOIN users u ON u.id = ca.user_id
         LEFT JOIN registrations r ON r.id = ca.registration_id
         WHERE ca.id = ?
     ");
@@ -92,10 +92,15 @@ function gradeAndFinish($conn, $ca, $reason)
 
 // Fails every attempt still sitting in in_progress well after its timer ran
 // out - the candidate left (closed the browser, lost power, etc.) and the
-// unload beacon never reached us, and they haven't come back since.
+// unload beacon never reached us, and they haven't come back since. Skips
+// candidates no longer in the Assessment stage (e.g. already rejected) so
+// they don't get a result email after their rejection.
 function finalizeAbandonedAssessments($conn)
 {
-    $res = $conn->query("SELECT id FROM candidate_assessments WHERE status = 'in_progress' AND expires_at < DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
+    $res = $conn->query("SELECT ca.id FROM candidate_assessments ca
+        JOIN registrations r ON r.id = ca.registration_id
+        WHERE ca.status = 'in_progress' AND r.status = 'assessment'
+        AND ca.expires_at < DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
     if (!$res) {
         return;
     }

@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS candidate_assessments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   registration_id INT NOT NULL,
   assessment_id INT NOT NULL,
-  user_id INT NOT NULL,
+  user_id INT NULL,
   status ENUM('pending','in_progress','pass','fail') NOT NULL DEFAULT 'pending',
   score INT DEFAULT NULL,
   total_marks INT DEFAULT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS candidate_assessments (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_ca_registration FOREIGN KEY (registration_id) REFERENCES registrations(id),
   CONSTRAINT fk_ca_assessment FOREIGN KEY (assessment_id) REFERENCES assessments(id),
-  CONSTRAINT fk_ca_user FOREIGN KEY (user_id) REFERENCES users(id)
+  CONSTRAINT fk_ca_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS candidate_assessment_answers (

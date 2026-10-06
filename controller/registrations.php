@@ -978,9 +978,9 @@ switch ($action) {
 
         $conn->begin_transaction();
         try {
-            $latestStmt = $conn->prepare("SELECT ca.*, u.email u_email, u.name u_name, r.mbl_number
+            $latestStmt = $conn->prepare("SELECT ca.*, COALESCE(u.email, r.email) u_email, COALESCE(u.name, r.name) u_name, r.mbl_number, r.technology_id reg_technology_id
                 FROM candidate_assessments ca
-                JOIN users u ON u.id = ca.user_id
+                LEFT JOIN users u ON u.id = ca.user_id
                 JOIN registrations r ON r.id = ca.registration_id
                 WHERE ca.registration_id = ? ORDER BY ca.id DESC LIMIT 1");
             $latestStmt->bind_param('i', $id);
@@ -1006,10 +1006,31 @@ switch ($action) {
             // Reset credentials for the resend so the old (possibly leaked) password stops working
             $password = generateStrictPassword(12);
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $upUser = $conn->prepare("UPDATE users SET plain_password = ?, password = ? WHERE id = ?");
-            $upUser->bind_param('ssi', $password, $hash, $latest['user_id']);
-            $upUser->execute();
-            $upUser->close();
+            if (!empty($latest['user_id'])) {
+                $upUser = $conn->prepare("UPDATE users SET plain_password = ?, password = ? WHERE id = ?");
+                $upUser->bind_param('ssi', $password, $hash, $latest['user_id']);
+                $upUser->execute();
+                $upUser->close();
+            } else {
+                // The login was deleted when this candidate was rejected - recreate it.
+                $latest['user_id'] = findReusableCandidateUserId($conn, $latest['u_email']);
+                if ($latest['user_id'] > 0) {
+                    $upUser = $conn->prepare("UPDATE users SET plain_password = ?, password = ?, status = 1 WHERE id = ?");
+                    $upUser->bind_param('ssi', $password, $hash, $latest['user_id']);
+                    $upUser->execute();
+                    $upUser->close();
+                } else {
+                    $candidateRole = ROLE_CANDIDATE;
+                    $status = 1;
+                    $insertUser = $conn->prepare("INSERT INTO users (name, email, plain_password, password, user_role, status, tech_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $insertUser->bind_param('ssssiii', $latest['u_name'], $latest['u_email'], $password, $hash, $candidateRole, $status, $latest['reg_technology_id']);
+                    if (!$insertUser->execute()) {
+                        throw new Exception('Failed to create assessment login');
+                    }
+                    $latest['user_id'] = $conn->insert_id;
+                    $insertUser->close();
+                }
+            }
 
             $insertCa = $conn->prepare("INSERT INTO candidate_assessments (registration_id, assessment_id, user_id, status) VALUES (?, ?, ?, 'pending')");
             $insertCa->bind_param('iii', $id, $useAssessmentId, $latest['user_id']);
@@ -1540,6 +1561,9 @@ switch ($action) {
             if ($newStatus === 'rejected' || $newStatus === 'hire') {
                 deleteAssessmentCapturesForRegistrations($conn, [$id]);
             }
+            if ($newStatus === 'rejected') {
+                deleteCandidateAccountsForRegistrations($conn, [$id]);
+            }
 
             if ($sendEmail) {
                 $successMsg = $emailSent 
@@ -1571,6 +1595,7 @@ switch ($action) {
         if ($conn->query($sql)) {
             $affected = $conn->affected_rows;
             deleteAssessmentCapturesForRegistrations($conn, $idsToReject);
+            deleteCandidateAccountsForRegistrations($conn, $idsToReject);
             echo json_encode([
                 'success' => true,
                 'message' => "Successfully rejected {$affected} candidates whose contact status was older than 15 days."
@@ -1651,6 +1676,7 @@ switch ($action) {
             ]);
 
             deleteAssessmentCapturesForRegistrations($conn, [$candidate['id']]);
+            deleteCandidateAccountsForRegistrations($conn, [$candidate['id']]);
         }
         $updateStmt->close();
 
@@ -1754,6 +1780,7 @@ $html_content = "
             ]);
 
             deleteAssessmentCapturesForRegistrations($conn, [$id]);
+            deleteCandidateAccountsForRegistrations($conn, [$id]);
 
             echo json_encode(['success' => true, 'message' => 'Candidate rejected and notified via email']);
         } else {
@@ -1793,8 +1820,56 @@ function generateStrictPassword($length = 12)
     return str_shuffle($password);
 }
 
-// A candidate keeps their users row after an assessment (pass, fail or reject), so
-// hiring or re-sending an assessment must reuse it instead of inserting a duplicate email.
+// Deletes the assessment-login users rows of rejected registrations so the users
+// table doesn't fill up with dead candidate accounts. Only accounts still in the
+// Candidate role are touched (a hired candidate's account has become an intern).
+// The attempts themselves stay for reporting, with user_id set to NULL (needs
+// database/candidate_assessments_user_nullable.sql). Never fails the rejection:
+// on a DB error the accounts are just left in place.
+function deleteCandidateAccountsForRegistrations($conn, array $registrationIds)
+{
+    $registrationIds = array_values(array_unique(array_map('intval', array_filter($registrationIds))));
+    if (empty($registrationIds)) {
+        return;
+    }
+
+    try {
+        $placeholders = implode(',', array_fill(0, count($registrationIds), '?'));
+        $candidateRole = ROLE_CANDIDATE;
+        $stmt = $conn->prepare("SELECT DISTINCT u.id FROM candidate_assessments ca
+            JOIN users u ON u.id = ca.user_id
+            WHERE ca.registration_id IN ($placeholders) AND u.user_role = ?");
+        $stmt->bind_param(str_repeat('i', count($registrationIds)) . 'i', ...array_merge($registrationIds, [$candidateRole]));
+        $stmt->execute();
+        $userIds = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+        $stmt->close();
+        if (empty($userIds)) {
+            return;
+        }
+
+        $userPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
+        $userTypes = str_repeat('i', count($userIds));
+
+        $conn->begin_transaction();
+        $unlink = $conn->prepare("UPDATE candidate_assessments SET user_id = NULL WHERE user_id IN ($userPlaceholders)");
+        $unlink->bind_param($userTypes, ...$userIds);
+        $unlink->execute();
+        $unlink->close();
+
+        $del = $conn->prepare("DELETE FROM users WHERE id IN ($userPlaceholders) AND user_role = ?");
+        $del->bind_param($userTypes . 'i', ...array_merge($userIds, [$candidateRole]));
+        $del->execute();
+        $del->close();
+        $conn->commit();
+    } catch (Throwable $e) {
+        try { $conn->rollback(); } catch (Throwable $ignored) {}
+        error_log('deleteCandidateAccountsForRegistrations: ' . $e->getMessage());
+    }
+}
+
+// A rejected candidate's users row is deleted (see above), but one that passed or
+// failed keeps it, so hiring or re-sending an assessment must reuse it instead of
+// inserting a duplicate email.
 // Returns the reusable candidate user id, 0 if the email is free, and throws if the email
 // belongs to a non-candidate account that must not be overwritten.
 function findReusableCandidateUserId($conn, $email)

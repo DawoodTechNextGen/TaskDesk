@@ -1,0 +1,13 @@
+# Keep logins alive for 2 hours of inactivity (PHP's default is 24 minutes,
+# which logged users out mid-work). Every page calls session_start() itself,
+# so this is set here rather than in PHP code. Guarded so hosts running PHP
+# as FPM/CGI (which reject php_value) don't 500 - those read .user.ini instead.
+<IfModule php_module>
+    php_value session.gc_maxlifetime 7200
+</IfModule>
+<IfModule mod_php.c>
+    php_value session.gc_maxlifetime 7200
+</IfModule>
+<IfModule mod_php7.c>
+    php_value session.gc_maxlifetime 7200
+</IfModule>

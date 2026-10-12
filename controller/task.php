@@ -530,11 +530,28 @@ if ($data['action'] === 'review_task') {
     }
     
     if ($new_status === 'needs_improvement') {
-        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL, notification = 0, due_date = DATE_ADD(CURDATE(), INTERVAL 1 DAY) WHERE id = ?");
+        // The intern gets at least until tomorrow to resubmit, and never loses days
+        // that were still left on the original deadline. "Tomorrow" is taken from
+        // PHP (APP_TIMEZONE), the same clock timeLog.php uses to refuse late
+        // submissions - MySQL's CURDATE() runs on the server's own timezone and can
+        // be a day behind, which used to leave the intern no time at all.
+        $due_stmt = $conn->prepare("SELECT due_date FROM tasks WHERE id = ?");
+        $due_stmt->bind_param("i", $task_id);
+        $due_stmt->execute();
+        $current_due = $due_stmt->get_result()->fetch_assoc()['due_date'] ?? null;
+        $due_stmt->close();
+
+        $new_due = date('Y-m-d', strtotime('+1 day'));
+        if (!empty($current_due) && $current_due > $new_due) {
+            $new_due = $current_due;
+        }
+
+        $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ?, completed_at = NULL, notification = 0, due_date = ? WHERE id = ?");
+        $stmt->bind_param("ssisi", $new_status, $review_notes, $supervisor_id, $new_due, $task_id);
     } else {
         $stmt = $conn->prepare("UPDATE tasks SET status = ?, review_notes = ?, reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
+        $stmt->bind_param("ssii", $new_status, $review_notes, $supervisor_id, $task_id);
     }
-    $stmt->bind_param("ssii", $new_status, $review_notes, $supervisor_id, $task_id);
     
     if ($stmt->execute()) {
         $message = $review_action === 'approved' ? 'Task approved and marked as complete' : 

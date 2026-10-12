@@ -127,7 +127,9 @@ include_once "./include/headerLinks.php"; ?>
 
                     dataTable.clear();
                     result.data.forEach(task => {
-                        const isExpired = (task.due_date && task.due_date < new Date().toISOString().split('T')[0] && ['inprogress', 'needs_improvement'].includes(task.status));
+                        const now = new Date();
+                        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+                        const isExpired = (task.due_date && task.due_date < today && ['inprogress', 'needs_improvement'].includes(task.status));
                         const displayStatus = isExpired ? 'expired' : task.status;
 
                         let titleHtml = `<div class="font-semibold text-gray-900 dark:text-white">${task.title}</div>`;

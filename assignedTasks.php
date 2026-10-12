@@ -135,7 +135,7 @@ include_once "./include/headerLinks.php"; ?>
                         let statusHtml = `<div class="flex items-center gap-1.5 flex-wrap">
                             ${getStatusBadge(displayStatus)}`;
                         if (task.status === 'needs_improvement' && task.review_notes) {
-                            const escapedNotes = task.review_notes.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                            const escapedNotes = task.review_notes.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                             statusHtml += `
                             <button onclick="toggleRequirements(${task.id}, this)" data-notes="${escapedNotes}" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 transform hover:scale-105 active:scale-95" title="What's Required?" id="req-btn-${task.id}">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -273,7 +273,11 @@ include_once "./include/headerLinks.php"; ?>
                 tr.classList.remove('shown');
                 btn.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
             } else {
-                const notes = btn.getAttribute('data-notes');
+                // Feedback is plain text: escape it so "<" etc. show as typed, and
+                // pre-wrap keeps the supervisor's line breaks, blank lines and indents.
+                const notesEl = document.createElement('div');
+                notesEl.textContent = btn.getAttribute('data-notes');
+                const notes = notesEl.innerHTML;
                 row.child(`
                     <div class="p-4 bg-amber-50/80 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded-r-xl text-gray-800 dark:text-gray-200 text-xs shadow-inner transition-all duration-300">
                         <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-amber-200/50 dark:border-amber-900/40">
@@ -282,7 +286,7 @@ include_once "./include/headerLinks.php"; ?>
                                 Supervisor's Improvement Instructions:
                             </span>
                         </div>
-                        <div class="whitespace-pre-line leading-relaxed font-semibold">${notes}</div>
+                        <div class="whitespace-pre-wrap break-words leading-relaxed font-semibold">${notes}</div>
                     </div>
                 `).show();
                 tr.classList.add('shown');

@@ -14,6 +14,7 @@ enforceModuleAccess(MODULE_BOOTCAMP, [
     'update_status',
     'resend_certificate',
     'undo_completion',
+    'delete_rejected',
 ]);
 header('Content-Type: application/json');
 
@@ -388,6 +389,58 @@ switch ($action) {
         // ===============================
         // RESEND CERTIFICATE (completed only)
         // ===============================
+    // ===============================
+    // BULK DELETE REJECTED ENROLLMENTS
+    // ===============================
+    // Once a bootcamp's classes have started, its rejected sign-ups are no
+    // longer needed. Deleting them is permanent, so it is Admin/Manager only
+    // and refused before the bootcamp's start date.
+    case 'delete_rejected':
+        if (!in_array(currentUserRole(), [ROLE_ADMIN, ROLE_MANAGER], true)) {
+            echo json_encode(['success' => false, 'message' => 'Only an Admin or Manager can delete enrollments']);
+            exit;
+        }
+
+        $bootcampId = (int)($_POST['bootcamp_id'] ?? 0);
+        if ($bootcampId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Select a bootcamp first']);
+            exit;
+        }
+
+        $bcStmt = $conn->prepare("SELECT title, start_date FROM " . BOOTCAMPS_TABLE . " WHERE id = ?");
+        $bcStmt->bind_param('i', $bootcampId);
+        $bcStmt->execute();
+        $bootcamp = $bcStmt->get_result()->fetch_assoc();
+        $bcStmt->close();
+
+        if (!$bootcamp) {
+            echo json_encode(['success' => false, 'message' => 'Bootcamp not found']);
+            exit;
+        }
+        if (empty($bootcamp['start_date']) || $bootcamp['start_date'] > date('Y-m-d')) {
+            echo json_encode(['success' => false, 'message' => 'Rejected enrollments can only be deleted once the bootcamp has started']);
+            exit;
+        }
+
+        $delStmt = $conn->prepare("DELETE FROM " . BOOTCAMP_TABLE . " WHERE bootcamp_id = ? AND status = 'rejected'");
+        $delStmt->bind_param('i', $bootcampId);
+        $ok = $delStmt->execute();
+        $deleted = $delStmt->affected_rows;
+        $delStmt->close();
+
+        if (!$ok) {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete rejected enrollments']);
+            exit;
+        }
+
+        if ($deleted > 0) logActivity('Delete Bootcamp Enrollments',"Deleted {$deleted} rejected enrollment(s) from bootcamp #{$bootcampId} ({$bootcamp['title']})");
+        echo json_encode([
+            'success' => true,
+            'deleted' => $deleted,
+            'message' => $deleted > 0 ? "Deleted {$deleted} rejected enrollment(s)" : 'No rejected enrollments to delete'
+        ]);
+        exit;
+
     case 'resend_certificate':
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {

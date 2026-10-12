@@ -30,12 +30,22 @@ $page_heading = $stage_labels[$stage] ?? 'Bootcamp Enrollments';
 // Bootcamp filter: ?bootcamp_id= comes from the "Enrollments" link on bootcamps.php.
 $bootcampOptions = [];
 try {
-    $bcResult = $conn->query("SELECT id, title, status FROM " . BOOTCAMPS_TABLE . " ORDER BY created_at DESC");
+    $bcResult = $conn->query("SELECT id, title, status, start_date FROM " . BOOTCAMPS_TABLE . " ORDER BY created_at DESC");
     $bootcampOptions = $bcResult ? $bcResult->fetch_all(MYSQLI_ASSOC) : [];
 } catch (\Throwable $e) {
     $bootcampOptions = [];
 }
 $selectedBootcamp = (string)($_GET['bootcamp_id'] ?? '');
+
+// Bootcamps whose classes have started: their rejected sign-ups can be bulk
+// deleted (Admin/Manager only - see delete_rejected in the controller).
+$canDeleteRejected = $stage === 'rejected' && in_array(currentUserRole(), [ROLE_ADMIN, ROLE_MANAGER], true);
+$startedBootcamps = [];
+foreach ($bootcampOptions as $bc) {
+    if (!empty($bc['start_date']) && $bc['start_date'] <= date('Y-m-d')) {
+        $startedBootcamps[(int)$bc['id']] = $bc['title'];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -151,6 +161,9 @@ include_once "./include/headerLinks.php";
                             <?php endforeach; ?>
                             <option value="none" <?= $selectedBootcamp === 'none' ? 'selected' : '' ?>>Unassigned (older sign-ups)</option>
                         </select>
+                        <?php if ($canDeleteRejected): ?>
+                            <button id="delete-rejected-btn" type="button" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm">Delete All Rejected</button>
+                        <?php endif; ?>
                         <a href="bootcamps.php" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Manage Bootcamps</a>
                     </div>
                 </div>
@@ -203,6 +216,10 @@ include_once "./include/headerLinks.php";
     // decided server-side by the sidebar link's ?status= - there is no on-page
     // filter for it any more.
     const currentStage = <?php echo json_encode($stage); ?>;
+
+    // id => title of bootcamps whose classes have started (only on the Rejected
+    // page, for Admin/Manager): the "Delete All Rejected" button shows for these.
+    const startedBootcamps = <?php echo json_encode($canDeleteRejected ? (object)$startedBootcamps : new stdClass()); ?>;
 
     /* =====================================================
     Columns
@@ -522,6 +539,42 @@ include_once "./include/headerLinks.php";
             }
             history.replaceState(null, '', url);
             dataTable.ajax.reload();
+            toggleDeleteRejectedBtn();
+        });
+
+        /* =====================================================
+        Bulk delete rejected enrollments (bootcamp has started)
+        ===================================================== */
+        function toggleDeleteRejectedBtn() {
+            const btn = document.getElementById('delete-rejected-btn');
+            if (!btn) return;
+            const id = document.getElementById('bootcamp-filter').value;
+            btn.classList.toggle('hidden', !startedBootcamps[id]);
+        }
+        toggleDeleteRejectedBtn();
+
+        $(document).on('click', '#delete-rejected-btn', async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('bootcamp-filter').value;
+            const title = startedBootcamps[id];
+            if (!title) return;
+            if (!confirm(`Permanently delete ALL rejected enrollments of "${title}"?\n\nThis cannot be undone.`)) return;
+
+            try {
+                LoaderManager.showGlobal();
+                const res = await fetch('controller/bootcamp_registrations.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'delete_rejected', bootcamp_id: id })
+                });
+                const json = await res.json();
+                showToast(json.success ? 'success' : 'error', json.message);
+                if (json.success && dataTable) dataTable.ajax.reload();
+            } catch (error) {
+                showToast('error', 'Delete failed: ' + error.message);
+            } finally {
+                LoaderManager.hideGlobal();
+            }
         });
 
         /* =====================================================

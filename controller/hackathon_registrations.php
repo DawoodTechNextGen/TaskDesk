@@ -59,12 +59,41 @@ switch ($action) {
             break;
         }
 
-        // FK ON DELETE CASCADE removes its team members too.
-        $stmt = $conn->prepare("DELETE FROM hackathon_registrations WHERE id = ? AND hackathon_id = ?");
-        $stmt->bind_param('ii', $id, $hackathonId);
-        $success = $stmt->execute();
-        $deleted = $stmt->affected_rows > 0;
-        $stmt->close();
+        // The live tables have no foreign keys, so the registration's team members
+        // are removed here, and a leaderboard entry linked to it keeps its own
+        // name/project but drops the now-dangling link.
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare("DELETE FROM hackathon_registrations WHERE id = ? AND hackathon_id = ?");
+            $stmt->bind_param('ii', $id, $hackathonId);
+            $success = $stmt->execute();
+            $deleted = $stmt->affected_rows > 0;
+            $stmt->close();
+
+            if ($success && $deleted) {
+                $stmt = $conn->prepare("DELETE FROM hackathon_team_members WHERE registration_id = ?");
+                $stmt->bind_param('i', $id);
+                $success = $stmt->execute();
+                $stmt->close();
+            }
+            if ($success && $deleted) {
+                $stmt = $conn->prepare("UPDATE hackathon_leaderboard_entries SET registration_id = NULL WHERE registration_id = ?");
+                $stmt->bind_param('i', $id);
+                $success = $stmt->execute();
+                $stmt->close();
+            }
+
+            if ($success) {
+                $conn->commit();
+            } else {
+                $conn->rollback();
+            }
+        } catch (\Throwable $e) {
+            $conn->rollback();
+            error_log('Hackathon registration delete failed: ' . $e->getMessage());
+            $success = false;
+            $deleted = false;
+        }
 
         echo json_encode(['success' => $success && $deleted, 'message' => ($success && $deleted) ? 'Registration deleted.' : 'Failed to delete registration.']);
         break;

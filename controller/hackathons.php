@@ -212,11 +212,32 @@ switch ($action) {
         $banner = $bannerStmt->get_result()->fetch_assoc()['banner_url'] ?? null;
         $bannerStmt->close();
 
-        // FK ON DELETE CASCADE removes its registrations, team members and leaderboard entries.
-        $stmt = $conn->prepare("DELETE FROM hackathons WHERE id = ?");
-        $stmt->bind_param('i', $id);
-        $success = $stmt->execute();
-        $stmt->close();
+        // The live tables have no foreign keys, so nothing cascades: remove the
+        // hackathon's team members, registrations and leaderboard entries here,
+        // all in one transaction so a failure leaves nothing half-deleted.
+        $conn->begin_transaction();
+        try {
+            $children = [
+                "DELETE m FROM hackathon_team_members m JOIN hackathon_registrations r ON r.id = m.registration_id WHERE r.hackathon_id = ?",
+                "DELETE FROM hackathon_registrations WHERE hackathon_id = ?",
+                "DELETE FROM hackathon_leaderboard_entries WHERE hackathon_id = ?",
+                "DELETE FROM hackathons WHERE id = ?",
+            ];
+            foreach ($children as $sql) {
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param('i', $id);
+                if (!$stmt->execute()) {
+                    throw new Exception($stmt->error);
+                }
+                $stmt->close();
+            }
+            $conn->commit();
+            $success = true;
+        } catch (\Throwable $e) {
+            $conn->rollback();
+            error_log('Hackathon delete failed: ' . $e->getMessage());
+            $success = false;
+        }
 
         if ($success && $banner) {
             deleteHackathonBannerFile($banner);

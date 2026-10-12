@@ -380,11 +380,9 @@ if ($_POST['action'] === 'cleanup_preview' || $_POST['action'] === 'cleanup_old_
 
     $conn->begin_transaction();
     try {
-        // Child rows keyed by task_id. Not every environment has these tables.
-        foreach (['time_logs', 'approvals'] as $childTable) {
-            if (certCleanupTableExists($conn, $childTable)) {
-                $conn->query("DELETE c FROM `$childTable` c JOIN tasks t ON c.task_id = t.id WHERE t.assign_to IN ($idList)");
-            }
+        // Child rows keyed by task_id. Not every environment has this table.
+        if (certCleanupTableExists($conn, 'time_logs')) {
+            $conn->query("DELETE c FROM time_logs c JOIN tasks t ON c.task_id = t.id WHERE t.assign_to IN ($idList)");
         }
         // The intern's own time logs, including any not tied to one of their tasks.
         if (certCleanupTableExists($conn, 'time_logs')) {

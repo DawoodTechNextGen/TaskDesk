@@ -61,6 +61,7 @@ include_once "./include/headerLinks.php"; ?>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" data-result="in_progress">In Progress</button>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" data-result="pass">Pass</button>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" data-result="fail">Fail</button>
+                    <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-red-700 dark:text-red-300" data-result="email_failed" title="Candidates whose assessment email bounced or could not be sent">Email Not Delivered</button>
                 </div>
 
                 <div class="bg-white mb-4 dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -271,7 +272,7 @@ include_once "./include/headerLinks.php"; ?>
                     { data: 'assessment_title', defaultContent: '-' },
                     {
                         data: 'assessment_status',
-                        render: function(status) {
+                        render: function(status, type, row) {
                             const map = {
                                 pending: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                                 in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -279,7 +280,14 @@ include_once "./include/headerLinks.php"; ?>
                                 fail: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                             };
                             const label = { pending: 'Pending', in_progress: 'In Progress', pass: 'Pass', fail: 'Fail' }[status] || status;
-                            return `<span class="px-2 py-1 rounded-full text-xs font-semibold ${map[status] || ''}">${label}</span>`;
+                            let html = `<span class="px-2 py-1 rounded-full text-xs font-semibold ${map[status] || ''}">${label}</span>`;
+                            // Delivery of the latest assessment email, from email_outbox
+                            if (['failed', 'bounced', 'resend_failed'].includes(row.assessment_email_status)) {
+                                html += `<div class="mt-1"><span class="inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Email not delivered</span></div>`;
+                            } else if (row.assessment_email_status === 'resent') {
+                                html += `<div class="mt-1"><span class="inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Email resent via Gmail</span></div>`;
+                            }
+                            return html;
                         }
                     },
                     {
@@ -299,6 +307,7 @@ include_once "./include/headerLinks.php"; ?>
                                 </button>
                                 <div class="actions-dropdown-menu hidden absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 overflow-hidden">
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 view-report-btn" data-id="${row.id}">View Report</button>
+                                    ${row.assessment_status === 'pending' && row.candidate_assessment_id ? `<button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-sky-50 dark:hover:bg-sky-950/40 resend-email-btn" data-id="${row.id}" title="Send the same login again, without a new attempt">Resend Email</button>` : ''}
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 resend-btn" data-id="${row.id}" data-assessment-id="${row.assessment_id || ''}">Resend</button>
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 schedule-btn" data-id="${row.id}">Interview</button>
                                     <button class="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-950/40 hire-btn" data-id="${row.id}">Hire</button>
@@ -439,6 +448,24 @@ include_once "./include/headerLinks.php"; ?>
             $(document).on('click', '.view-report-btn', function() {
                 const id = $(this).data('id');
                 window.open(`controller/registrations.php?action=view_assessment_report&id=${id}`, '_blank');
+            });
+
+            // Resend Email - same attempt and login, for a candidate the invitation never reached
+            $(document).on('click', '.resend-email-btn', async function() {
+                const row = table.row($(this).closest('tr')).data();
+                if (!confirm(`Send the assessment email again to ${row.name} (${row.email})? Their login stays the same and no new attempt is created.`)) return;
+                const btn = $(this);
+                btn.prop('disabled', true).addClass('opacity-60 cursor-not-allowed').text('Sending...');
+                try {
+                    const res = await fetch('controller/registrations.php', { method: 'POST', body: new URLSearchParams({ action: 'resend_assessment_email', id: row.id }) });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) table.ajax.reload(null, false);
+                } catch (e) {
+                    showToast('error', 'Request failed: ' + e.message);
+                } finally {
+                    btn.prop('disabled', false).removeClass('opacity-60 cursor-not-allowed').text('Resend Email');
+                }
             });
 
             // Resend

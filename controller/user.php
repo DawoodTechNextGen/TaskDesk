@@ -2,6 +2,7 @@
 session_start();
 include '../include/connection.php';
 require_once __DIR__ . '/../include/internship_helper.php';
+require_once __DIR__ . '/../include/hire_email_helper.php';
 header('Content-Type: application/json');
 
 
@@ -13,9 +14,9 @@ if (currentUserRole() === ROLE_COLLABORATOR && in_array($action, ['get_managers'
     denyJson('Unauthorized');
 }
 
-// Everything else here - the intern lists, and create/update/delete/refund when they
-// target an intern - falls under the Interns module for Collaborators.
-enforceModuleAccess(MODULE_INTERNS, ['create', 'update', 'delete', 'refund']);
+// Everything else here - the intern lists, and create/update/delete/refund/restore
+// when they target an intern - falls under the Interns module for Collaborators.
+enforceModuleAccess(MODULE_INTERNS, ['create', 'update', 'delete', 'refund', 'restore_refunded', 'resend_hire_email']);
 
 switch ($action) {
     // Get all Managers
@@ -109,6 +110,11 @@ switch ($action) {
             TIMESTAMPDIFF(MONTH, u.created_at, NOW()) AS months_completed,
             c.approve_status,
             (
+                SELECT eo.status FROM email_outbox eo
+                WHERE eo.recipient_email = u.email AND eo.subject = ?
+                ORDER BY eo.id DESC LIMIT 1
+            ) AS hire_email_status,
+            (
                 SELECT COALESCE(MAX(week_number), 0)
                 FROM tasks
                 WHERE assign_to = u.id AND is_curriculum_task = 1 AND status = 'complete'
@@ -132,10 +138,14 @@ switch ($action) {
             $sql .= " AND u.supervisor_id = ? ";
         }
 
+        ensureEmailOutboxTable($conn);
         $stmt = $conn->prepare($sql);
 
+        $hireSubject = HIRE_EMAIL_SUBJECT;
         if ($user_role == 3) {
-            $stmt->bind_param('i', $user_id);
+            $stmt->bind_param('si', $hireSubject, $user_id);
+        } else {
+            $stmt->bind_param('s', $hireSubject);
         }
 
         $stmt->execute();
@@ -476,6 +486,13 @@ switch ($action) {
             requireAdminAction();
         }
 
+        // A refunded intern stays for the commission history: deleting the user
+        // would cascade away both the commission and its refund entry.
+        if ($target_role === ROLE_INTERN && isRefundedIntern($conn, $id)) {
+            echo json_encode(['success' => false, 'message' => 'Refunded interns cannot be deleted. Restore them from the Refunded tab instead.']);
+            exit;
+        }
+
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->bind_param('i', $id);
         $success = $stmt->execute();
@@ -550,6 +567,128 @@ switch ($action) {
         }
         break;
 
+    // Interns deactivated by a refund (the only thing that sets an intern's status to 0)
+    case 'get_refunded_internees':
+        $acting_user_role = (int)$_SESSION['user_role'];
+        if ($acting_user_role !== 1 && $acting_user_role !== 4) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("
+            SELECT
+                u.id,
+                u.name,
+                u.email,
+                t.name AS tech_name,
+                s.name AS supervisor_name,
+                DATE(u.created_at) AS joining_date,
+                lc.amount AS refund_amount,
+                lc.created_at AS refunded_at,
+                r.name AS commission_holder
+            FROM users u
+            LEFT JOIN technologies t ON u.tech_id = t.id
+            LEFT JOIN users s ON u.supervisor_id = s.id
+            LEFT JOIN commissions lc ON lc.id = (
+                SELECT MAX(c.id) FROM commissions c WHERE c.intern_id = u.id
+            )
+            LEFT JOIN users r ON r.id = lc.supervisor_id
+            WHERE u.user_role = 2 AND u.status = 0
+            ORDER BY lc.created_at DESC, u.id DESC
+        ");
+        $stmt->execute();
+        $data = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        echo json_encode(['success' => true, 'data' => $data]);
+        break;
+
+    // Undo a refund done by mistake: give the commission back to whoever it was
+    // deducted from and reactivate the intern.
+    case 'restore_refunded':
+        $id = (int)($_POST['id'] ?? 0);
+        $acting_user_role = (int)$_SESSION['user_role'];
+        if ($acting_user_role !== 1 && $acting_user_role !== 4) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $user_stmt = $conn->prepare("SELECT name FROM users WHERE id = ? AND user_role = 2 AND status = 0");
+        $user_stmt->bind_param("i", $id);
+        $user_stmt->execute();
+        $intern = $user_stmt->get_result()->fetch_assoc();
+        $user_stmt->close();
+
+        if (!$intern) {
+            echo json_encode(['success' => false, 'message' => 'This intern is not in the refunded list']);
+            exit;
+        }
+
+        $comm_stmt = $conn->prepare("SELECT supervisor_id, amount FROM commissions WHERE intern_id = ? ORDER BY id DESC LIMIT 1");
+        $comm_stmt->bind_param("i", $id);
+        $comm_stmt->execute();
+        $last_comm = $comm_stmt->get_result()->fetch_assoc();
+        $comm_stmt->close();
+
+        $conn->begin_transaction();
+        try {
+            $restored_amount = 0;
+            if ($last_comm && (int)$last_comm['amount'] < 0) {
+                $supervisor_id = (int)$last_comm['supervisor_id'];
+                $restored_amount = -(int)$last_comm['amount'];
+                $ins_stmt = $conn->prepare("INSERT INTO commissions (supervisor_id, intern_id, amount) VALUES (?, ?, ?)");
+                $ins_stmt->bind_param("iii", $supervisor_id, $id, $restored_amount);
+                if (!$ins_stmt->execute()) {
+                    throw new Exception('Failed to restore commission');
+                }
+                $ins_stmt->close();
+            }
+
+            $update_stmt = $conn->prepare("UPDATE users SET status = 1 WHERE id = ?");
+            $update_stmt->bind_param("i", $id);
+            if (!$update_stmt->execute()) {
+                throw new Exception('Failed to reactivate intern');
+            }
+            $update_stmt->close();
+
+            $conn->commit();
+
+            logActivity('Restore Refunded Intern', "Restored refunded intern {$intern['name']} (ID $id). Re-added commission of $restored_amount PKR.");
+
+            echo json_encode(['success' => true, 'message' => 'Intern restored and reactivated.' . ($restored_amount > 0 ? " Commission of $restored_amount PKR re-added." : '')]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // Send the login credentials and offer letter again, e.g. when the hire email
+    // bounced or never arrived.
+    case 'resend_hire_email':
+        $id = (int)($_POST['id'] ?? 0);
+        $acting_user_role = (int)$_SESSION['user_role'];
+        if ($acting_user_role !== 1 && $acting_user_role !== 4) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+        // The SMTP attempts can take a while; don't hold the session lock meanwhile.
+        session_write_close();
+
+        try {
+            $res = resendHireEmail($conn, $id);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+
+        if ($res['final_success']) {
+            $via = $res['gmail_email']['success'] ? 'Gmail' : 'the server email';
+            logActivity('Resend Hire Email', "Resent login credentials and offer letter to intern ID $id via $via.");
+            echo json_encode(['success' => true, 'message' => "Login credentials and offer letter sent via $via."]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Email could not be sent through the server or Gmail. Check the email address and SMTP settings.']);
+        }
+        break;
+
     case 'get_salary_breakdown':
         $supervisor_id = (int)($_GET['supervisor_id'] ?? 0);
         $month = (int)($_GET['month'] ?? date('m'));
@@ -582,6 +721,17 @@ switch ($action) {
         break;
 }
 // Role currently stored for a user, or 0 when the row is gone.
+// Refund is the only thing that deactivates an intern (status 0).
+function isRefundedIntern($conn, $id)
+{
+    $stmt = $conn->prepare("SELECT 1 FROM users WHERE id = ? AND user_role = 2 AND status = 0");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $found = (bool)$stmt->get_result()->fetch_row();
+    $stmt->close();
+    return $found;
+}
+
 function getUserRoleById($conn, $id)
 {
     $stmt = $conn->prepare("SELECT user_role FROM users WHERE id = ?");

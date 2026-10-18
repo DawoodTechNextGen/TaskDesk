@@ -20,9 +20,12 @@ enforceModuleAccess(MODULE_REGISTRATIONS, [
     'reject_candidate',
     'send_assessment',
     'resend_assessment',
+    'resend_assessment_email',
 ]);
 require_once '../include/pdf_helper.php';
 require_once '../include/notification_helper.php';
+require_once '../include/hire_email_helper.php';
+require_once '../include/assessment_email_helper.php';
 require_once '../include/capture_helper.php';
 require_once '../include/assessment_grading_helper.php';
 require_once '../include/internship_type_helper.php';
@@ -694,6 +697,9 @@ switch ($action) {
                 LEFT JOIN assessments a ON a.id = ca.assessment_id
                 LEFT JOIN users amb ON amb.referral_code = r.ref_code";
 
+        ensureEmailOutboxTable($conn);
+        $emailStatusSql = assessmentEmailStatusSql($conn);
+
         $where = ["r.status = 'assessment'"];
         $params = [];
         $types = '';
@@ -702,6 +708,8 @@ switch ($action) {
             $where[] = "ca.status = ?";
             $params[] = $resultFilter;
             $types .= 's';
+        } elseif ($resultFilter === 'email_failed') {
+            $where[] = "$emailStatusSql IN ('failed', 'bounced', 'resend_failed')";
         }
 
         if ($searchValue !== '') {
@@ -726,7 +734,8 @@ switch ($action) {
                r.internship_type, amb.name referred_by, r.university,
                ca.id candidate_assessment_id, ca.status assessment_status, ca.percentage, ca.score,
                ca.total_marks, ca.violation_count, ca.fail_reason, ca.completed_at, ca.expires_at,
-               a.id assessment_id, a.title assessment_title, a.passing_percentage
+               a.id assessment_id, a.title assessment_title, a.passing_percentage,
+               $emailStatusSql assessment_email_status
         $sqlBase
         $whereClause
         ORDER BY ca.id DESC
@@ -925,27 +934,13 @@ switch ($action) {
                 . "Best of luck!\n\n"
                 . "HR Department\n*DawoodTech NextGen*";
 
-            $htmlEmail = "
-            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
-                <h2 style='color: #2563eb; text-align: center;'>Assessment Invitation 📝</h2>
-                <p>Dear <strong>" . htmlspecialchars($registration['name']) . "</strong>,</p>
-                <p>As part of your application for the <strong>" . htmlspecialchars($assessment['tech_name']) . "</strong> internship, please complete the following assessment:</p>
-                <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
-                    <p><strong>Assessment:</strong> " . htmlspecialchars($assessment['title']) . "</p>
-                    <p><strong>Time Limit:</strong> " . (int)$assessment['duration_minutes'] . " minutes</p>
-                    <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
-                    <p><strong>Email:</strong> " . htmlspecialchars($registration['email']) . "</p>
-                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>
-                </div>
-                <p style='color:#b91c1c;'><strong>Important:</strong> You get one attempt only and the timer cannot be paused once started. Please ensure a stable internet connection before you begin.</p>
-                <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
-            </div>";
+            $htmlEmail = buildAssessmentInviteHtml($registration['name'], $registration['email'], $password, $assessment);
 
             queueNotification([
                 'email' => $registration['email'],
                 'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
-                'subject' => 'Assessment Invitation - DawoodTech NextGen',
+                'subject' => ASSESSMENT_INVITE_SUBJECT,
                 'html_content' => $htmlEmail,
                 'whatsapp_msg' => $whatsappMsg
             ]);
@@ -1070,7 +1065,7 @@ switch ($action) {
                 'email' => $latest['u_email'],
                 'name' => $latest['u_name'],
                 'mbl_number' => $latest['mbl_number'],
-                'subject' => 'New Assessment Attempt - DawoodTech NextGen',
+                'subject' => ASSESSMENT_ATTEMPT_SUBJECT,
                 'html_content' => $htmlEmail,
                 'whatsapp_msg' => $whatsappMsg
             ]);
@@ -1082,6 +1077,33 @@ switch ($action) {
         } catch (Exception $e) {
             $conn->rollback();
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // ===============================
+    // RESEND THE INVITATION EMAIL (same attempt, same login) - for candidates the
+    // first email never reached
+    // ===============================
+    case 'resend_assessment_email':
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Candidate is required']);
+            break;
+        }
+
+        try {
+            $res = resendAssessmentInviteEmail($conn, $id);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            break;
+        }
+
+        if ($res['final_success']) {
+            $via = $res['gmail_email']['success'] ? 'Gmail' : 'the server email';
+            logActivity('Resend Assessment Email', "Resent the assessment invitation email for registration ID $id via $via");
+            echo json_encode(['success' => true, 'message' => "Assessment email sent again via $via."]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Email could not be sent through the server or Gmail. Check the email address and SMTP settings.']);
         }
         break;
 
@@ -1349,23 +1371,7 @@ switch ($action) {
                 . "HR Department\n"
                 . "*DawoodTech NextGen*";
 
-            $htmlEmail = "
-            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
-                <h2 style='color: #2563eb; text-align: center;'>Congratulations! 🎉</h2>
-                <p>Dear <strong>" . $registration['name'] . "</strong>,</p>
-                <p>We are thrilled to inform you that you have been hired at <strong>Dawood Tech NextGen</strong>.</p>
-                <p>Please find your official offer letter attached to this email.</p>
-                
-                <div style='background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;'>
-                    <h3 style='margin-top: 0;'>🔐 Your Login Credentials:</h3>
-                    <p><strong>URL:</strong> <a href='$loginUrl'>$loginUrl</a></p>
-                    <p><strong>Email:</strong> " . $registration['email'] . "</p>
-                    <p><strong>Password:</strong> <code style='background: #e5e7eb; padding: 2px 5px; border-radius: 3px;'>" . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . "</code></p>
-                </div>
-
-                <p>We look forward to your valuable contribution!</p>
-                <p>Best regards,<br><strong>HR Department</strong><br>DawoodTech NextGen</p>
-            </div>";
+            $htmlEmail = buildHireEmailHtml($registration['name'], $registration['email'], $password);
 
             // Generate Offer Letter PDF
             $startDate = date('d-M-Y');
@@ -1377,7 +1383,7 @@ switch ($action) {
                 'email' => $registration['email'],
                 'name' => $registration['name'],
                 'mbl_number' => $registration['mbl_number'],
-                'subject' => 'Hiring Confirmation & Offer Letter - DawoodTech NextGen',
+                'subject' => HIRE_EMAIL_SUBJECT,
                 'html_content' => $htmlEmail,
                 'whatsapp_msg' => $whatsappMsg,
                 'pdf_content' => $pdfContent,

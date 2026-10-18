@@ -41,7 +41,22 @@ include_once "./include/headerLinks.php"; ?>
                     <?php } ?>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
+                <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <nav class="flex -mb-px">
+                            <a href="#" data-target="active-interns-panel"
+                                class="intern-tab-btn py-3 px-6 text-center border-b-2 font-medium text-sm border-indigo-500 text-indigo-600">
+                                Active
+                            </a>
+                            <a href="#" data-target="refunded-interns-panel"
+                                class="intern-tab-btn py-3 px-6 text-center border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                                Refunded
+                            </a>
+                        </nav>
+                    </div>
+                <?php } ?>
+
+                <div id="active-interns-panel" class="intern-tab-panel bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white">All Interns</h2>
                     </div>
@@ -66,6 +81,36 @@ include_once "./include/headerLinks.php"; ?>
                         </table>
                     </div>
                 </div>
+
+                <?php if ($_SESSION['user_role'] == 1 || $_SESSION['user_role'] == 4) { ?>
+                    <div id="refunded-interns-panel" class="intern-tab-panel hidden bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Refunded Interns</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Refunded interns are kept, not deleted. Restore one refunded by mistake to reactivate them and give the commission back.</p>
+                        </div>
+                        <div class="overflow-x-auto p-4 relative min-h-[220px]">
+                            <div id="refundedTable-loading" class="hidden absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                                <div class="loader-spinner-lg mb-3"></div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Loading refunded interns...</p>
+                            </div>
+                            <table id="refundedTable" class="min-w-full">
+                                <thead class="bg-orange-100 dark:bg-orange-900/40">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Technology</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Supervisor</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Refunded On</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Refund</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-xs text-gray-800 dark:text-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php } ?>
             </main>
             <?php include_once "./include/footer.php"; ?>
         </div>
@@ -523,6 +568,16 @@ include_once "./include/headerLinks.php"; ?>
                         </button>`;
                         }
 
+                        // Resend hire email (login credentials + offer letter) - only for roles 1 or 4
+                        if (canDelete) {
+                            actionsHTML += `
+                        <button class="resend-hire-email text-sky-600 hover:text-sky-800 transition-colors" data-id="${u.id}" data-name="${u.name}" data-email="${u.email || ''}" title="Resend Login & Offer Letter Email">
+                            <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 7l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </button>`;
+                        }
+
                         // Refund button - only for roles 1 or 4, and only if internship_type == 1
                         if (canDelete && u.internship_type == 1) {
                             actionsHTML += `
@@ -569,9 +624,18 @@ include_once "./include/headerLinks.php"; ?>
                             curHTML = `<span class="text-[10px] text-gray-400">Not Started</span>`;
                         }
 
+                        // Delivery of the hire email (credentials + offer letter), from email_outbox.
+                        // No record means it was sent before tracking started.
+                        let nameHTML = u.name;
+                        if (['failed', 'bounced', 'resend_failed'].includes(u.hire_email_status)) {
+                            nameHTML += `<div class="mt-1"><span class="inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Hire email not delivered</span></div>`;
+                        } else if (u.hire_email_status === 'resent') {
+                            nameHTML += `<div class="mt-1"><span class="inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Hire email resent via Gmail</span></div>`;
+                        }
+
                         table.row.add([
                             u.id,
-                            u.name,
+                            nameHTML,
                             u.email || '<em class="text-gray-400">No email</em>',
                             u.tech_name ? `<span class="text-indigo-600 font-medium">${u.tech_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
                             u.supervisor_name ? `<span class="text-indigo-600 font-medium">${u.supervisor_name}</span>` : '<em class="text-gray-400">Not assigned</em>',
@@ -914,12 +978,48 @@ include_once "./include/headerLinks.php"; ?>
                 }
             });
 
+            // Resend hire email (login credentials + offer letter)
+            document.addEventListener('click', async e => {
+                const resendBtn = e.target.closest('.resend-hire-email');
+                if (!resendBtn) return;
+                if (!resendBtn.dataset.email) {
+                    showToast('error', 'This intern has no email address.');
+                    return;
+                }
+                if (!confirm(`Send the login credentials and offer letter again to ${resendBtn.dataset.name} (${resendBtn.dataset.email})?`)) {
+                    return;
+                }
+
+                const originalHTML = resendBtn.innerHTML;
+                resendBtn.innerHTML = '<span class="refund-loader"></span>';
+                resendBtn.classList.add('btn-disabled');
+
+                try {
+                    const res = await fetch('controller/user.php', {
+                        method: 'POST',
+                        body: new URLSearchParams({
+                            action: 'resend_hire_email',
+                            id: resendBtn.dataset.id
+                        })
+                    });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) await loadInternees();
+                } catch (error) {
+                    showToast('error', 'Network error. Please try again.');
+                    console.error('Resend hire email error:', error);
+                } finally {
+                    resendBtn.innerHTML = originalHTML;
+                    resendBtn.classList.remove('btn-disabled');
+                }
+            });
+
             // Approve Certificate from table with loading state
             document.addEventListener('click', async function(e) {
                 const approveBtn = e.target.closest('.approve-certificate');
                 if (approveBtn && approveBtn.dataset.approved !== "true") {
                     const internId = approveBtn.dataset.id;
-                    const internName = approveBtn.closest('tr').querySelector('td:nth-child(2)').textContent;
+                    const internName = approveBtn.closest('tr').querySelector('td:nth-child(2)').childNodes[0].textContent.trim();
 
                     if (!confirm(`Approve certificate for ${internName}?`)) {
                         return;
@@ -969,6 +1069,115 @@ include_once "./include/headerLinks.php"; ?>
                     input.type = 'password';
                     open.classList.remove('hidden');
                     closed.classList.add('hidden');
+                }
+            });
+
+            // Active / Refunded tabs (Admin and Manager only)
+            let refundedTable = null;
+
+            function escapeHtml(str) {
+                return String(str ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+            }
+
+            async function loadRefundedInternees() {
+                if (!document.getElementById('refundedTable')) return;
+                if (!refundedTable) {
+                    refundedTable = $('#refundedTable').DataTable({
+                        ordering: false,
+                        pageLength: 10,
+                        language: {
+                            emptyTable: "No refunded interns",
+                            info: "Showing _START_ to _END_ of _TOTAL_ refunded interns",
+                            infoEmpty: "Showing 0 to 0 of 0 refunded interns",
+                            infoFiltered: "(filtered from _MAX_ total refunded interns)",
+                            zeroRecords: "No matching refunded interns found"
+                        }
+                    });
+                }
+                const loadingEl = document.getElementById('refundedTable-loading');
+                loadingEl?.classList.remove('hidden');
+                try {
+                    const res = await fetch('controller/user.php?action=get_refunded_internees');
+                    const json = await res.json();
+                    if (!json.success) {
+                        showToast('error', json.message || 'Failed to load refunded interns.');
+                        return;
+                    }
+                    refundedTable.clear();
+                    json.data.forEach(u => {
+                        const amount = u.refund_amount !== null ? Math.abs(parseInt(u.refund_amount)) : null;
+                        const refundCell = amount === null
+                            ? '<em class="text-gray-400">-</em>'
+                            : `<span class="text-orange-600 font-medium">${amount.toLocaleString()} PKR</span>`
+                                + (u.commission_holder ? `<div class="text-[10px] text-gray-400">from ${escapeHtml(u.commission_holder)}</div>` : '');
+                        refundedTable.row.add([
+                            u.id,
+                            escapeHtml(u.name),
+                            u.email ? escapeHtml(u.email) : '<em class="text-gray-400">No email</em>',
+                            u.tech_name ? `<span class="text-indigo-600 font-medium">${escapeHtml(u.tech_name)}</span>` : '<em class="text-gray-400">Not assigned</em>',
+                            u.supervisor_name ? `<span class="text-indigo-600 font-medium">${escapeHtml(u.supervisor_name)}</span>` : '<em class="text-gray-400">Not assigned</em>',
+                            u.refunded_at ? escapeHtml(u.refunded_at.substring(0, 10)) : '<em class="text-gray-400">-</em>',
+                            refundCell,
+                            `<button class="restore-refunded inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors" data-id="${u.id}" data-name="${escapeHtml(u.name)}" title="Restore & Reactivate">Restore</button>`
+                        ]);
+                    });
+                    refundedTable.draw(false);
+                } catch (err) {
+                    console.error('Failed to load refunded interns:', err);
+                    showToast('error', 'Failed to load refunded interns. Please refresh the page.');
+                } finally {
+                    loadingEl?.classList.add('hidden');
+                }
+            }
+
+            document.querySelectorAll('.intern-tab-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.preventDefault();
+                    document.querySelectorAll('.intern-tab-btn').forEach(b => {
+                        b.classList.remove('border-indigo-500', 'text-indigo-600');
+                        b.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    btn.classList.remove('border-transparent', 'text-gray-500');
+                    btn.classList.add('border-indigo-500', 'text-indigo-600');
+                    document.querySelectorAll('.intern-tab-panel').forEach(p => p.classList.add('hidden'));
+                    document.getElementById(btn.dataset.target).classList.remove('hidden');
+                    if (btn.dataset.target === 'refunded-interns-panel') {
+                        loadRefundedInternees();
+                    }
+                });
+            });
+
+            // Restore a refunded intern
+            document.addEventListener('click', async e => {
+                const restoreBtn = e.target.closest('.restore-refunded');
+                if (!restoreBtn) return;
+                if (!confirm(`Restore ${restoreBtn.dataset.name}? This reactivates their account and gives the refunded commission back to the supervisor/manager.`)) {
+                    return;
+                }
+
+                const originalHTML = restoreBtn.innerHTML;
+                restoreBtn.innerHTML = '<span class="refund-loader"></span>';
+                restoreBtn.classList.add('btn-disabled');
+
+                try {
+                    const res = await fetch('controller/user.php', {
+                        method: 'POST',
+                        body: new URLSearchParams({
+                            action: 'restore_refunded',
+                            id: restoreBtn.dataset.id
+                        })
+                    });
+                    const json = await res.json();
+                    showToast(json.success ? 'success' : 'error', json.message);
+                    if (json.success) {
+                        await Promise.all([loadRefundedInternees(), loadInternees()]);
+                    }
+                } catch (error) {
+                    showToast('error', 'Network error. Please try again.');
+                    console.error('Restore error:', error);
+                } finally {
+                    restoreBtn.innerHTML = originalHTML;
+                    restoreBtn.classList.remove('btn-disabled');
                 }
             });
 

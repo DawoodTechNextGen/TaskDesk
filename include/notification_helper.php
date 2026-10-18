@@ -5,105 +5,48 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/connection.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../controller/PdfwhatsappApi.php';
 
 /**
- * Centralized notification function with 3-tier fallback:
- * 1. WhatsApp (if number provided)
- * 2. Server Email (Primary)
- * 3. Gmail (Fallback)
+ * Centralized notification function with 2-tier fallback:
+ * 1. Server Email (Primary)
+ * 2. Gmail (Fallback)
+ *
+ * WhatsApp is switched off for now: its API has been answering with HTTP 301
+ * since March and the file endpoint is not configured, so every attempt only
+ * added a 30s timeout. 'mbl_number' and 'whatsapp_msg' are still accepted so
+ * callers don't need to change when it comes back. A primary send that the
+ * relay rejects later is retried through Gmail by cron_process_bounces.php.
+ * Pass 'gmail_first' => true to try Gmail before the primary server.
  */
 function sendNotificationFallback($params) {
     $toEmail = $params['email'] ?? '';
     $toName = $params['name'] ?? '';
-    $toMbl = $params['mbl_number'] ?? '';
     $subject = $params['subject'] ?? 'DawoodTech NextGen';
-    $message = $params['message'] ?? '';
     $htmlContent = $params['html_content'] ?? '';
     $pdfContent = $params['pdf_content'] ?? null;
     $pdfFileName = $params['pdf_filename'] ?? 'document.pdf';
-    $whatsappMsg = $params['whatsapp_msg'] ?? $message;
 
     $results = [
-        'whatsapp' => ['attempted' => false, 'success' => false],
         'primary_email' => ['attempted' => false, 'success' => false],
         'gmail_email' => ['attempted' => false, 'success' => false],
         'final_success' => false,
         'error_logs' => []
     ];
 
-    // 1. Try WhatsApp
-    if (!empty($toMbl)) {
-        $results['whatsapp']['attempted'] = true;
-        if ($pdfContent) {
-            // WhatsApp with file requires a public URL
-            $tempDir = dirname(__DIR__) . '/temp';
-            if (!is_dir($tempDir)) {
-                if (!mkdir($tempDir, 0777, true)) {
-                     $results['error_logs'][] = "Failed to create temp directory: $tempDir";
-                }
-            }
-            
-            $tempFileName = 'tmp_' . time() . '_' . uniqid() . '.pdf';
-            $tempFile = $tempDir . '/' . $tempFileName;
-            
-            if (file_put_contents($tempFile, $pdfContent)) {
-                // Ensure BASE_URL has trailing slash
-                $baseUrlNormalized = rtrim(BASE_URL, '/') . '/';
-                $publicFileUrl = $baseUrlNormalized . 'temp/' . $tempFileName;
-                
-                error_log("Attempting WhatsApp File. BASE_URL: " . BASE_URL . " | Normalized: " . $baseUrlNormalized);
-                error_log("Public File URL: " . $publicFileUrl);
-                
-                $res = whatsappFileApi($toMbl, $publicFileUrl, $pdfFileName, $whatsappMsg);
-                
-                if ($res['success']) {
-                    $results['whatsapp']['success'] = true;
-                    $results['final_success'] = true;
-                } else {
-                    $results['error_logs'][] = "WhatsApp File failed: " . ($res['message'] ?? 'Unknown error');
-                }
-            } else {
-                $results['error_logs'][] = "Failed to write temp file: $tempFile";
-            }
-        } else {
-            $res = whatsappApi($toMbl, $whatsappMsg);
-            if ($res['success']) {
-                $results['whatsapp']['success'] = true;
-                $results['final_success'] = true;
-            } else {
-                $results['error_logs'][] = "WhatsApp Text failed: " . ($res['message'] ?? 'Unknown error');
-            }
-        }
-    }
-
-    // 2. Fallback to Primary Email
-    if (!$results['final_success']) {
-        $results['primary_email']['attempted'] = true;
-        error_log("Attempting Primary Email Fallback to: $toEmail");
-        if (sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, 'primary')) {
-            $results['primary_email']['success'] = true;
+    // Primary first, then Gmail. 'gmail_first' swaps the order, for a resend to
+    // an address the primary relay already bounced.
+    $order = !empty($params['gmail_first']) ? ['gmail', 'primary'] : ['primary', 'gmail'];
+    foreach ($order as $type) {
+        $key = $type === 'primary' ? 'primary_email' : 'gmail_email';
+        $label = $type === 'primary' ? 'Primary' : 'Gmail';
+        $results[$key]['attempted'] = true;
+        error_log("Attempting $label Email to: $toEmail");
+        if (sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, $type)) {
+            $results[$key]['success'] = true;
             $results['final_success'] = true;
-        } else {
-            $results['error_logs'][] = "Primary Email failed. Check error_log for SMTP details.";
+            break;
         }
-    }
-
-    // 3. Fallback to Gmail
-    if (!$results['final_success']) {
-        $results['gmail_email']['attempted'] = true;
-        error_log("Attempting Gmail Email Fallback to: $toEmail");
-        if (sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, 'gmail')) {
-            $results['gmail_email']['success'] = true;
-            $results['final_success'] = true;
-        } else {
-            $results['error_logs'][] = "Gmail Fallback failed. Check error_log for SMTP details.";
-        }
-    }
-
-    // 4. Final Cleanup (if temp file was created)
-    if (isset($tempFile) && file_exists($tempFile)) {
-        unlink($tempFile);
+        $results['error_logs'][] = "$label Email failed. Check error_log for SMTP details.";
     }
 
     return $results;
@@ -111,8 +54,8 @@ function sendNotificationFallback($params) {
 
 /**
  * Same as sendNotificationFallback(), but the send happens after the JSON
- * response has already reached the browser. WhatsApp (30s timeout) plus two
- * SMTP attempts (10s each) used to keep the admin's request - and, through the
+ * response has already reached the browser. Two SMTP attempts (10s each)
+ * used to keep the admin's request - and, through the
  * session lock, every other request of theirs - waiting on the network.
  */
 function queueNotification($params) {
@@ -201,6 +144,12 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
 
     if (!emailDomainCanReceive($toEmail)) {
         error_log("Skipping email to $toEmail: domain does not exist or cannot receive mail.");
+        // Recorded once, on the Gmail attempt every caller makes after the
+        // primary one, so a mistyped address shows up as "not delivered".
+        if ($type === 'gmail') {
+            logEmailOutbox($toEmail, $toName, $subject, $htmlContent, null, $pdfFileName, $type,
+                ['sent' => false, 'message_id' => null, 'error' => 'Invalid email address: the domain does not exist or cannot receive mail']);
+        }
         return false;
     }
 
@@ -255,6 +204,39 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
         }
     }
 
+    $res = deliverEmailSMTP($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, $type);
+
+    // If successfully sent via primary SMTP, log it to the database
+    if ($res['sent'] && $type === 'primary' && isset($conn) && $conn) {
+        try {
+            $sender = MAIL_USERNAME;
+            $stmtInsert = $conn->prepare("INSERT INTO email_sent_logs (sender_email) VALUES (?)");
+            if ($stmtInsert) {
+                $stmtInsert->bind_param('s', $sender);
+                $stmtInsert->execute();
+                $stmtInsert->close();
+            } else {
+                error_log("Database Error: Failed to prepare INSERT stmt for sent email log: " . $conn->error);
+            }
+        } catch (Exception $e) {
+            error_log("Database Exception logging sent email: " . $e->getMessage());
+        }
+    }
+
+    // A failed primary send is not recorded: every caller retries it through
+    // Gmail straight away, and that attempt is the one that counts.
+    if ($res['sent'] || $type === 'gmail') {
+        logEmailOutbox($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, $type, $res);
+    }
+
+    return $res['sent'];
+}
+
+/**
+ * Sends one email over the given SMTP account without any logging or limits.
+ * Returns ['sent' => bool, 'message_id' => string|null, 'error' => string|null].
+ */
+function deliverEmailSMTP($toEmail, $toName, $subject, $htmlContent, $pdfContent = null, $pdfFileName = 'Offer_Letter.pdf', $type = 'primary') {
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
@@ -307,27 +289,86 @@ function sendEmailPHPMailer($toEmail, $toName, $subject, $htmlContent, $pdfConte
         }
 
         $sent = $mail->send();
-
-        // If successfully sent via primary SMTP, log it to the database
-        if ($sent && $type === 'primary' && isset($conn) && $conn) {
-            try {
-                $sender = MAIL_USERNAME;
-                $stmtInsert = $conn->prepare("INSERT INTO email_sent_logs (sender_email) VALUES (?)");
-                if ($stmtInsert) {
-                    $stmtInsert->bind_param('s', $sender);
-                    $stmtInsert->execute();
-                    $stmtInsert->close();
-                } else {
-                    error_log("Database Error: Failed to prepare INSERT stmt for sent email log: " . $conn->error);
-                }
-            } catch (Exception $e) {
-                error_log("Database Exception logging sent email: " . $e->getMessage());
-            }
-        }
-
-        return $sent;
+        return ['sent' => (bool)$sent, 'message_id' => $mail->getLastMessageID() ?: null, 'error' => null];
     } catch (Exception $e) {
         error_log("$type Email PHPMailer Error: " . $mail->ErrorInfo);
+        return ['sent' => false, 'message_id' => null, 'error' => $mail->ErrorInfo];
+    }
+}
+
+/**
+ * The relay (MailBaby) can accept a primary send and reject it minutes later,
+ * e.g. "550 classified as rSPAM". That rejection only comes back as a bounce
+ * to no-reply@, so primary sends keep their content here for
+ * cron_process_bounces.php to resend through Gmail. Gmail sends and failures
+ * keep only the metadata.
+ */
+function ensureEmailOutboxTable($conn) {
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $conn->query("CREATE TABLE IF NOT EXISTS `email_outbox` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `recipient_email` VARCHAR(255) NOT NULL,
+        `recipient_name` VARCHAR(255) NULL,
+        `subject` VARCHAR(255) NOT NULL,
+        `html_content` MEDIUMTEXT NULL,
+        `attachment` MEDIUMBLOB NULL,
+        `attachment_name` VARCHAR(255) NULL,
+        `transport` ENUM('primary','gmail') NOT NULL,
+        `message_id` VARCHAR(255) NULL,
+        `status` ENUM('sent','failed','bounced','resent','resend_failed') NOT NULL,
+        `error` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        KEY `idx_message_id` (`message_id`),
+        KEY `idx_recipient_created` (`recipient_email`, `created_at`),
+        KEY `idx_status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $done = true;
+}
+
+/**
+ * True when the latest logged email with one of these subjects to this address
+ * bounced or failed, so a resend should go through Gmail first.
+ */
+function lastEmailUndelivered($conn, $toEmail, array $subjects) {
+    try {
+        ensureEmailOutboxTable($conn);
+        $placeholders = implode(',', array_fill(0, count($subjects), '?'));
+        $stmt = $conn->prepare("SELECT status FROM email_outbox WHERE recipient_email = ? AND subject IN ($placeholders) ORDER BY id DESC LIMIT 1");
+        $stmt->bind_param(str_repeat('s', count($subjects) + 1), $toEmail, ...$subjects);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row && in_array($row['status'], ['failed', 'bounced', 'resend_failed'], true);
+    } catch (Throwable $e) {
+        error_log("lastEmailUndelivered: " . $e->getMessage());
         return false;
+    }
+}
+
+function logEmailOutbox($toEmail, $toName, $subject, $htmlContent, $pdfContent, $pdfFileName, $type, $res) {
+    global $conn;
+    if (!isset($conn) || !$conn) {
+        return;
+    }
+    try {
+        ensureEmailOutboxTable($conn);
+        $keepContent = $res['sent'] && $type === 'primary';
+        $html = $keepContent ? $htmlContent : null;
+        $pdf = $keepContent && $pdfContent ? $pdfContent : null;
+        $pdfName = $pdf !== null ? $pdfFileName : null;
+        $status = $res['sent'] ? 'sent' : 'failed';
+        $subject = mb_substr($subject, 0, 255);
+        $stmt = $conn->prepare("INSERT INTO email_outbox
+            (recipient_email, recipient_name, subject, html_content, attachment, attachment_name, transport, message_id, status, error)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssssssssss', $toEmail, $toName, $subject, $html, $pdf, $pdfName, $type, $res['message_id'], $status, $res['error']);
+        $stmt->execute();
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log("Database Exception logging email_outbox: " . $e->getMessage());
     }
 }

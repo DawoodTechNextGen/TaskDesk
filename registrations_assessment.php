@@ -63,6 +63,10 @@ include_once "./include/headerLinks.php"; ?>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" data-result="pass">Pass</button>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200" data-result="fail">Fail</button>
                     <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-red-700 dark:text-red-300" data-result="email_failed" title="Candidates whose assessment email bounced or could not be sent">Email Not Delivered</button>
+                    <button id="copyShownBtn" type="button" class="hidden ml-auto px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md items-center gap-2" title="Copy name, technology and contact of the candidates shown below">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <span id="copyShownLabel">Copy</span>
+                    </button>
                 </div>
 
                 <div class="bg-white mb-4 dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
@@ -326,7 +330,46 @@ include_once "./include/headerLinks.php"; ?>
                 $('.filter-btn').removeClass('active');
                 $(this).addClass('active');
                 currentResult = $(this).data('result') || '';
+                $('#copyShownBtn').toggleClass('hidden', !['pass', 'fail'].includes(currentResult)).toggleClass('inline-flex', ['pass', 'fail'].includes(currentResult));
                 table.ajax.reload();
+            });
+
+            // Copy - the Pass/Fail rows on the current page (follows the "Show N entries"
+            // length, search and paging), as "Name | Technology | Contact" lines.
+            function updateCopyLabel() {
+                const n = table.rows({ page: 'current' }).count();
+                $('#copyShownLabel').text(`Copy ${n} ${n === 1 ? 'candidate' : 'candidates'}`);
+            }
+            table.on('draw', updateCopyLabel);
+
+            async function copyText(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return;
+                }
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+            }
+
+            $('#copyShownBtn').on('click', async function() {
+                const rows = table.rows({ page: 'current' }).data().toArray();
+                if (!rows.length) {
+                    showToast('error', 'Nothing to copy.');
+                    return;
+                }
+                const text = rows.map(r => [r.name, r.technology || '-', r.mbl_number || '-'].map(v => String(v).trim()).join(' | ')).join('\n');
+                try {
+                    await copyText(text);
+                    showToast('success', `Copied ${rows.length} ${rows.length === 1 ? 'candidate' : 'candidates'}.`);
+                } catch (e) {
+                    showToast('error', 'Could not copy: ' + e.message);
+                }
             });
 
             $('#assessmentTable tbody').on('click', 'td.details-control', function() {

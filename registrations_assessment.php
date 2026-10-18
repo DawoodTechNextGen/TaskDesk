@@ -28,7 +28,8 @@ include_once "./include/headerLinks.php"; ?>
     .expand-icon .vertical { height: 100%; width: 1.5px; left: 50%; top: 0; transform: translateX(-50%); }
     tr.shown .expand-icon { transform: rotate(45deg); }
     .details-wrapper { display: none; overflow: hidden; }
-    .filter-btn.active { background-color: #4f46e5; color: #fff; }
+    /* !important: the buttons' own Tailwind bg/text classes otherwise win and the active filter looks like the rest */
+    .filter-btn.active { background-color: #4f46e5 !important; color: #fff !important; }
 </style>
 
 <body class="bg-gray-50 dark:bg-gray-900 transition-colors">

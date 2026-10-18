@@ -26,6 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location:'.BASE_URL.'login.php');
                 exit;
             }
+            // Refunded interns are deactivated (status 0)
+            if ((int)$user['user_role'] === ROLE_INTERN && (int)$user['status'] !== 1) {
+                $_SESSION['error'] = 'Your internship account is inactive. Please contact the admin.';
+                header('Location:'.BASE_URL.'login.php');
+                exit;
+            }
             $stmtTech = $conn->prepare("SELECT t.name,c.approve_status as approve_status FROM technologies t LEFT JOIN certificate c on c.intern_id = ? WHERE t.id = ?");
             $stmtTech->bind_param('ii',$user['id'], $user['tech_id']);
             $stmtTech->execute();

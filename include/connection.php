@@ -102,6 +102,29 @@ if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_C
     }
 }
 
+// A refunded intern is deactivated (status 0). Re-checked on every request so
+// one who is already logged in is signed out as soon as the refund is done.
+if (isset($_SESSION['user_id']) && (int)($_SESSION['user_role'] ?? 0) === ROLE_INTERN) {
+    $internStmt = $conn->prepare("SELECT status FROM users WHERE id = ? AND user_role = ? LIMIT 1");
+    $internId = (int)$_SESSION['user_id'];
+    $internRole = ROLE_INTERN;
+    $internStmt->bind_param('ii', $internId, $internRole);
+    $internStmt->execute();
+    $internRow = $internStmt->get_result()->fetch_assoc();
+    $internStmt->close();
+    if (!$internRow || (int)$internRow['status'] !== 1) {
+        session_unset();
+        session_destroy();
+        if (strpos($_SERVER['SCRIPT_NAME'] ?? '', '/controller/') !== false) {
+            denyJson('Your internship account is inactive.');
+        }
+        session_start();
+        $_SESSION['error'] = 'Your internship account is inactive. Please contact the admin.';
+        header('Location: ' . BASE_URL . 'login.php');
+        exit;
+    }
+}
+
 // A Campus Ambassador (see include/ambassador_helper.php) can only see their own
 // referral dashboard. Same whitelist idea as the Candidate lock above. The
 // account's status is re-checked on every request so an Admin deactivating an

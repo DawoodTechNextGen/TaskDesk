@@ -4,6 +4,12 @@
  * Run this daily via cron to automatically resume frozen internships after freeze period ends
  * Cron: 0 0 * * * php /path/to/auto-resume-freeze.php
  */
+// Cron-only: a web request must not be able to run this (it changes live data)
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 
 
 require_once __DIR__ . "/include/connection.php";

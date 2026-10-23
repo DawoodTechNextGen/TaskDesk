@@ -11,3 +11,15 @@
 <IfModule mod_php7.c>
     php_value session.gc_maxlifetime 7200
 </IfModule>
+
+# No directory listings anywhere (backups/ and uploads/ used to be browsable).
+Options -Indexes
+
+# Never served over the web: database dumps and SQL files, leftover temp
+# files, and the candidates' proctoring webcam photos (those are only read
+# server-side, into the assessment report PDF).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(backups|database|temp)(/|$) - [F,L]
+    RewriteRule ^uploads/assessment_captures(/|$) - [F,L]
+</IfModule>

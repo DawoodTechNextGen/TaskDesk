@@ -7,6 +7,12 @@
  * 
  * Run manually: php C:\xampp\htdocs\TaskDesk\backup_db.php
  */
+// Cron-only: a web request must not be able to run this (it changes live data)
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 
 // Load config (works from CLI too)
 define('CLI_MODE', php_sapi_name() === 'cli');
@@ -57,6 +63,13 @@ $gzipFile   = $backupFile . '.gz';
 // Create backups directory if not exists
 if (!is_dir($backupDir)) {
     mkdir($backupDir, 0755, true);
+}
+// The folder sits inside the web root: full database dumps must never be
+// listed or downloadable from a browser.
+$htaccess = $backupDir . '/.htaccess';
+$denyRules = "Options -Indexes\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order allow,deny\n    Deny from all\n</IfModule>\n";
+if (!is_file($htaccess) || file_get_contents($htaccess) !== $denyRules) {
+    file_put_contents($htaccess, $denyRules);
 }
 
 // Auto-detect OS and set mysqldump path
